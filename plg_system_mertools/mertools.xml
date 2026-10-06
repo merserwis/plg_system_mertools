@@ -6,7 +6,7 @@
     <creationDate>2026-10-06</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -15,6 +15,10 @@
         <folder>language</folder>
         <filename>script.php</filename>
     </files>
+    <media folder="media" destination="plg_system_mertools">
+        <folder>js</folder>
+        <folder>css</folder>
+    </media>
     <scriptfile>script.php</scriptfile>
     <languages folder="language">
         <language tag="en-GB">en-GB/plg_system_mertools.ini</language>
@@ -42,6 +46,77 @@
                     <option value="302">PLG_SYSTEM_MERTOOLS_URL_CODE_302</option>
                 </field>
                 <field name="url_cf_note" type="note" class="alert alert-warning" description="PLG_SYSTEM_MERTOOLS_URL_CF_NOTE" />
+            </fieldset>
+
+            <!-- ============================================================ Dark mode -->
+            <fieldset name="dark" label="PLG_SYSTEM_MERTOOLS_FIELDSET_DARK">
+                <field name="dark_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_DARK_NOTE" />
+                <field name="dark_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_ENABLED_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_ENABLED_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="dark_palette" type="list" default="slate" showon="dark_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_PALETTE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_PALETTE_DESC">
+                    <option value="slate">PLG_SYSTEM_MERTOOLS_DARK_PAL_SLATE</option>
+                    <option value="charcoal">PLG_SYSTEM_MERTOOLS_DARK_PAL_CHARCOAL</option>
+                    <option value="midnight">PLG_SYSTEM_MERTOOLS_DARK_PAL_MIDNIGHT</option>
+                    <option value="warm">PLG_SYSTEM_MERTOOLS_DARK_PAL_WARM</option>
+                    <option value="dim">PLG_SYSTEM_MERTOOLS_DARK_PAL_DIM</option>
+                    <option value="custom">PLG_SYSTEM_MERTOOLS_DARK_PAL_CUSTOM</option>
+                </field>
+                <field name="dark_default" type="list" default="auto" showon="dark_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_DESC">
+                    <option value="auto">PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_AUTO</option>
+                    <option value="light">PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_LIGHT</option>
+                    <option value="dark">PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_DARK</option>
+                </field>
+
+                <field name="dark_accent_site" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_ACCENT_SITE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_ACCENT_SITE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="dark_accent" type="color" default="#34dca2" showon="dark_enabled:1[AND]dark_accent_site:0"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_ACCENT_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_ACCENT_DESC" />
+
+                <field name="dark_toggle" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_TOGGLE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_TOGGLE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="dark_toggle_place" type="list" default="auto" showon="dark_enabled:1[AND]dark_toggle:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_PLACE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_PLACE_DESC">
+                    <option value="auto">PLG_SYSTEM_MERTOOLS_DARK_PLACE_AUTO</option>
+                    <option value="start">PLG_SYSTEM_MERTOOLS_DARK_PLACE_START</option>
+                    <option value="end">PLG_SYSTEM_MERTOOLS_DARK_PLACE_END</option>
+                    <option value="float">PLG_SYSTEM_MERTOOLS_DARK_PLACE_FLOAT</option>
+                </field>
+                <field name="dark_header_selector" type="text" default="header.header" showon="dark_enabled:1[AND]dark_toggle:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_SELECTOR_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_SELECTOR_DESC" />
+
+                <field name="dark_transition" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_TRANSITION_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_TRANSITION_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="dark_dim_media" type="radio" layout="joomla.form.field.radio.switcher" default="0" showon="dark_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_DIMMEDIA_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_DIMMEDIA_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+
+                <field name="dark_custom_spacer" type="spacer" hr="true" showon="dark_enabled:1[AND]dark_palette:custom" />
+                <field name="dark_custom_note" type="note" class="alert alert-info" showon="dark_enabled:1[AND]dark_palette:custom" description="PLG_SYSTEM_MERTOOLS_DARK_CUSTOM_NOTE" />
+                <field name="dark_c_bg" type="color" default="#1b2230" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_BG" />
+                <field name="dark_c_surface" type="color" default="#232c3d" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_SURFACE" />
+                <field name="dark_c_bg_dark" type="color" default="#10151f" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_BGDARK" />
+                <field name="dark_c_title" type="color" default="#e8ecf3" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_TITLE" />
+                <field name="dark_c_text" type="color" default="#c3cbd9" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_TEXT" />
+                <field name="dark_c_muted" type="text" default="rgba(232,236,243,.45)" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_MUTED" description="PLG_SYSTEM_MERTOOLS_DARK_C_MUTED_DESC" />
+                <field name="dark_c_border" type="color" default="#333e52" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_BORDER" />
+                <field name="dark_c_hover" type="color" default="#2a3447" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_HOVER" />
+                <field name="dark_c_shadow" type="text" default="rgba(0,0,0,.5)" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_SHADOW" description="PLG_SYSTEM_MERTOOLS_DARK_C_SHADOW_DESC" />
             </fieldset>
         </fields>
     </config>

@@ -51,6 +51,20 @@ Test by opening `https://your-site/////oferta` — it should return a **301** to
 
 How it works: `raw.http.request.uri` is the original address the visitor sent; `http.request.uri` is the address after Cloudflare's normalization (single slashes). When they differ, the rule sends a 301 to the clean one. A clean address has nothing to normalize, so the two are equal and no redirect loop happens.
 
+### 🌙 Dark mode
+
+An elegant dark theme for the whole front-end, with a toggle button in the header. It is built from Gridbox's own CSS colour variables (which the theme sets on `html body`), so overriding them for a dark palette flips the whole site cleanly — nothing is inverted, so brand colours and images stay intact. The palettes are soft dark greys and blues, **never a harsh pure black**, so they are easy on the eyes.
+
+- **Palettes:** Slate (default), Charcoal, Midnight, Warm, Dim, or Custom (every colour set by hand).
+- **Accent as in Gridbox:** keep the site's brand accent in dark mode, or choose another.
+- **Default for new visitors:** Automatic (follows the visitor's system setting), Light or Dark. A remembered choice always wins, and the theme is applied before the first paint (no flash).
+- **Toggle button:** placed in the header next to the menu (or start/end of the header, or a floating button — best for mobile). The header selector can be changed for other templates.
+- **Options:** smooth cross-fade on switch; optionally dim bright photos in dark mode.
+
+How it works: the toggle sets `data-mertools-theme="dark"` on `<html>`; the plugin's CSS then redefines the Gridbox variables (`--bg-primary`, `--text`, `--title`, `--border`, …) for that state at a higher specificity (`html[data-mertools-theme="dark"] body`). The choice is kept in `localStorage`. The Gridbox core files are not touched.
+
+**Settings:** tab *Dark mode*.
+
 ## Installation
 
 1. Download `pkg_mertools-<version>.zip` from [Releases](https://github.com/merserwis/plg_system_mertools/releases).

@@ -6,12 +6,12 @@
         <element>pkg_mertools</element>
         <type>package</type>
         <client>site</client>
-        <version>0.0.1</version>
+        <version>0.0.2</version>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
-            <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.1/pkg_mertools-0.0.1.zip</downloadurl>
+            <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.2/pkg_mertools-0.0.2.zip</downloadurl>
         </downloads>
-        <sha256>e98e19867f95d3e7f4f2dabe881c62c5da262699f4a60656f3787d086d755a17</sha256>
+        <sha256>0c7d150fefbc043613dd8f7023f26071cb81bd52c14eff373214acef63baa512</sha256>
         <tags>
             <tag>stable</tag>
         </tags>
