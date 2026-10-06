@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="plugin" group="system" method="upgrade">
+    <name>plg_system_mertools</name>
+    <author>Merserwis</author>
+    <authorUrl>https://github.com/merserwis/</authorUrl>
+    <creationDate>2026-10-06</creationDate>
+    <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
+    <license>GNU General Public License version 3</license>
+    <version>0.0.1</version>
+    <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
+    <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
+    <files>
+        <folder plugin="mertools">services</folder>
+        <folder>src</folder>
+        <folder>language</folder>
+        <filename>script.php</filename>
+    </files>
+    <scriptfile>script.php</scriptfile>
+    <languages folder="language">
+        <language tag="en-GB">en-GB/plg_system_mertools.ini</language>
+        <language tag="en-GB">en-GB/plg_system_mertools.sys.ini</language>
+        <language tag="pl-PL">pl-PL/plg_system_mertools.ini</language>
+        <language tag="pl-PL">pl-PL/plg_system_mertools.sys.ini</language>
+    </languages>
+    <config>
+        <fields name="params">
+            <fieldset name="basic">
+                <field name="intro_note" type="note" class="alert alert-info" label="PLG_SYSTEM_MERTOOLS_INTRO_LABEL" description="PLG_SYSTEM_MERTOOLS_INTRO_DESC" />
+            </fieldset>
+
+            <!-- ============================================================ Canonical URL -->
+            <fieldset name="url" label="PLG_SYSTEM_MERTOOLS_FIELDSET_URL">
+                <field name="url_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_URL_NOTE" />
+                <field name="url_collapse_slashes" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_URL_COLLAPSE_LABEL" description="PLG_SYSTEM_MERTOOLS_URL_COLLAPSE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="url_redirect_code" type="list" default="301" showon="url_collapse_slashes:1"
+                    label="PLG_SYSTEM_MERTOOLS_URL_CODE_LABEL" description="PLG_SYSTEM_MERTOOLS_URL_CODE_DESC">
+                    <option value="301">PLG_SYSTEM_MERTOOLS_URL_CODE_301</option>
+                    <option value="302">PLG_SYSTEM_MERTOOLS_URL_CODE_302</option>
+                </field>
+            </fieldset>
+        </fields>
+    </config>
+</extension>
