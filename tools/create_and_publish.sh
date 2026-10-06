@@ -21,8 +21,9 @@ if [ "$code" = "404" ]; then
 else
   echo "repo exists (HTTP $code)"
 fi
-# 2. push main
+# 2. push main (ensure the branch is named main — git init may default to master)
 B=$(printf 'x-access-token:%s' "$T" | base64 -w0)
+git branch -M main
 git -c http.extraHeader="Authorization: Basic $B" push -u https://github.com/$R.git main:main 2>&1 | grep -v -i authorization | tail -2
 # 3. create the release with notes from the version's CHANGELOG section
 python3 -c "import json,re;body=re.search(r'^## $V .*?\n(.*?)(?=^## |\Z)',open('CHANGELOG.md',encoding='utf-8').read(),re.S|re.M);print(json.dumps({'tag_name':'v$V','target_commitish':'main','name':'$V','body':(body.group(1).strip() if body else '$V'),'draft':False,'prerelease':False}))" > /tmp/claude-1000/rel.json
