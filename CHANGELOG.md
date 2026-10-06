@@ -12,3 +12,4 @@ First version.
 - MerTools redirects every such address to the one clean address with single slashes (`//////oferta/mierniki` → `/oferta/mierniki`). Only the path is changed; the query string after `?` is left as it is, and the address always stays on this site.
 - Settings (tab *Canonical URL*): on/off and the redirect type (301 permanent, recommended, or 302 temporary).
 - Runs before routing, so it does not interfere with Gridbox's own routing. The Gridbox core files are not changed.
+- If the site is behind Cloudflare (or another CDN) that merges the slashes *before* they reach the server, PHP never sees them and the redirect cannot be done in the plugin; the settings panel and the README then give a step-by-step Cloudflare Redirect Rule for that case.

@@ -41,6 +41,7 @@
                     <option value="301">PLG_SYSTEM_MERTOOLS_URL_CODE_301</option>
                     <option value="302">PLG_SYSTEM_MERTOOLS_URL_CODE_302</option>
                 </field>
+                <field name="url_cf_note" type="note" class="alert alert-warning" description="PLG_SYSTEM_MERTOOLS_URL_CF_NOTE" />
             </fieldset>
         </fields>
     </config>
