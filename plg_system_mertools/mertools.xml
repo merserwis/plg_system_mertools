@@ -7,7 +7,7 @@
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
     <version>0.0.2 (Beta)</version>
-    <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
+    <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION (Beta)</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
         <folder plugin="mertools">services</folder>

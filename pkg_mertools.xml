@@ -8,7 +8,7 @@
     <authorUrl>https://github.com/merserwis/</authorUrl>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <description>MerTools for Gridbox: a system plugin with fixes and optimisations for Balbooa Gridbox that its own settings cannot do, plus an administrator menu entry for its settings. The Gridbox core files are never changed. Requires Joomla 6 with Balbooa Gridbox and PHP 8.2+ (tested with Joomla 6.1 and PHP 8.5).</description>
+    <description>MerTools for Gridbox (Beta): a system plugin with fixes and optimisations for Balbooa Gridbox that its own settings cannot do, plus an administrator menu entry for its settings. The Gridbox core files are never changed. Requires Joomla 6 with Balbooa Gridbox and PHP 8.2+ (tested with Joomla 6.1 and PHP 8.5).</description>
     <files folder="packages">
         <file type="plugin" id="mertools" group="system">plg_system_mertools.zip</file>
         <file type="component" id="com_mertools">com_mertools.zip</file>
