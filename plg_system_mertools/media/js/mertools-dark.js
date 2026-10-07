@@ -147,63 +147,102 @@
     return palette().own.some(function (o) { return near(o, c); });
   }
 
-  var mediaCache = new Map();
+  // ------------------------------------------------------------------ adaptation engine
+  //
+  // Speed: every pass reads first and writes afterwards (a write between two reads forces the
+  // browser to recompute styles each time), keeps what it read per element for the whole pass, and
+  // works out the colour behind a text once per element, from its parent (linear, not per text).
+  // The visible part of the page is done at once; the rest in small slices while the browser is idle.
 
-  /** Does a photo, video or image layer lie under the content of this element? Gridbox puts section
-   *  images in a separate absolutely positioned layer (.parallax-wrapper, slideshows, video), not in
-   *  the background of the text's ancestors. */
-  function mediaLayer(e, from) {
-    if (mediaCache.has(e)) return mediaCache.get(e);
-    var found = false, box = e.getBoundingClientRect(), area = box.width * box.height;
-    if (area > 0) {
-      for (var c = e.firstElementChild, n = 0; c && n < 12 && !found; c = c.nextElementSibling, n++) {
-        if (c === from) continue;
-        var cs = getComputedStyle(c);
-        if (cs.position !== 'absolute' && cs.position !== 'fixed' && c.tagName !== 'VIDEO') continue;
-        var r = c.getBoundingClientRect();
-        if (r.width * r.height < area * 0.5) continue;
-        found = c.tagName === 'IMG' || c.tagName === 'VIDEO' || c.tagName === 'PICTURE' || c.tagName === 'IFRAME'
-          || /url\(/.test(cs.backgroundImage)
-          || /video-background|parallax|slideshow/.test(typeof c.className === 'string' ? c.className : '')
-          || !!c.querySelector('img, video, picture, iframe, [style*="url("]')
-          || [].some.call(c.querySelectorAll('*'), function (d, i) { return i < 20 && /url\(/.test(getComputedStyle(d).backgroundImage); });
-      }
-    }
-    mediaCache.set(e, found);
-    return found;
+  var P = null; // the caches of the running pass
+
+  function newPass() {
+    P = { cs: new Map(), ps: new Map(), bd: new Map(), media: new Map() };
   }
 
-  /** The colour behind an element (after the fixes), or null when it is an image. */
-  function backdrop(el) {
-    var layers = [];
-    for (var e = el, prev = null; e && e.nodeType === 1; prev = e, e = e.parentElement) {
-      if (e !== el && e !== document.body && e !== root && mediaLayer(e, prev)) return null;
-      var cs = getComputedStyle(e), bi = cs.backgroundImage;
-      if (bi !== 'none' && (/url\(/.test(bi) || !/gradient/.test(bi))) return null;
-      // a gradient above the background colour: counted as its average colour
-      var g = bi !== 'none' ? gradientAverage(bi) : null;
-      if (g) {
-        layers.push(g);
-        if (g[3] >= 1) break;
+  function css(el) {
+    var c = P.cs.get(el);
+    if (!c) { c = getComputedStyle(el); P.cs.set(el, c); }
+    return c;
+  }
+
+  /** ::before / ::after of an element that have content: [[style, 0|1], …] (read once per pass). */
+  function pseudos(el) {
+    var v = P.ps.get(el);
+    if (v === undefined) {
+      v = [];
+      for (var i = 0; i < 2; i++) {
+        var s = getComputedStyle(el, i ? '::after' : '::before'), c = s.content;
+        if (c && c !== 'none' && c !== 'normal') v.push([s, i]);
       }
-      var c = parse(cs.backgroundColor);
-      if (c && c[3] > 0) {
-        layers.push(c);
-        if (c[3] >= 1) break;
-      }
+      P.ps.set(el, v);
     }
-    var b = palette().bg;
-    for (var i = layers.length - 1; i >= 0; i--) b = over(layers[i], b);
-    return b;
+    return v;
   }
 
   /** Text written by CSS (content: "…" on ::before / ::after), e.g. a cookie banner's message. */
   function pseudoText(el) {
-    for (var i = 0; i < 2; i++) {
-      var ps = getComputedStyle(el, i ? '::after' : '::before'), c = ps.content;
-      if (c && c !== 'none' && c !== 'normal' && /^["'].*[A-Za-z0-9\u00C0-\u024F\u0400-\u04FF].*["']$/.test(c)) return ps;
+    var v = pseudos(el);
+    for (var i = 0; i < v.length; i++) {
+      if (/^["'].*[A-Za-z0-9À-ɏЀ-ӿ].*["']$/.test(v[i][0].content)) return v[i][0];
     }
     return null;
+  }
+
+  /** Does a photo, video or image layer lie under the content of this element? Gridbox puts section
+   *  images in a separate absolutely positioned layer (.parallax-wrapper, slideshows, video), not in
+   *  the background of the text's ancestors. */
+  function mediaLayer(e) {
+    if (P.media.has(e)) return P.media.get(e);
+    var found = false, n = 0, c, box = null, area = 0;
+    for (c = e.firstElementChild; c && n < 12 && !found; c = c.nextElementSibling, n++) {
+      var cs = css(c);
+      if (cs.position !== 'absolute' && cs.position !== 'fixed' && c.tagName !== 'VIDEO') continue;
+      if (!box) { box = e.getBoundingClientRect(); area = box.width * box.height; if (!area) break; }
+      var r = c.getBoundingClientRect();
+      if (r.width * r.height < area * 0.5) continue;
+      found = c.tagName === 'IMG' || c.tagName === 'VIDEO' || c.tagName === 'PICTURE' || c.tagName === 'IFRAME'
+        || /url\(/.test(cs.backgroundImage)
+        || /video-background|parallax|slideshow/.test(typeof c.className === 'string' ? c.className : '')
+        || !!c.querySelector('img, video, picture, iframe, [style*="url("]')
+        || [].some.call(c.querySelectorAll('*'), function (d, i) { return i < 20 && /url\(/.test(css(d).backgroundImage); });
+    }
+    P.media.set(e, found);
+    return found;
+  }
+
+  /** The colour behind the content of an element (after the fixes), or null over an image. */
+  function bd(e) {
+    if (!e || e === root) return palette().bg;
+    if (P.bd.has(e)) return P.bd.get(e);
+    var res, cs = css(e), bi = cs.backgroundImage;
+    if (e.hasAttribute('data-mt-bgi')) bi = e.style.getPropertyValue('--mt-bgi') || bi;
+    if (bi !== 'none' && (/url\(/.test(bi) || !/gradient/.test(bi))) {
+      res = null;
+    } else if (e !== document.body && mediaLayer(e)) {
+      res = null;
+    } else {
+      // a gradient lies above the background colour; counted as its average colour
+      var stack = [], g = bi !== 'none' ? gradientAverage(bi) : null, k = -1, i;
+      var c = parse(e.hasAttribute('data-mt-bg') ? e.style.getPropertyValue('--mt-bg') : cs.backgroundColor);
+      if (g) stack.push(g);
+      if (c && c[3] > 0) stack.push(c);
+      for (i = 0; i < stack.length; i++) if (stack[i][3] >= 1) { k = i; break; }
+      if (k >= 0) {
+        res = stack[k];
+        for (i = k - 1; i >= 0; i--) res = over(stack[i], res);
+      } else {
+        res = e === document.body ? palette().bg : bd(e.parentElement);
+        if (res) for (i = stack.length - 1; i >= 0; i--) res = over(stack[i], res);
+      }
+    }
+    P.bd.set(e, res);
+    return res;
+  }
+
+  /** The colour behind an element's own text. */
+  function backdrop(el) {
+    return bd(el);
   }
 
   var COLOR_RE = /(?:rgba?|color|oklch|oklab|lch|lab|hsla?|hwb)\([^()]*\)/g;
@@ -226,14 +265,18 @@
     return nb;
   }
 
-  function ownText(el) {
-    if (FORM[el.tagName]) return true;
-    if (pseudoText(el)) return true;
+  function hasOwnText(el) {
     for (var n = el.firstChild; n; n = n.nextSibling) {
       if (n.nodeType === 3 && n.nodeValue.trim() !== '') return true;
     }
+    return false;
+  }
+
+  function ownText(el) {
+    if (FORM[el.tagName] || hasOwnText(el)) return true;
     // font icons (an <i> or <span> with an icon class and no text)
-    return (el.tagName === 'I' || el.tagName === 'SPAN') && !el.firstElementChild && /icon|zmdi|fa-|flaticon|ba-icon/.test(el.className || '');
+    if ((el.tagName === 'I' || el.tagName === 'SPAN') && !el.firstElementChild && /icon|zmdi|fa-|flaticon|ba-icon/.test(el.className || '')) return true;
+    return !!pseudoText(el);
   }
 
   /** A button or a link styled as one (not a badge, not a large coloured block). */
@@ -246,43 +289,45 @@
       && (el.textContent || el.value || '').trim().length >= 2;
   }
 
-  /** Bright brand-coloured buttons (e.g. orange "Get the offer"): kept, softened, or drawn as the other
-   *  adapted buttons — the dark background of the palette with a ring in their own colour. */
-  function fixVividButton(el, cs, r) {
-    var mode = cfg.vivid || 'outline';
-    if (mode === 'keep') return false;
-    var c = parse(cs.backgroundColor);
-    if (!c || c[3] < 0.6) return false;
-    var l = lum(c);
-    if (!(sat(c) > 0.45 && l > 0.06 && l < 0.8) || !isButton(el, r)) return false;
-    var p = palette();
-    if (mode === 'soft') {
-      var soft = mix(c, p.surface, 0.3);
-      soft[3] = c[3];
-      el.style.setProperty('--mt-bg', rgb(soft));
-    } else {
-      el.style.setProperty('--mt-bg', rgb(p.surface));
-      el.style.setProperty('--mt-ring', rgb(c));
-      el.setAttribute('data-mt-ring', '');
+  // A decision is [element, {property: value}, [attributes]]; decisions are written after the reads.
+  function write(list) {
+    for (var i = 0; i < list.length; i++) {
+      var el = list[i][0], props = list[i][1], attrs = list[i][2], k;
+      for (k in props) el.style.setProperty(k, props[k]);
+      for (k = 0; k < attrs.length; k++) el.setAttribute(attrs[k], '');
     }
-    el.setAttribute('data-mt-bg', '');
-    return true;
   }
 
-  function fixBackground(el, cs) {
+  /** Background decisions: bright buttons, light backgrounds, light colours of gradients. */
+  function decideBackground(el, cs, out) {
     var bi = cs.backgroundImage;
     if (bi !== 'none' && (/url\(/.test(bi) || !/gradient/.test(bi))) return;
-    var rect = el.getBoundingClientRect();
-    if (bi === 'none' && fixVividButton(el, cs, rect)) return;
-    var wide = rect.width >= window.innerWidth * 0.9;
-    // dark and mid colours stay; vivid brand colours (buttons, badges) stay
-    var nb = darker(parse(cs.backgroundColor) || [0, 0, 0, 0], wide);
-    if (nb) {
-      el.style.setProperty('--mt-bg', rgb(nb));
-      el.setAttribute('data-mt-bg', '');
+    var c = parse(cs.backgroundColor), rect = null, p;
+    // bright brand-coloured buttons: kept, softened, or drawn like the other adapted buttons
+    if (bi === 'none' && c && c[3] >= 0.6 && (cfg.vivid || 'outline') !== 'keep') {
+      var l = lum(c);
+      if (sat(c) > 0.45 && l > 0.06 && l < 0.8) {
+        rect = el.getBoundingClientRect();
+        if (isButton(el, rect)) {
+          p = palette();
+          if (cfg.vivid === 'soft') {
+            var soft = mix(c, p.surface, 0.3);
+            soft[3] = c[3];
+            out.push([el, { '--mt-bg': rgb(soft) }, ['data-mt-bg']]);
+          } else {
+            out.push([el, { '--mt-bg': rgb(p.surface), '--mt-ring': rgb(c) }, ['data-mt-bg', 'data-mt-ring']]);
+          }
+          return;
+        }
+      }
     }
-    // a gradient (e.g. a light footer fading to grey): its light colours darkened the same way
-    if (bi !== 'none') {
+    var light = c && darker(c, false);
+    var grad = bi !== 'none';
+    if (!light && !grad) return;
+    rect = rect || el.getBoundingClientRect();
+    var wide = rect.width >= window.innerWidth * 0.9;
+    if (light) out.push([el, { '--mt-bg': rgb(darker(c, wide)) }, ['data-mt-bg']]);
+    if (grad) {
       var changed = false;
       var ng = bi.replace(COLOR_RE, function (tok) {
         var d = darker(parse(tok) || [0, 0, 0, 0], wide);
@@ -290,59 +335,51 @@
         changed = true;
         return rgb(d);
       });
-      if (changed) {
-        el.style.setProperty('--mt-bgi', ng);
-        el.setAttribute('data-mt-bgi', '');
-      }
+      if (changed) out.push([el, { '--mt-bgi': ng }, ['data-mt-bgi']]);
     }
   }
 
   var SIDES = ['Top', 'Right', 'Bottom', 'Left'], SIDE_KEYS = ['t', 'r', 'b', 'l'];
 
+  function borderOf(s, prefix, attr, out, el) {
+    var changed = false, vals = [], k;
+    for (k = 0; k < 4; k++) {
+      var w = parseFloat(s['border' + SIDES[k] + 'Width']) || 0, col = s['border' + SIDES[k] + 'Color'];
+      var c = w > 0 ? parse(col) : null, d = c && c[3] > 0.35 ? darker(c, false) : null;
+      if (d && w <= 3) d = palette().border.slice(0, 3).concat([c[3]]);
+      vals.push(d ? rgb(d) : col);
+      if (d) changed = true;
+    }
+    if (!changed) return;
+    var props = {};
+    for (k = 0; k < 4; k++) props['--mt-' + prefix + SIDE_KEYS[k]] = vals[k];
+    out.push([el, props, [attr]]);
+  }
+
   /** Light border colours of an element and of its ::before / ::after (e.g. the triangles between
    *  breadcrumb items, drawn with borders in the colour of the item): thin lines take the theme's
    *  border colour, wide borders (shapes) the same colour a background would get. */
-  function fixBorders(el, cs) {
-    var targets = [[cs, 'bd', 'data-mt-bd']];
-    for (var i = 0; i < 2; i++) {
-      var ps = getComputedStyle(el, i ? '::after' : '::before');
-      if (ps.content && ps.content !== 'none' && ps.content !== 'normal') targets.push([ps, i ? 'ba' : 'bb', i ? 'data-mt-bda' : 'data-mt-bdb']);
+  function decideBorders(el, cs, out) {
+    if (cs.borderTopStyle !== 'none' || cs.borderRightStyle !== 'none' || cs.borderBottomStyle !== 'none' || cs.borderLeftStyle !== 'none') {
+      borderOf(cs, 'bd', 'data-mt-bd', out, el);
     }
-    targets.forEach(function (tg) {
-      var s = tg[0], changed = false, vals = [];
-      for (var k = 0; k < 4; k++) {
-        var w = parseFloat(s['border' + SIDES[k] + 'Width']) || 0, col = s['border' + SIDES[k] + 'Color'], c = w > 0 ? parse(col) : null;
-        var d = c && c[3] > 0.35 ? darker(c, false) : null;
-        if (d && w <= 3) d = palette().border.slice(0, 3).concat([c[3]]);
-        vals.push(d ? rgb(d) : col);
-        if (d) changed = true;
-      }
-      if (!changed) return;
-      for (var j = 0; j < 4; j++) el.style.setProperty('--mt-' + tg[1] + SIDE_KEYS[j], vals[j]);
-      el.setAttribute(tg[2], '');
-    });
+    var v = pseudos(el);
+    for (var i = 0; i < v.length; i++) borderOf(v[i][0], v[i][1] ? 'ba' : 'bb', v[i][1] ? 'data-mt-bda' : 'data-mt-bdb', out, el);
   }
 
-  function fixText(el, cs) {
-    var hasOwn = false;
-    for (var n = el.firstChild; n; n = n.nextSibling) {
-      if (n.nodeType === 3 && n.nodeValue.trim() !== '') { hasOwn = true; break; }
-    }
-    var ps = hasOwn || FORM[el.tagName] ? null : pseudoText(el);
+  /** Text decision: lighten or darken just enough for a comfortable contrast, keeping the hue. */
+  function decideText(el, cs, out) {
+    var ps = FORM[el.tagName] || hasOwnText(el) ? null : pseudoText(el);
     if (ps) cs = ps;
     var fg = parse(cs.color);
     if (!fg) return;
-    var bg = backdrop(el);
+    var bg = backdrop(el), attrs = ps ? ['data-mt-fg', 'data-mt-fgp'] : ['data-mt-fg'];
     if (!bg) {
       // over a photo or video: the colours behind are unknown, so the text keeps its colour — unless
       // dark mode itself turned it dark: a Gridbox background variable used as text colour (white on
       // the photo in the light theme) becomes the dark background colour; it gets the light text colour
       var pm = palette();
-      if (lum(pm.bg) < 0.2 && pm.bgs.some(function (o) { return near(o, fg); })) {
-        el.style.setProperty('--mt-fg', rgb(pm.title));
-        el.setAttribute('data-mt-fg', '');
-        if (ps) el.setAttribute('data-mt-fgp', '');
-      }
+      if (lum(pm.bg) < 0.2 && pm.bgs.some(function (o) { return near(o, fg); })) out.push([el, { '--mt-fg': rgb(pm.title) }, attrs]);
       return;
     }
     var size = parseFloat(cs.fontSize) || 16;
@@ -353,8 +390,7 @@
     // comes from the dark palette (a theme variable), i.e. dark mode itself changed it
     var lb = lum(bg);
     if (sat(bg) > 0.5 && lb > 0.06 && lb < 0.6 && !ownColour(fg)) return;
-    // lighten or darken, whichever reaches a comfortable contrast with the smallest change of colour
-    // (a fixed text always aims at 4.5:1, also when the large-text minimum of 3:1 would pass)
+    // a fixed text always aims at 4.5:1, also when the large-text minimum of 3:1 would pass
     need = 4.5;
     var p = palette(), fix = null, step = 1, best = null, bestC = now;
     [p.hi, p.lo].forEach(function (towards) {
@@ -369,38 +405,112 @@
     });
     fix = fix || (bestC >= now + 0.5 ? best : null);
     if (!fix) return;
-    el.style.setProperty('--mt-fg', rgb(fix));
-    if (el.closest('a') && p.accent && contrast(p.accent, bg) >= 3) {
-      el.style.setProperty('--mt-fg-h', rgb(p.accent));
-    }
-    el.setAttribute('data-mt-fg', '');
-    if (ps) el.setAttribute('data-mt-fgp', '');
+    var props = { '--mt-fg': rgb(fix) };
+    if (p.accent && contrast(p.accent, bg) >= 3 && el.closest('a')) props['--mt-fg-h'] = rgb(p.accent);
+    out.push([el, props, attrs]);
   }
 
-  function adapt(scope) {
-    if (cfg.adaptive === false || current() === 'light' || !document.body) return;
-    root.classList.add('mertools-dt-calc');
-    mediaCache = new Map();
-    var list = scope === document.body ? document.body.querySelectorAll('*') : [scope].concat([].slice.call(scope.querySelectorAll('*')));
-    var i, el;
-    // backgrounds first: the text check reads the fixed backgrounds
-    for (i = 0; i < list.length; i++) {
-      el = list[i];
-      if (SKIP[el.tagName.toUpperCase()] || el.hasAttribute('data-mt-bg') || el.hasAttribute('data-mt-bgi') || el.closest('.mertools-dt')) continue;
-      var ecs = getComputedStyle(el);
-      fixBackground(el, ecs);
-      if (!el.hasAttribute('data-mt-bd') && !el.hasAttribute('data-mt-bdb') && !el.hasAttribute('data-mt-bda')) fixBorders(el, ecs);
-    }
-    for (i = 0; i < list.length; i++) {
-      el = list[i];
-      if (SKIP[el.tagName.toUpperCase()] || el.hasAttribute('data-mt-fg') || el.closest('.mertools-dt') || !ownText(el)) continue;
-      fixText(el, getComputedStyle(el));
-    }
-    void root.offsetWidth;
-    root.classList.remove('mertools-dt-calc');
+  function skip(el) {
+    return SKIP[el.tagName.toUpperCase()] || (box && box.contains(el));
   }
 
-  var done = false, pending = [], timer = 0, refreshTimer = 0;
+  /** One slice of elements: all background and border reads, their writes, then all text reads
+   *  (seeing the new backgrounds) and their writes. */
+  function slice(list, from, to) {
+    var out = [], i, el, marked = [];
+    // fresh decisions for these elements: an earlier one may have been made against a background that
+    // was fixed only afterwards. Old marks are removed first, all at once, then everything is read —
+    // with transitions off, or a site's own transition would report the old colour for a moment.
+    for (i = from; i < to; i++) {
+      el = list[i];
+      if (el.hasAttribute('data-mt-bg') || el.hasAttribute('data-mt-bgi') || el.hasAttribute('data-mt-fg')
+          || el.hasAttribute('data-mt-bd') || el.hasAttribute('data-mt-bdb') || el.hasAttribute('data-mt-bda')) marked.push(el);
+    }
+    var quiet = marked.length && !root.classList.contains('mertools-dt-calc');
+    if (quiet) calc(true, true);
+    if (marked.length) { marked.forEach(unmark); P.bd = new Map(); }
+    for (i = from; i < to; i++) {
+      el = list[i];
+      if (skip(el)) continue;
+      var cs = css(el);
+      decideBackground(el, cs, out);
+      decideBorders(el, cs, out);
+    }
+    write(out);
+    if (out.length) P.bd = new Map(); // backgrounds changed: colours behind texts are worked out again
+    out = [];
+    for (i = from; i < to; i++) {
+      el = list[i];
+      if (skip(el) || !ownText(el)) continue;
+      decideText(el, css(el), out);
+    }
+    write(out);
+    if (quiet) calc(false);
+  }
+
+  /** Transitions off while reading colours — only needed while the visitor's switch fades the colours
+   *  (toggling a class on <html> makes the browser restyle the whole page, so not otherwise). */
+  function calc(on, force) {
+    if (on && !force && !root.classList.contains('mt-switching')) return;
+    root.classList.toggle('mertools-dt-calc', on);
+  }
+
+  var job = 0, idle = window.requestIdleCallback || function (fn) { return setTimeout(function () { fn({ timeRemaining: function () { return 8; }, didTimeout: true }); }, 16); };
+
+  /** Adapt elements: small sets at once; a whole page by the visible part first, then the rest in
+   *  idle slices (a newer pass — theme or palette switched — stops the older one). */
+  function adapt(scope, done) {
+    if (cfg.adaptive === false || current() === 'light' || !document.body) { calc(false); return; }
+    var list = scope === document.body ? document.body.getElementsByTagName('*')
+      : [scope].concat([].slice.call(scope.getElementsByTagName('*')));
+    list = [].slice.call(list);
+    var whole = scope === document.body, n = list.length, i = 0;
+    // only whole-page passes are numbered: a newer one stops an older one; small ones never do
+    var my = whole ? ++job : job;
+    newPass();
+    if (n <= 60) {
+      calc(true);
+      slice(list, 0, n);
+      calc(false);
+      if (done) done();
+      return;
+    }
+    if (whole) {
+      // what is on screen now first (rendered and within the first screen and a half); hidden parts
+      // (closed menus, other tabs) and everything below go to the idle slices
+      var bottom = (window.innerHeight || 800) * 1.5, right = window.innerWidth || 1200, now = [], later = [], seen = new Set(), k, el, r;
+      for (k = 0; k < n; k++) {
+        el = list[k];
+        r = el.getBoundingClientRect();
+        if (!((r.width || r.height) && r.top < bottom && r.bottom > -50 && r.left < right && r.right > 0)) continue;
+        // with all its ancestors: a background they paint must be fixed before this text is judged
+        // (an ancestor can be zero-sized or off screen while its content is visible, e.g. a popover)
+        for (var a = el; a && a !== document.body && !seen.has(a); a = a.parentElement) seen.add(a);
+      }
+      for (k = 0; k < n; k++) (seen.has(list[k]) ? now : later).push(list[k]);
+      calc(true);
+      slice(now, 0, now.length);
+      calc(false);
+      list = later;
+      n = list.length;
+    }
+    function more(deadline) {
+      if (my !== job || current() === 'light') return;
+      calc(true);
+      var t0 = Date.now();
+      while (i < n && Date.now() - t0 < 8 && (deadline.didTimeout || deadline.timeRemaining() > 1)) {
+        var to = Math.min(n, i + 30);
+        slice(list, i, to);
+        i = to;
+      }
+      calc(false);
+      if (i < n) idle(more, { timeout: 300 });
+      else if (done) done();
+    }
+    if (i < n) idle(more, { timeout: 300 }); else if (done) done();
+  }
+
+  var done = false, pending = [], timer = 0, refreshTimer = 0, sheets = 0;
 
   var ATTRS = ['data-mt-bg', 'data-mt-bgi', 'data-mt-fg', 'data-mt-fgp', 'data-mt-bd', 'data-mt-bdb', 'data-mt-bda', 'data-mt-ring'];
   var PROPS = ['--mt-bg', '--mt-bgi', '--mt-fg', '--mt-fg-h', '--mt-ring'];
@@ -412,35 +522,35 @@
     PROPS.forEach(function (p) { el.style.removeProperty(p); });
   }
 
-  /** The fixes for the current theme, computed from the site's own colours (in one task: no flicker).
-   *  Every switch to dark mode or to another palette recomputes them. */
+  /** The fixes for the current theme, computed from the site's own colours. Every switch to dark
+   *  mode or to another palette recomputes them. */
   function adaptAll() {
+    job++;
     if (current() === 'light') {
       root.removeAttribute('data-mt-on');
       return;
     }
     [].forEach.call(document.querySelectorAll(MARKED), unmark);
     done = true;
+    sheets = document.styleSheets.length;
     // on before the pass: the text check has to see the backgrounds already fixed
     if (cfg.adaptive !== false) root.setAttribute('data-mt-on', '');
     adapt(document.body);
   }
 
-  /** One element and its content again from the site's own colours (in one task: no flicker). */
+  /** One element and its content again from the site's own colours. */
   function readapt(el) {
-    if (!el.isConnected) return;
-    if (el.matches(MARKED)) unmark(el);
-    [].forEach.call(el.querySelectorAll(MARKED), unmark);
-    adapt(el);
+    if (el.isConnected) adapt(el);
   }
 
   /** Everything again from the site's own colours: styles that arrived later (a stylesheet loaded after
-   *  this script, lazy sections) may have changed them. Runs in one task, so nothing flickers. */
+   *  this script, lazy sections) may have changed them. */
   function refresh() {
     if (!done || current() === 'light') return;
+    sheets = document.styleSheets.length;
+    calc(true, true);
     [].forEach.call(document.querySelectorAll(MARKED), unmark);
-    adapt(document.body);
-    update();
+    adapt(document.body, update);
   }
 
   function refreshSoon(delay) {
@@ -448,12 +558,20 @@
     refreshTimer = setTimeout(refresh, delay || 300);
   }
 
+  /** Colours fade only while the visitor switches (not on every page, not while adapting). */
+  function fade() {
+    if (!cfg.fade) return;
+    root.classList.add('mt-switching');
+    clearTimeout(fade.t);
+    fade.t = setTimeout(function () { root.classList.remove('mt-switching'); }, 450);
+  }
+
   function watch() {
     if (cfg.adaptive === false || !window.MutationObserver) return;
     new MutationObserver(function (records) {
       if (!done || current() === 'light') return;
       records.forEach(function (r) {
-        r.addedNodes.forEach(function (n) { if (n.nodeType === 1 && !n.classList.contains('mertools-dt')) pending.push(n); });
+        r.addedNodes.forEach(function (n) { if (n.nodeType === 1 && !(box && box.contains(n))) pending.push(n); });
       });
       if (pending.length && !timer) {
         timer = setTimeout(function () {
@@ -463,25 +581,26 @@
       }
     }).observe(document.body, { childList: true, subtree: true });
     // Gridbox changes classes when a lazy section background appears ("lazy-load-image"), when the
-    // header becomes sticky, on sliders… — such an element is adapted again with its content
-    var changed = [], ctimer = 0;
+    // header becomes sticky, on sliders… — such an element is adapted again with its content, in
+    // idle time and only the outermost of the elements changed meanwhile
+    var changed = [];
+    function flush() {
+      var list = changed; changed = [];
+      list.filter(function (el) {
+        return !list.some(function (o) { return o !== el && o.contains(el); });
+      }).forEach(readapt);
+    }
     new MutationObserver(function (records) {
       if (!done || current() === 'light') return;
+      var was = changed.length;
       records.forEach(function (r) {
         var t = r.target;
-        if (t.nodeType === 1 && t !== root && t !== document.body && !t.classList.contains('mertools-dt')
-            && !t.classList.contains('mertools-dt-li') && changed.indexOf(t) < 0) changed.push(t);
+        // sliders (Swiper) write the same class again and again: only a real change counts
+        if (r.oldValue === t.getAttribute('class')) return;
+        if (t.nodeType === 1 && t !== root && t !== document.body && !(box && box.contains(t)) && changed.indexOf(t) < 0) changed.push(t);
       });
-      if (changed.length && !ctimer) {
-        ctimer = setTimeout(function () {
-          var list = changed; changed = []; ctimer = 0;
-          // only the outermost changed elements: their content is redone with them
-          list.filter(function (el) {
-            return !list.some(function (o) { return o !== el && o.contains(el); });
-          }).forEach(readapt);
-        }, 120);
-      }
-    }).observe(document.body, { attributes: true, attributeFilter: ['class'], subtree: true });
+      if (!was && changed.length) setTimeout(function () { idle(flush, { timeout: 400 }); }, 120);
+    }).observe(document.body, { attributes: true, attributeFilter: ['class'], attributeOldValue: true, subtree: true });
     // stylesheets added or finishing later change the colours of what is already adapted
     new MutationObserver(function (records) {
       records.forEach(function (r) {
@@ -528,11 +647,23 @@
     });
   }
 
+  var frame = 0;
+
+  /** A visitor's switch: the new theme is painted at once, the colour fixes follow in the next frame
+   *  (hidden by the fade), so the click responds without waiting for the page to be measured. */
   function apply(theme) {
+    if (!root.classList.contains('mt-switching')) calc(true, true);
     root.setAttribute('data-mertools-theme', THEMES.indexOf(theme) > -1 ? theme : 'light');
     logos();
-    adaptAll();
-    update();
+    update(true);
+    job++;
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(function () {
+      frame = 0;
+      adaptAll();
+      if (!root.classList.contains('mt-switching')) calc(false);
+      update();
+    });
   }
 
   // ------------------------------------------------------------------ toggle button and palette dots
@@ -543,13 +674,20 @@
   function matchMenu() {
     if (!btn || !li || !li.parentNode) return;
     var a = li.parentNode.querySelector('li:not(.mertools-dt-li) > a, li:not(.mertools-dt-li) a');
-    if (a) btn.style.setProperty('--mt-dt-color', getComputedStyle(a).color);
+    if (!a) return;
+    // a colour fixed by this script counts as set (the site's own transition reports the old one for a moment)
+    var fixed = a.hasAttribute('data-mt-fg') && root.hasAttribute('data-mt-on') && a.style.getPropertyValue('--mt-fg');
+    btn.style.setProperty('--mt-dt-color', fixed || getComputedStyle(a).color);
   }
 
-  function update() {
+  function update(noRead) {
     if (!btn) return;
-    btn.style.removeProperty('--mt-dt-color');
-    matchMenu();
+    // reading the menu colour right after a theme switch would make the browser restyle the page at
+    // once: on a switch it is read in the next frame
+    if (!noRead) {
+      btn.style.removeProperty('--mt-dt-color');
+      matchMenu();
+    }
     // the icon and the label say what a click does
     var nx = next();
     btn.innerHTML = nx === 'dark' ? MOON : SUN;
@@ -578,6 +716,9 @@
 
   /** A dot chosen: that palette, in dark mode, remembered. */
   function choosePalette(key) {
+    fade();
+    var quiet = !root.classList.contains('mt-switching');
+    if (quiet) calc(true, true);
     if (key === (cfg.palette || 'slate')) root.removeAttribute('data-mertools-palette');
     else root.setAttribute('data-mertools-palette', key);
     try { localStorage.setItem(cfg.pkey || 'mertools-palette', key); } catch (e) { /* private mode */ }
@@ -586,6 +727,7 @@
       store('dark');
     } else {
       adaptAll();
+      if (quiet) calc(false);
       update();
     }
   }
@@ -659,6 +801,26 @@
    *  screen that is partly off-screen, so the offsets follow the visible part (visualViewport). */
   var FLOATS = { 'float': 1, 'float-left': 1, 'float-a11y-above': 1, 'float-a11y-beside': 1 };
 
+  // phones can have their own position (cfg.mplace) up to a width (cfg.mbp); "same" keeps the desktop one
+  var phoneMq = cfg.mplace && cfg.mplace !== 'same' && window.matchMedia ? matchMedia('(max-width: ' + (cfg.mbp || 768) + 'px)') : null;
+
+  function phone() {
+    return !!(phoneMq && phoneMq.matches);
+  }
+
+  /** The position in effect now: the one for phones on a narrow screen, else the desktop one. */
+  function mode() {
+    return phone() ? cfg.mplace : (cfg.place || 'auto');
+  }
+
+  /** The element given for phones (the first one shown), or null. */
+  function customTarget() {
+    var list;
+    try { list = cfg.msel ? document.querySelectorAll(cfg.msel) : []; } catch (e) { return null; }
+    for (var i = 0; i < list.length; i++) if (!box.contains(list[i]) && onScreen(list[i])) return list[i];
+    return null;
+  }
+
   /** The accessibility button of the site (e.g. the panel on the left), when it is fully on screen. */
   function a11yButton() {
     var el = null;
@@ -672,8 +834,11 @@
   function keepFloatVisible() {
     if (!box || !box.classList.contains('mertools-dt-float')) return;
     var vv = window.visualViewport || { offsetLeft: 0, offsetTop: 0, width: window.innerWidth, height: window.innerHeight };
-    var fx = cfg.fx >= 0 ? cfg.fx : 18, fy = cfg.fy >= 0 ? cfg.fy : 18, gap = 20;
-    var place = FLOATS[cfg.place] ? cfg.place : 'float';
+    var ph = phone(), m = mode(), gap = 20;
+    var fx = ph ? cfg.mfx : cfg.fx, fy = ph ? cfg.mfy : cfg.fy;
+    fx = fx >= 0 ? fx : 18;
+    fy = fy >= 0 ? fy : 18;
+    var place = FLOATS[m] ? m : 'float';
     // the visible part of the screen inside the layout viewport that fixed elements are placed against
     var visRight = window.innerWidth - (vv.offsetLeft + vv.width), visBottom = window.innerHeight - (vv.offsetTop + vv.height);
     var left = null, right = null, bottom = visBottom + fy;
@@ -703,21 +868,44 @@
     box.style.setProperty('bottom', Math.max(bottom, 8) + 'px');
   }
 
+  /** In an element of the page chosen for phones (inside at the start or end, before or after it). */
+  function placeCustom() {
+    var t = customTarget();
+    if (!t) return false;
+    detach();
+    var where = cfg.mins || 'append';
+    if (where === 'prepend') t.insertBefore(box, t.firstChild);
+    else if (where === 'before') t.parentNode.insertBefore(box, t);
+    else if (where === 'after') t.parentNode.insertBefore(box, t.nextSibling);
+    else t.appendChild(box);
+    if (!onScreen(btn)) return false;
+    // the dots slide out towards the middle of the screen
+    var r = btn.getBoundingClientRect();
+    direction(r.left + r.width / 2 > window.innerWidth / 2 ? 'left' : 'right');
+    return true;
+  }
+
   function place() {
     if (!box) return;
+    var m = mode();
+    if (m === 'hidden') { detach(); return; }
+    if (m === 'selector') {
+      if (!placeCustom()) placeFloat();
+      return;
+    }
     var host = header();
-    if (FLOATS[cfg.place] || !host) {
+    if (FLOATS[m] || !host) {
       placeFloat();
       return;
     }
     // 1. in the menu (desktop)
-    var ul = navList(host);
+    var ul = m !== 'burger' && navList(host);
     if (ul) {
       detach();
       li = li || document.createElement('li');
       li.className = 'nav-item mertools-dt-li';
       li.appendChild(box);
-      if (cfg.place === 'start') ul.insertBefore(li, ul.firstChild); else ul.appendChild(li);
+      if (m === 'start') ul.insertBefore(li, ul.firstChild); else ul.appendChild(li);
       if (onScreen(btn)) { direction('down'); matchMenu(); return; }
     }
     // 2. beside the hamburger (phones: the menu is closed, off-screen)
@@ -801,6 +989,7 @@
       e.preventDefault();
       e.stopPropagation();
       var nx = next();
+      fade();
       apply(nx);
       store(nx);
     });
@@ -809,16 +998,31 @@
     place();
     update();
 
-    var t = 0;
+    // placed again only when the width changes: phones fire "resize" whenever the address bar hides
+    // or shows while scrolling, and moving the button then would only cost a layout
+    var t = 0, width = window.innerWidth;
     function replace() {
       clearTimeout(t);
-      t = setTimeout(place, 250);
+      t = setTimeout(function () {
+        if (window.innerWidth === width) { keepFloatVisible(); return; }
+        width = window.innerWidth;
+        place();
+      }, 250);
     }
     window.addEventListener('resize', replace);
     window.addEventListener('orientationchange', replace);
+    if (phoneMq) {
+      try { phoneMq.addEventListener('change', function () { width = window.innerWidth; place(); }); } catch (e) { /* older browsers: resize */ }
+    }
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', keepFloatVisible);
-      window.visualViewport.addEventListener('scroll', keepFloatVisible);
+      // pinch zoom moves the visible part: at most once per frame
+      var queued = 0;
+      var follow = function () {
+        if (queued || !box.classList.contains('mertools-dt-float')) return;
+        queued = requestAnimationFrame(function () { queued = 0; keepFloatVisible(); });
+      };
+      window.visualViewport.addEventListener('resize', follow);
+      window.visualViewport.addEventListener('scroll', follow);
     }
     // Gridbox lays the header out after its own scripts run, and an accessibility panel may appear
     // late: check the spot once more, and again a little later
@@ -841,8 +1045,10 @@
     adaptAll();
     update();
     watch();
-    // late styles (stylesheets loaded after this script, lazy sections) — everything once more
-    window.addEventListener('load', function () { refreshSoon(400); });
+    // stylesheets that arrived after the first pass (lazy-loaded CSS) — only then everything once more
+    window.addEventListener('load', function () {
+      setTimeout(function () { if (done && document.styleSheets.length !== sheets) refreshSoon(0); }, 400);
+    });
   }
 
   if (document.readyState === 'loading') {

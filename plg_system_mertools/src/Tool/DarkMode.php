@@ -267,9 +267,11 @@ final class DarkMode
         // native controls, scrollbars and form fields follow
         $css .= 'html[data-mertools-theme="dark"]{color-scheme:dark;}';
         // a gentle cross-fade when switching (only the colours, not layout)
+        // (only while the visitor switches: the script sets html.mt-switching for a moment, so no
+        // transition is attached to the page the rest of the time)
         if ((int) $params->get('dark_transition', 1)) {
-            $css .= 'html[data-mertools-theme] body,html[data-mertools-theme] body header,html[data-mertools-theme] body section,'
-                . 'html[data-mertools-theme] body [class*="ba-item"]{transition:background-color .3s ease,border-color .3s ease,color .3s ease;}';
+            $css .= 'html.mt-switching body,html.mt-switching body header,html.mt-switching body section,'
+                . 'html.mt-switching body [class*="ba-item"]{transition:background-color .3s ease,border-color .3s ease,color .3s ease;}';
         }
         // colours Gridbox writes into its element styles, adapted by the script (only used in dark)
         if ((int) $params->get('dark_adaptive', 1)) {
@@ -404,6 +406,15 @@ final class DarkMode
             'place'    => (string) $params->get('dark_toggle_place', 'auto'),
             'fx'       => max(0, min(400, (int) $params->get('dark_float_x', 18))),
             'fy'       => max(0, min(400, (int) $params->get('dark_float_y', 18))),
+            // phones: own position (or "same" as on desktop), up to a width in px
+            'mplace'   => in_array($m = (string) $params->get('dark_mobile_place', 'same'),
+                ['same', 'burger', 'float', 'float-left', 'float-a11y-above', 'float-a11y-beside', 'selector', 'hidden'], true) ? $m : 'same',
+            'mbp'      => max(320, min(1400, (int) $params->get('dark_mobile_bp', 768))),
+            'mfx'      => max(0, min(400, (int) $params->get('dark_mobile_x', 16))),
+            'mfy'      => max(0, min(400, (int) $params->get('dark_mobile_y', 16))),
+            'msel'     => trim(str_replace(['{', '}', '<', '>', ';'], '', (string) $params->get('dark_mobile_selector', ''))),
+            'mins'     => in_array($i = (string) $params->get('dark_mobile_insert', 'append'), ['append', 'prepend', 'before', 'after'], true) ? $i : 'append',
+            'fade'     => (bool) (int) $params->get('dark_transition', 1),
             'vivid'    => in_array($v = (string) $params->get('dark_vivid', 'outline'), ['outline', 'soft', 'keep'], true) ? $v : 'outline',
             'a11y'     => trim(str_replace(['{', '}', '<', '>', ';'], '', (string) $params->get('dark_a11y_selector', '._access-icon'))) ?: '._access-icon',
             'adaptive' => (bool) (int) $params->get('dark_adaptive', 1),

@@ -6,7 +6,7 @@
     <creationDate>2026-10-07</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>0.0.11</version>
+    <version>0.0.12</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -121,8 +121,39 @@
                     showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_toggle_place:float,float-left"
                     label="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_Y_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_Y_DESC" />
                 <field name="dark_a11y_selector" type="text" default="._access-icon"
-                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_toggle_place:float-a11y-above,float-a11y-beside"
+                    showon="dark_enabled:1[AND]dark_toggle:1"
                     label="PLG_SYSTEM_MERTOOLS_DARK_A11Y_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_A11Y_DESC" />
+                <field name="dark_mobile_place" type="list" default="same" showon="dark_enabled:1[AND]dark_toggle:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_MPLACE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_MPLACE_DESC">
+                    <option value="same">PLG_SYSTEM_MERTOOLS_DARK_MPLACE_SAME</option>
+                    <option value="burger">PLG_SYSTEM_MERTOOLS_DARK_MPLACE_BURGER</option>
+                    <option value="float">PLG_SYSTEM_MERTOOLS_DARK_PLACE_FLOAT</option>
+                    <option value="float-left">PLG_SYSTEM_MERTOOLS_DARK_PLACE_FLOAT_LEFT</option>
+                    <option value="float-a11y-above">PLG_SYSTEM_MERTOOLS_DARK_PLACE_A11Y_ABOVE</option>
+                    <option value="float-a11y-beside">PLG_SYSTEM_MERTOOLS_DARK_PLACE_A11Y_BESIDE</option>
+                    <option value="selector">PLG_SYSTEM_MERTOOLS_DARK_MPLACE_SELECTOR</option>
+                    <option value="hidden">PLG_SYSTEM_MERTOOLS_DARK_MPLACE_HIDDEN</option>
+                </field>
+                <field name="dark_mobile_bp" type="number" default="768" min="320" max="1400" step="1" filter="integer"
+                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_mobile_place!:same"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_MBP_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_MBP_DESC" />
+                <field name="dark_mobile_x" type="number" default="16" min="0" max="400" step="1" filter="integer"
+                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_mobile_place:float,float-left"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_MX_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_X_DESC" />
+                <field name="dark_mobile_y" type="number" default="16" min="0" max="400" step="1" filter="integer"
+                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_mobile_place:float,float-left"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_MY_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_Y_DESC" />
+                <field name="dark_mobile_selector" type="text" default=""
+                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_mobile_place:selector"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_MSEL_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_MSEL_DESC" />
+                <field name="dark_mobile_insert" type="list" default="append"
+                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_mobile_place:selector"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_MINS_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_MINS_DESC">
+                    <option value="append">PLG_SYSTEM_MERTOOLS_DARK_MINS_APPEND</option>
+                    <option value="prepend">PLG_SYSTEM_MERTOOLS_DARK_MINS_PREPEND</option>
+                    <option value="before">PLG_SYSTEM_MERTOOLS_DARK_MINS_BEFORE</option>
+                    <option value="after">PLG_SYSTEM_MERTOOLS_DARK_MINS_AFTER</option>
+                </field>
                 <field name="dark_toggle_size" type="number" default="44" min="24" max="96" step="1" filter="integer"
                     showon="dark_enabled:1[AND]dark_toggle:1"
                     label="PLG_SYSTEM_MERTOOLS_DARK_SIZE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_SIZE_DESC" />

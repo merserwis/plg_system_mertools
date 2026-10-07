@@ -2,6 +2,37 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.12 (Beta) — 2026-10-07
+
+### 📱 Toggle position on phones
+
+- New option **Toggle position on phones**: *As on desktop* (default, as before), *Beside the menu button (hamburger)*, *Floating* bottom right or left, *above* or *next to the accessibility button*, **In an element of the page** (any CSS selector, inside at the start or end, before or after it) or *Hidden on phones*.
+- **Phone width up to (px)** sets where phones begin (default 768); the floating button on phones has its own distances from the edges.
+- When the screen crosses that width (rotating a tablet, resizing the window), the button moves at once. If the element given for phones is not on the page, the button floats in the corner.
+
+### ⚡ Speed audit — less work for the browser
+
+Measured on merserwis.pl and merdroid.pl with the CPU slowed down 4× (as on a mid-range phone):
+
+| | 0.0.11 | 0.0.12 |
+|---|---|---|
+| Adapting colours when the page opens, desktop | 691 ms | ~110 ms |
+| Adapting colours when the page opens, phone | 709 ms | ~130 ms |
+| Adapting colours, merdroid.pl phone | 169 ms | ~60 ms |
+| Click on the toggle until the theme changes | 566 ms | 5 ms |
+
+- Colours are read in batches and written afterwards (no forced style recalculation per element), and every element's computed style and backdrop colour is read once per pass.
+- What is on screen is adapted first; the rest of the page follows in small slices while the browser is idle, so scrolling and clicks never wait.
+- The click switches the theme at once; the colour fixes follow in the next frame.
+- Sliders that rewrite the same class many times a second no longer trigger re-adapting.
+- On phones the button is not moved again whenever the address bar hides or shows; following a pinch zoom happens at most once per frame.
+- The package ships minified scripts (`mertools-dark.min.js`, 8 KB gzipped instead of 15 KB); Joomla loads the readable source when its debug mode is on.
+
+### 🛠 Fixed
+
+- Texts were sometimes left unreadable after the switch when the site animates its colours itself (e.g. Gridbox hotspot pop-ups, buttons with a colour transition): colours are no longer read in the middle of such an animation.
+- The toggle in the menu could take the menu link colour from before the switch (dark icon on a dark header).
+
 ## 0.0.11 (Beta) — 2026-10-07
 
 ### 🌙 Dark mode
