@@ -6,7 +6,7 @@
     <creationDate>2026-10-07</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>0.0.8</version>
+    <version>0.0.9</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -100,7 +100,19 @@
                     <option value="start">PLG_SYSTEM_MERTOOLS_DARK_PLACE_START</option>
                     <option value="end">PLG_SYSTEM_MERTOOLS_DARK_PLACE_END</option>
                     <option value="float">PLG_SYSTEM_MERTOOLS_DARK_PLACE_FLOAT</option>
+                    <option value="float-left">PLG_SYSTEM_MERTOOLS_DARK_PLACE_FLOAT_LEFT</option>
+                    <option value="float-a11y-above">PLG_SYSTEM_MERTOOLS_DARK_PLACE_A11Y_ABOVE</option>
+                    <option value="float-a11y-beside">PLG_SYSTEM_MERTOOLS_DARK_PLACE_A11Y_BESIDE</option>
                 </field>
+                <field name="dark_float_x" type="number" default="18" min="0" max="400" step="1" filter="integer"
+                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_toggle_place:float,float-left"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_X_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_X_DESC" />
+                <field name="dark_float_y" type="number" default="18" min="0" max="400" step="1" filter="integer"
+                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_toggle_place:float,float-left"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_Y_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_Y_DESC" />
+                <field name="dark_a11y_selector" type="text" default="._access-icon"
+                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_toggle_place:float-a11y-above,float-a11y-beside"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_A11Y_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_A11Y_DESC" />
                 <field name="dark_toggle_size" type="number" default="44" min="24" max="96" step="1" filter="integer"
                     showon="dark_enabled:1[AND]dark_toggle:1"
                     label="PLG_SYSTEM_MERTOOLS_DARK_SIZE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_SIZE_DESC" />

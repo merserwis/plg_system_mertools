@@ -604,20 +604,56 @@
 
   /** A fixed element is placed against the layout viewport; on a phone whose page is wider than the
    *  screen that is partly off-screen, so the offsets follow the visible part (visualViewport). */
+  var FLOATS = { 'float': 1, 'float-left': 1, 'float-a11y-above': 1, 'float-a11y-beside': 1 };
+
+  /** The accessibility button of the site (e.g. the panel on the left), when it is fully on screen. */
+  function a11yButton() {
+    var el = null;
+    try { el = cfg.a11y ? document.querySelector(cfg.a11y) : null; } catch (e) { el = null; }
+    if (!el || !onScreen(el)) return null;
+    var r = el.getBoundingClientRect(), vv = window.visualViewport;
+    var top = vv ? vv.offsetTop : 0, h = vv ? vv.height : window.innerHeight;
+    return r.top >= top - 1 && r.bottom <= top + h + 1 ? el : null;
+  }
+
   function keepFloatVisible() {
     if (!btn || !btn.classList.contains('mertools-dt-float')) return;
-    var vv = window.visualViewport;
-    if (!vv) return;
-    var right = window.innerWidth - (vv.offsetLeft + vv.width) + 18;
-    var bottom = window.innerHeight - (vv.offsetTop + vv.height) + 18;
-    btn.style.setProperty('right', Math.max(right, 8) + 'px');
+    var vv = window.visualViewport || { offsetLeft: 0, offsetTop: 0, width: window.innerWidth, height: window.innerHeight };
+    var fx = cfg.fx >= 0 ? cfg.fx : 18, fy = cfg.fy >= 0 ? cfg.fy : 18, gap = 10;
+    var place = FLOATS[cfg.place] ? cfg.place : 'float';
+    // the visible part of the screen inside the layout viewport that fixed elements are placed against
+    var visRight = window.innerWidth - (vv.offsetLeft + vv.width), visBottom = window.innerHeight - (vv.offsetTop + vv.height);
+    var left = null, right = null, bottom = visBottom + fy;
+    if (place === 'float') {
+      right = visRight + fx;
+    } else {
+      left = vv.offsetLeft + fx;
+      var a = a11yButton(), bw = btn.offsetWidth, bh = btn.offsetHeight, r = a ? a.getBoundingClientRect() : null;
+      // the bottom left corner taken by the accessibility button: go above it instead of covering it
+      if (a && place === 'float-left') {
+        var top = window.innerHeight - bottom - bh;
+        if (!(left + bw <= r.left || left >= r.right || top + bh <= r.top || top >= r.bottom)) place = 'float-a11y-above';
+      }
+      if (a && place !== 'float-left') {
+        if (place === 'float-a11y-above') {
+          left = r.left + (r.width - bw) / 2;
+          bottom = window.innerHeight - r.top + gap;
+        } else {
+          left = r.right + gap;
+          bottom = window.innerHeight - r.bottom + (r.height - bh) / 2;
+        }
+      }
+    }
+    btn.setAttribute('data-side', right !== null ? 'right' : 'left');
+    btn.style.setProperty('right', right !== null ? Math.max(right, 8) + 'px' : 'auto');
+    btn.style.setProperty('left', left !== null ? Math.max(left, 4) + 'px' : 'auto');
     btn.style.setProperty('bottom', Math.max(bottom, 8) + 'px');
   }
 
   function place() {
     if (!btn) return;
     var host = header();
-    if (cfg.place === 'float' || !host) {
+    if (FLOATS[cfg.place] || !host) {
       placeFloat();
       return;
     }
@@ -681,8 +717,9 @@
       window.visualViewport.addEventListener('resize', keepFloatVisible);
       window.visualViewport.addEventListener('scroll', keepFloatVisible);
     }
-    // Gridbox lays the header out after its own scripts run; check the spot once more
-    window.addEventListener('load', function () { setTimeout(place, 300); });
+    // Gridbox lays the header out after its own scripts run, and an accessibility panel may appear
+    // late: check the spot once more, and again a little later
+    window.addEventListener('load', function () { setTimeout(place, 300); setTimeout(keepFloatVisible, 1500); });
   }
 
   // follow the system when the visitor made no explicit choice and the default is "auto"

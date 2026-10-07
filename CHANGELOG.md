@@ -2,6 +2,14 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.9 (Beta) — 2026-10-07
+
+### 🌙 Toggle button positions
+
+- **Floating on the left** too: *bottom left corner*, *above the accessibility button* or *next to the accessibility button* (e.g. the accessibility panel on the left of the page) — besides the bottom right corner and the menu.
+- The distance of a floating button from the side and from the bottom is set in pixels.
+- The accessibility button is found by a CSS selector (default `._access-icon`); when it is missing or not visible, the toggle floats in the bottom left corner — and in that corner it never covers the accessibility button, it moves above it.
+
 ## 0.0.8 (Beta) — 2026-10-07
 
 ### 📖 Sepia theme (new)
