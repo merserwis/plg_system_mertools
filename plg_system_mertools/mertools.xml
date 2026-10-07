@@ -6,7 +6,7 @@
     <creationDate>2026-10-07</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>0.0.12</version>
+    <version>0.0.13</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -45,6 +45,15 @@
                     <option value="302">PLG_SYSTEM_MERTOOLS_URL_CODE_302</option>
                 </field>
                 <field name="url_cf_note" type="note" class="alert alert-warning" description="PLG_SYSTEM_MERTOOLS_URL_CF_NOTE" />
+            </fieldset>
+
+            <!-- ============================================================ Page layout -->
+            <fieldset name="layout" label="PLG_SYSTEM_MERTOOLS_FIELDSET_LAYOUT">
+                <field name="layout_clip_x" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_LAYOUT_CLIP_LABEL" description="PLG_SYSTEM_MERTOOLS_LAYOUT_CLIP_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
             </fieldset>
 
             <!-- ============================================================ Dark mode -->

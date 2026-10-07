@@ -2,6 +2,14 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.13 (Beta) — 2026-10-07
+
+### 📱 New tool: No sideways shift on phones (tab *Page layout*, on by default)
+
+- A Gridbox element that sticks out to the right — e.g. a row with a slide-in animation or a motion effect that stays shifted on phones, or an off-canvas menu — made phones lay the whole page out wider than the screen. Gridbox hides that part, but everything fixed to the screen edges moved with it: the **hamburger** in a fixed header and the **accessibility button** ended up off-screen, and the dark-mode toggle could not be placed next to them (its phone position fell back to the floating corner, whatever was chosen).
+- The page now stays exactly as wide as the screen (`overflow-x: clip` on `html` and `body`). Nothing visible is cut off; scrolling and sticky elements are not affected. It can be switched off.
+- Example: on merdroid.pl the page was 599 px wide on a 390 px phone; now 390 px, the hamburger is visible again and the toggle stands beside it (or by the accessibility button) as set.
+
 ## 0.0.12 (Beta) — 2026-10-07
 
 ### 📱 Toggle position on phones

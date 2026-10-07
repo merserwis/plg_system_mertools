@@ -53,6 +53,10 @@ Test by opening `https://your-site/////oferta` — it should return a **301** to
 
 How it works: `raw.http.request.uri` is the original address the visitor sent; `http.request.uri` is the address after Cloudflare's normalization (single slashes). When they differ, the rule sends a 301 to the clean one. A clean address has nothing to normalize, so the two are equal and no redirect loop happens.
 
+### 📱 Page layout — no sideways shift on phones
+
+A Gridbox element that sticks out to the right (a row with a slide-in animation or a motion effect, an off-canvas menu) makes phones lay the page out wider than the screen. Gridbox hides that part on `<body>`, but the browser still widens the page, so everything fixed to the screen edges — the hamburger in a fixed header, the accessibility button, floating buttons — ends up off-screen. MerTools keeps the page as wide as the screen (`overflow-x: clip` on `html` and `body`; unlike `hidden` it creates no scroll container, so sticky elements and scrolling keep working). On by default, tab *Page layout*.
+
 ### 🌙 Dark mode
 
 An elegant dark theme for the whole front-end, with a toggle button in the header. It is built from Gridbox's own CSS colour variables (which the theme sets on `html body`), so overriding them for a dark palette flips the whole site cleanly — nothing is inverted, so brand colours and images stay intact. The palettes are soft dark greys and blues, **never a harsh pure black**, so they are easy on the eyes.

@@ -28,11 +28,12 @@ use Joomla\CMS\Uri\Uri;
 use Joomla\Event\Priority;
 use Joomla\Event\SubscriberInterface;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
+use Merserwis\Plugin\System\MerTools\Tool\Layout;
 use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.12';
+    public const VERSION = '0.0.13';
 
     protected $autoloadLanguage = true;
 
@@ -75,17 +76,23 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * Dark mode: add the dark palette CSS, the no-flash inline script and the toggle script to the
-     * front-end pages (HTML documents only).
+     * Front-end pages (HTML documents only): the page layout fix for phones, and dark mode — the dark
+     * palette CSS, the no-flash inline script and the toggle script.
      */
     public function onBeforeCompileHead(): void
     {
         $app = $this->getApplication();
-        if (!$app->isClient('site') || !(int) $this->params->get('dark_enabled', 0)) {
+        if (!$app->isClient('site')) {
             return;
         }
         $document = $app->getDocument();
         if (!$document || $document->getType() !== 'html') {
+            return;
+        }
+        if ((int) $this->params->get('layout_clip_x', 1)) {
+            $document->addStyleDeclaration(Layout::css());
+        }
+        if (!(int) $this->params->get('dark_enabled', 0)) {
             return;
         }
 
