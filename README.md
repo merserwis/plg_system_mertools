@@ -1,4 +1,6 @@
-# MerTools for Gridbox
+# MerTools for Gridbox (Beta)
+
+> **Beta version.** MerTools is still in beta: test each tool on your site before relying on it, and report problems in the [issues](https://github.com/merserwis/plg_system_mertools/issues).
 
 A Joomla system plugin with fixes and optimisations for **Balbooa Gridbox** that cannot be done from Gridbox's own settings. Each fix is a separate tool that can be turned on or off. **The Gridbox core files are never changed**, so Gridbox updates install cleanly.
 
@@ -64,6 +66,10 @@ An elegant dark theme for the whole front-end, with a toggle button in the heade
 How it works: the toggle sets `data-mertools-theme="dark"` on `<html>`; the plugin's CSS then redefines the Gridbox variables (`--bg-primary`, `--text`, `--title`, `--border`, …) for that state at a higher specificity (`html[data-mertools-theme="dark"] body`). The choice is kept in `localStorage`. The Gridbox core files are not touched.
 
 **Settings:** tab *Dark mode*.
+
+## Languages
+
+English (default), German, Polish, French, Czech and Dutch. The settings follow the language of the Joomla administrator; for any other language — or a text a translation lacks — English is shown.
 
 ## Installation
 

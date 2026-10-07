@@ -1,6 +1,16 @@
 # Changelog
 
-All changes of **MerTools for Gridbox**, newest first. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
+All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
+
+## 0.0.3 (Beta) — 2026-10-07
+
+### 🧪 Beta
+
+- MerTools is marked as a **beta version** in the extension list, the plugin settings, the package description and on every release.
+
+### 🌍 Languages
+
+- The settings are now in **English (default), German, Polish, French, Czech and Dutch** and follow the language of the Joomla administrator; any other language shows English, also text by text where a translation lacks one.
 
 ## 0.0.2 (Beta) — 2026-10-06
 
@@ -14,7 +24,7 @@ All changes of **MerTools for Gridbox**, newest first. Each version is also publ
 - **Options:** a smooth cross-fade when switching, and optionally calming the brightness of photos in dark mode.
 - No Gridbox core file is changed.
 
-## 0.0.1 — 2026-10-06
+## 0.0.1 (Beta) — 2026-10-06
 
 First version.
 
