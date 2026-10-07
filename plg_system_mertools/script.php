@@ -48,6 +48,15 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
         if ($type === 'update') {
             $this->removeDroppedLanguages();
         }
+        // pages kept by Joomla's page cache still point to the previous script version and settings
+        if ($type === 'install' || $type === 'update' || $type === 'discover_install') {
+            try {
+                Factory::getContainer()->get(\Joomla\CMS\Cache\CacheControllerFactoryInterface::class)
+                    ->createCacheController('callback', ['defaultgroup' => 'page', 'cachebase' => JPATH_SITE . '/cache'])
+                    ->clean('page');
+            } catch (\Throwable $e) {
+            }
+        }
         if ($type !== 'install') {
             return true;
         }

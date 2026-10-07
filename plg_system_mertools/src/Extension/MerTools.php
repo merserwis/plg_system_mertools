@@ -21,6 +21,8 @@ namespace Merserwis\Plugin\System\MerTools\Extension;
 
 \defined('_JEXEC') or die;
 
+use Joomla\CMS\Cache\CacheControllerFactoryInterface;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Event\Priority;
@@ -30,7 +32,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.5';
+    public const VERSION = '0.0.6';
 
     protected $autoloadLanguage = true;
 
@@ -40,6 +42,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             // before routing, so the clean address is served before Gridbox or the SEF router act
             'onAfterInitialise'   => ['onAfterInitialise', Priority::HIGH],
             'onBeforeCompileHead' => 'onBeforeCompileHead',
+            'onExtensionAfterSave' => 'onExtensionAfterSave',
         ];
     }
 
@@ -98,6 +101,32 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             ],
         ]);
         $wa->registerAndUseScript('plg_system_mertools.dark', 'plg_system_mertools/mertools-dark.js', [], ['defer' => true]);
+    }
+
+    /**
+     * Saving the MerTools settings: pages kept by Joomla's page cache still carry the old settings
+     * (and the old script version), so that cache is emptied.
+     */
+    public function onExtensionAfterSave(\Joomla\Event\EventInterface $event): void
+    {
+        $context = (string) (method_exists($event, 'getContext') ? $event->getContext() : $event->getArgument('context'));
+        $table   = method_exists($event, 'getItem') ? $event->getItem() : $event->getArgument('subject');
+        if ($context !== 'com_plugins.plugin' || !is_object($table) || ($table->element ?? '') !== 'mertools') {
+            return;
+        }
+        self::cleanPageCache();
+    }
+
+    /** Empties Joomla's page cache of the site (System - Page Cache), also when called from the administrator. */
+    public static function cleanPageCache(): void
+    {
+        try {
+            Factory::getContainer()->get(CacheControllerFactoryInterface::class)
+                ->createCacheController('callback', ['defaultgroup' => 'page', 'cachebase' => JPATH_SITE . '/cache'])
+                ->clean('page');
+        } catch (\Throwable $e) {
+            // nothing cached, or a cache backend that cannot be emptied from here
+        }
     }
 
     private function translate(string $key): string

@@ -6,7 +6,7 @@
     <creationDate>2026-10-07</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>0.0.5</version>
+    <version>0.0.6</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -17,7 +17,6 @@
     </files>
     <media folder="media" destination="plg_system_mertools">
         <folder>js</folder>
-        <folder>css</folder>
     </media>
     <scriptfile>script.php</scriptfile>
     <languages folder="language">
@@ -92,12 +91,9 @@
                     <option value="end">PLG_SYSTEM_MERTOOLS_DARK_PLACE_END</option>
                     <option value="float">PLG_SYSTEM_MERTOOLS_DARK_PLACE_FLOAT</option>
                 </field>
-                <field name="dark_toggle_size" type="list" default="medium" showon="dark_enabled:1[AND]dark_toggle:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_SIZE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_SIZE_DESC">
-                    <option value="small">PLG_SYSTEM_MERTOOLS_DARK_SIZE_SMALL</option>
-                    <option value="medium">PLG_SYSTEM_MERTOOLS_DARK_SIZE_MEDIUM</option>
-                    <option value="large">PLG_SYSTEM_MERTOOLS_DARK_SIZE_LARGE</option>
-                </field>
+                <field name="dark_toggle_size" type="number" default="44" min="24" max="96" step="1" filter="integer"
+                    showon="dark_enabled:1[AND]dark_toggle:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_SIZE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_SIZE_DESC" />
                 <field name="dark_header_selector" type="text" default="header.header" showon="dark_enabled:1[AND]dark_toggle:1"
                     label="PLG_SYSTEM_MERTOOLS_DARK_SELECTOR_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_SELECTOR_DESC" />
 

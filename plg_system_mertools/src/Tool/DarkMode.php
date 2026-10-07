@@ -155,14 +155,24 @@ final class DarkMode
         return $css . self::toggleCss($params);
     }
 
-    /** Button and icon size in px for the size setting. */
-    private const SIZES = ['small' => [36, 20], 'medium' => [44, 24], 'large' => [52, 28]];
+    /** Sizes of the list used up to 0.0.5, still read from saved settings. */
+    private const OLD_SIZES = ['small' => 36, 'medium' => 44, 'large' => 52];
+
+    /** @return array{int, int} the button and icon size in px (button 24–96 px, icon about 55 %). */
+    public static function toggleSize(Registry $params): array
+    {
+        $raw = trim((string) $params->get('dark_toggle_size', '44'));
+        $box = self::OLD_SIZES[$raw] ?? (ctype_digit($raw) ? (int) $raw : 44);
+        $box = max(24, min(96, $box));
+
+        return [$box, (int) round($box * 0.55)];
+    }
 
     /** Styles of the toggle button (placed in the menu, beside the hamburger or floating by the script). */
     private static function toggleCss(Registry $params): string
     {
         $accent = self::accent($params) ?? 'var(--primary,#34dca2)';
-        [$box, $icon] = self::SIZES[(string) $params->get('dark_toggle_size', 'medium')] ?? self::SIZES['medium'];
+        [$box, $icon] = self::toggleSize($params);
 
         return '.mertools-dt-li{display:inline-flex;align-items:center;align-self:center;vertical-align:middle;list-style:none;margin:0;padding:0}'
             . '.mertools-dt-li::before,.mertools-dt-li::after{display:none!important}'

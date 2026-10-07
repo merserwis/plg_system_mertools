@@ -2,6 +2,17 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.6 (Beta) — 2026-10-07
+
+### 🌙 Dark mode
+
+- **Button size in pixels**: the size of the toggle button is now typed in px (24–96, default 44) instead of chosen from a list; the icon is about half of it. Sites that had *small*, *medium* or *large* get 36, 44 or 52 px.
+- **Changes visible at once**: installing or updating MerTools and saving its settings now empty Joomla's page cache (*System - Page Cache*). Until now a site with the page cache on kept serving pages with the previous script and settings, so the dark mode looked unchanged after an update.
+
+### 🐞 Fixes
+
+- Installing or updating no longer shows the warning *JInstaller::Install: File does not exist […]/media/css* — the package declared an empty `media/css` folder (the styles are added inline), and Joomla does not unpack empty folders. The installation itself was not affected.
+
 ## 0.0.5 (Beta) — 2026-10-07
 
 ### 🌙 Dark mode — readable on every Gridbox site
