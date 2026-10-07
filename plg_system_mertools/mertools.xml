@@ -6,7 +6,7 @@
     <creationDate>2026-10-06</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>0.0.2</version>
+    <version>0.0.2 (Beta)</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -23,8 +23,16 @@
     <languages folder="language">
         <language tag="en-GB">en-GB/plg_system_mertools.ini</language>
         <language tag="en-GB">en-GB/plg_system_mertools.sys.ini</language>
+        <language tag="de-DE">de-DE/plg_system_mertools.ini</language>
+        <language tag="de-DE">de-DE/plg_system_mertools.sys.ini</language>
         <language tag="pl-PL">pl-PL/plg_system_mertools.ini</language>
         <language tag="pl-PL">pl-PL/plg_system_mertools.sys.ini</language>
+        <language tag="fr-FR">fr-FR/plg_system_mertools.ini</language>
+        <language tag="fr-FR">fr-FR/plg_system_mertools.sys.ini</language>
+        <language tag="cs-CZ">cs-CZ/plg_system_mertools.ini</language>
+        <language tag="cs-CZ">cs-CZ/plg_system_mertools.sys.ini</language>
+        <language tag="nl-NL">nl-NL/plg_system_mertools.ini</language>
+        <language tag="nl-NL">nl-NL/plg_system_mertools.sys.ini</language>
     </languages>
     <config>
         <fields name="params">

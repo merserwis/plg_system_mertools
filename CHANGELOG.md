@@ -2,7 +2,7 @@
 
 All changes of **MerTools for Gridbox**, newest first. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
-## 0.0.2 — 2026-10-06
+## 0.0.2 (Beta) — 2026-10-06
 
 ### 🌙 Dark mode
 
