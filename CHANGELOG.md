@@ -2,6 +2,15 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.5 (Beta) — 2026-10-07
+
+### 🌙 Dark mode — readable on every Gridbox site
+
+- **Colours adapted to the site** (new option *Adapt the site colours*, on by default). Gridbox writes many colours straight into the styles of sections and elements — text, links, headings, the header and accordion backgrounds — so the dark palette alone did not reach them: dark text stayed on the dark background and a white header kept its light menu text. In dark mode light backgrounds are now darkened and text that is too dark for its background is lightened just enough to be easy to read (4.5:1), keeping its colour tone. Readable brand colours stay as they are, texts on vivid buttons keep the site's design, and content loaded later (tabs, search results) is adapted too. The light theme is not changed at all.
+- **Bigger, clearer toggle button**: three sizes (small 36 px, medium 44 px — default, large 52 px), a stronger icon, and in the menu it takes the colour of the menu links.
+- **Always visible**: on phones, where the menu is folded behind the hamburger, the button moves next to the hamburger; when that is not possible it floats in the corner. The floating button now stays in the visible part of the screen also on pages that are wider than the phone screen (it used to end up outside it).
+- The position options are now named after what they do: *At the end of the menu*, *At the start of the menu*, *Floating button*.
+
 ## 0.0.4 (Beta) — 2026-10-07
 
 ### 🌍 Languages

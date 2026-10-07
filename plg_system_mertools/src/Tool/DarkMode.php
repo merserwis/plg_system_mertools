@@ -140,6 +140,13 @@ final class DarkMode
             $css .= 'html[data-mertools-theme] body,html[data-mertools-theme] body header,html[data-mertools-theme] body section,'
                 . 'html[data-mertools-theme] body [class*="ba-item"]{transition:background-color .3s ease,border-color .3s ease,color .3s ease;}';
         }
+        // colours Gridbox writes into its element styles, adapted by the script (only used in dark)
+        if ((int) $params->get('dark_adaptive', 1)) {
+            $css .= 'html[data-mertools-theme="dark"] [data-mt-bg]{background-color:var(--mt-bg)!important}'
+                . 'html[data-mertools-theme="dark"] [data-mt-fg]{color:var(--mt-fg)!important}'
+                . 'html[data-mertools-theme="dark"] a:hover[data-mt-fg],html[data-mertools-theme="dark"] a:hover [data-mt-fg]{color:var(--mt-fg-h,var(--mt-fg))!important}'
+                . 'html.mertools-dt-calc *,html.mertools-dt-calc *::before,html.mertools-dt-calc *::after{transition:none!important}';
+        }
         // slightly calm very bright images in dark mode (optional)
         if ((int) $params->get('dark_dim_media', 0)) {
             $css .= 'html[data-mertools-theme="dark"] img:not([src*=".svg"]),html[data-mertools-theme="dark"] video{filter:brightness(.9);}';
@@ -148,25 +155,37 @@ final class DarkMode
         return $css . self::toggleCss($params);
     }
 
-    /** Styles of the toggle button (placed in the header by the script). */
+    /** Button and icon size in px for the size setting. */
+    private const SIZES = ['small' => [36, 20], 'medium' => [44, 24], 'large' => [52, 28]];
+
+    /** Styles of the toggle button (placed in the menu, beside the hamburger or floating by the script). */
     private static function toggleCss(Registry $params): string
     {
         $accent = self::accent($params) ?? 'var(--primary,#34dca2)';
+        [$box, $icon] = self::SIZES[(string) $params->get('dark_toggle_size', 'medium')] ?? self::SIZES['medium'];
 
-        return '.mertools-dt-li{display:inline-block;vertical-align:middle;list-style:none;margin:0;padding:0}'
-            . '.mertools-dt-li .mertools-dt{width:36px;height:36px;margin-inline-start:10px;vertical-align:middle}'
-            . '.mertools-dt{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;flex:0 0 auto;'
-            . 'padding:0;margin:0 4px;border:1px solid var(--border,rgba(128,128,128,.3));border-radius:50%;background:transparent;'
-            . 'color:var(--icon,currentColor);cursor:pointer;line-height:0;transition:background-color .2s,border-color .2s,color .2s;-webkit-appearance:none;appearance:none}'
-            . '.mertools-dt:hover{background:var(--hover,rgba(128,128,128,.12));border-color:' . $accent . ';color:' . $accent . '}'
-            . '.mertools-dt:focus-visible{outline:2px solid ' . $accent . ';outline-offset:2px}'
-            . '.mertools-dt svg{width:20px;height:20px;display:block}'
+        return '.mertools-dt-li{display:inline-flex;align-items:center;align-self:center;vertical-align:middle;list-style:none;margin:0;padding:0}'
+            . '.mertools-dt-li::before,.mertools-dt-li::after{display:none!important}'
+            . '.mertools-dt{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;width:' . $box . 'px;height:' . $box . 'px;'
+            . 'min-width:' . $box . 'px;flex:0 0 auto;padding:0;margin:0 6px;border:2px solid currentColor;border-radius:50%;'
+            . 'background:transparent;color:var(--title,#1f2328);opacity:.9;cursor:pointer;line-height:0;font-size:0;'
+            . 'transition:background-color .2s,border-color .2s,color .2s,opacity .2s,transform .2s;-webkit-appearance:none;appearance:none;'
+            . '-webkit-tap-highlight-color:transparent;vertical-align:middle;position:relative;z-index:2}'
+            . '.mertools-dt:hover{opacity:1;background:var(--hover,rgba(128,128,128,.14));color:' . $accent . ';transform:scale(1.06)}'
+            . '.mertools-dt:focus-visible{outline:3px solid ' . $accent . ';outline-offset:2px;opacity:1}'
+            . '.mertools-dt svg{width:' . $icon . 'px;height:' . $icon . 'px;display:block;flex:0 0 auto;pointer-events:none}'
             . '.mertools-dt .mertools-dt-sun{display:none}.mertools-dt .mertools-dt-moon{display:block}'
             . 'html[data-mertools-theme="dark"] .mertools-dt .mertools-dt-sun{display:block}'
             . 'html[data-mertools-theme="dark"] .mertools-dt .mertools-dt-moon{display:none}'
-            // floating fallback when no header is found
-            . '.mertools-dt.mertools-dt-float{position:fixed;inset-block-end:18px;inset-inline-end:18px;z-index:2147483000;'
-            . 'background:var(--bg-secondary,#232c3d);box-shadow:0 4px 18px rgba(0,0,0,.25)}';
+            . 'html[data-mertools-theme="dark"] .mertools-dt{color:var(--title,#e8ecf3)}'
+            . '.mertools-dt-li .mertools-dt,html[data-mertools-theme="dark"] .mertools-dt-li .mertools-dt{color:var(--mt-dt-color,var(--title,currentColor))}'
+            // beside the hamburger on phones
+            . '.mertools-dt.mertools-dt-burger{margin:0}'
+            // floating: always on top, in the visible part of the screen (the script adjusts the offsets)
+            . '.mertools-dt.mertools-dt-float{position:fixed;right:18px;bottom:18px;z-index:2147483000;margin:0;opacity:1;'
+            . 'border-width:1px;border-color:rgba(128,128,128,.35);background:var(--bg-primary,#fff);color:var(--title,#1f2328);'
+            . 'box-shadow:0 6px 22px rgba(0,0,0,.28),0 2px 6px rgba(0,0,0,.18)}'
+            . 'html[data-mertools-theme="dark"] .mertools-dt.mertools-dt-float{background:var(--bg-secondary,#232c3d);color:var(--title,#e8ecf3)}';
     }
 
     /** The early script (in <head>): sets the theme before the first paint so there is no flash. */
@@ -188,7 +207,10 @@ final class DarkMode
             'def'      => self::defaultMode($params),
             'toggle'   => (bool) (int) $params->get('dark_toggle', 1),
             'selector' => trim((string) $params->get('dark_header_selector', 'header.header')) ?: 'header.header',
-            'place'    => (string) $params->get('dark_toggle_place', 'append'),
+            'place'    => (string) $params->get('dark_toggle_place', 'auto'),
+            'adaptive' => (bool) (int) $params->get('dark_adaptive', 1),
+            'pal'      => self::palette($params),
+            'accent'   => self::accent($params),
         ];
     }
 }
