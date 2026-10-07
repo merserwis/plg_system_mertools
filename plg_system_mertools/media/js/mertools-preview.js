@@ -1,6 +1,6 @@
 /**
- * MerTools for Gridbox — live preview of the dark theme and sepia in the plugin settings. Reads the
- * form (palette, intensity, custom colours, accent, sepia on/off) and recolours the mock page at once;
+ * MerTools for Gridbox — live preview of the dark theme in the plugin settings. Reads the
+ * form (palette, intensity, custom colours, accent) and recolours the mock page at once;
  * the intensity uses the same formula as DarkMode::shade() in PHP.
  */
 (function () {
@@ -45,7 +45,6 @@
     var KEYS = ['bg', 'surface', 'bg_dark', 'title', 'text', 'muted', 'border', 'hover', 'shadow'];
 
     function palette() {
-      if (theme === 'sepia') return data.sepia || LIGHT;
       if (theme === 'light') return LIGHT;
       var key = val('dark_palette', 'slate'), p = {};
       var base = (data.presets || {})[key] || (data.presets || {}).slate || LIGHT;
@@ -61,12 +60,9 @@
       KEYS.forEach(function (k) { page.style.setProperty('--' + k.replace('_', '-'), p[k]); });
       var accent = val('dark_accent_site', '1') === '0' && theme === 'dark' ? val('dark_accent', '#f2a705') : '#f2a705';
       page.style.setProperty('--accent', accent);
-      var sepiaOn = val('dark_sepia', '1') !== '0';
       tabs.forEach(function (b) {
-        if (b.getAttribute('data-t') === 'sepia') b.hidden = !sepiaOn;
         b.setAttribute('aria-pressed', b.getAttribute('data-t') === theme ? 'true' : 'false');
       });
-      if (theme === 'sepia' && !sepiaOn) { theme = 'dark'; render(); return; }
       info.textContent = theme === 'dark' ? (data.intensity || 'Intensity: %s').replace('%s', val('dark_intensity', '50')) : '';
     }
 

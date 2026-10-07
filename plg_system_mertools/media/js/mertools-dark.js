@@ -1,9 +1,10 @@
 /**
- * MerTools for Gridbox — dark mode and sepia. The theme itself is set very early by a small inline
- * script in the head (no flash); this script
+ * MerTools for Gridbox — dark mode. The theme itself is set very early by a small inline script in
+ * the head (no flash); this script
  *  - builds the toggle button and keeps it where a visitor can see it (the menu on desktop, beside
  *    the hamburger on phones, or floating in the visible part of the screen),
- *  - switches light → dark → sepia on click, remembers the choice and follows the system when "auto",
+ *  - switches light ↔ dark on click, offers the dark palettes as dots on hover (sepia, midnight…),
+ *    remembers both choices and follows the system when "auto",
  *  - adapts the colours Gridbox writes into its element styles (they do not use the theme
  *    variables): light backgrounds are darkened and text too dark for its background is lightened
  *    just enough to be readable, keeping its hue. The fixes are data attributes that only the dark
@@ -23,7 +24,7 @@
 
   var THEMES = cfg.themes && cfg.themes.length ? cfg.themes : ['light', 'dark'];
 
-  /** The theme shown now: "dark", "sepia" (when offered) or "light". */
+  /** The theme shown now: "dark" or "light". */
   function current() {
     var t = root.getAttribute('data-mertools-theme');
     return t !== 'light' && THEMES.indexOf(t) > -1 ? t : 'light';
@@ -112,11 +113,11 @@
     return c.length > 3 && c[3] < 1 ? 'rgba(' + s + ',' + (+c[3].toFixed(3)) + ')' : 'rgb(' + s + ')';
   }
 
-  /** The palette of the current theme (dark or sepia) as parsed colours. */
+  /** The dark palette in use (the one chosen with the dots, or the default) as parsed colours. */
   function palette() {
-    var theme = current();
+    var theme = paletteKey();
     if (pals[theme]) return pals[theme];
-    var p = (theme === 'sepia' ? cfg.sepia : cfg.pal) || {};
+    var p = (cfg.pals && cfg.pals[theme]) || cfg.pal || {};
     var accent = cfg.accent || getComputedStyle(document.body).getPropertyValue('--primary').trim();
     var pal = {
       theme: theme,
@@ -215,7 +216,7 @@
     return [s[0] / list.length, s[1] / list.length, s[2] / list.length, s[3] / list.length];
   }
 
-  /** The theme's colour for a light background colour (darker in dark mode, warm paper in sepia),
+  /** The palette's colour for a light background colour (darker, in the tone of the palette),
    *  keeping its tone; null when it should stay. */
   function darker(c, wide) {
     var l = lum(c);
@@ -311,17 +312,7 @@
     }
     var size = parseFloat(cs.fontSize) || 16;
     var need = (size >= 24 || (size >= 18.6 && parseInt(cs.fontWeight, 10) >= 700)) ? 3 : 4.5;
-    var shown = over(fg, bg), now = contrast(shown, bg), p0 = palette();
-    // sepia: neutral dark text (greys, black written into element styles) takes the warm brown tone
-    if (now >= need && p0.theme === 'sepia' && sat(shown) < 0.12 && lum(shown) < 0.2) {
-      var warm = mix(shown, p0.title, 0.75);
-      if (contrast(warm, bg) >= need) {
-        el.style.setProperty('--mt-fg', rgb(warm));
-        el.setAttribute('data-mt-fg', '');
-        if (ps) el.setAttribute('data-mt-fgp', '');
-      }
-      return;
-    }
+    var shown = over(fg, bg), now = contrast(shown, bg);
     if (now >= need) return;
     // text on a vivid brand colour (buttons, badges) keeps the site's design — unless its colour
     // comes from the dark palette (a theme variable), i.e. dark mode itself changed it
@@ -387,7 +378,7 @@
   }
 
   /** The fixes for the current theme, computed from the site's own colours (in one task: no flicker).
-   *  Every switch to dark or sepia recomputes them, since the two themes need different colours. */
+   *  Every switch to dark mode or to another palette recomputes them. */
   function adaptAll() {
     if (current() === 'light') {
       root.removeAttribute('data-mt-on');
@@ -509,9 +500,9 @@
     update();
   }
 
-  // ------------------------------------------------------------------ toggle button
+  // ------------------------------------------------------------------ toggle button and palette dots
 
-  var btn = null;
+  var box = null, btn = null, dots = null;
 
   /** In the menu the button takes the colour of the menu links (read again after a theme switch). */
   function matchMenu() {
@@ -524,26 +515,48 @@
     if (!btn) return;
     btn.style.removeProperty('--mt-dt-color');
     matchMenu();
-    // the icon and the label say what a click does: the next theme of the cycle
+    // the icon and the label say what a click does
     var nx = next();
-    btn.innerHTML = ICONS[nx] || MOON;
+    btn.innerHTML = nx === 'dark' ? MOON : SUN;
     btn.setAttribute('data-next', nx);
     btn.setAttribute('aria-pressed', current() === 'light' ? 'false' : 'true');
-    var label = { dark: cfg.toDark || 'Switch to dark mode', sepia: cfg.toSepia || 'Switch to sepia mode',
-      light: cfg.toLight || 'Switch to light mode' }[nx];
+    var label = nx === 'dark' ? (cfg.toDark || 'Switch to dark mode') : (cfg.toLight || 'Switch to light mode');
     btn.setAttribute('aria-label', label);
     btn.setAttribute('title', label);
+    if (dots) {
+      var key = paletteKey(), on = current() === 'dark';
+      [].forEach.call(dots.querySelectorAll('.mertools-dt-dot'), function (d) {
+        d.setAttribute('aria-pressed', on && d.getAttribute('data-palette') === key ? 'true' : 'false');
+      });
+    }
   }
 
   function next() {
     return THEMES[(THEMES.indexOf(current()) + 1) % THEMES.length];
   }
 
+  /** The palette the visitor chose with the dots (or the default one of the settings). */
+  function paletteKey() {
+    var k = root.getAttribute('data-mertools-palette');
+    return k && cfg.pals && cfg.pals[k] ? k : (cfg.palette || 'slate');
+  }
+
+  /** A dot chosen: that palette, in dark mode, remembered. */
+  function choosePalette(key) {
+    if (key === (cfg.palette || 'slate')) root.removeAttribute('data-mertools-palette');
+    else root.setAttribute('data-mertools-palette', key);
+    try { localStorage.setItem(cfg.pkey || 'mertools-palette', key); } catch (e) { /* private mode */ }
+    if (current() !== 'dark') {
+      apply('dark');
+      store('dark');
+    } else {
+      adaptAll();
+      update();
+    }
+  }
+
   var SUN = '<svg class="mertools-dt-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"></path></svg>';
   var MOON = '<svg class="mertools-dt-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.5 14.3a8.5 8.5 0 0 1-10.8-10.8 0.7 0.7 0 0 0-0.9-0.9 9.8 9.8 0 1 0 12.6 12.6 0.7 0.7 0 0 0-0.9-0.9z"></path></svg>';
-  // an open book: sepia, the reading theme
-  var BOOK = '<svg class="mertools-dt-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 5.5c2.8-1.2 6.2-1.1 9.5 1v13c-3.3-2.1-6.7-2.2-9.5-1z"></path><path d="M21.5 5.5c-2.8-1.2-6.2-1.1-9.5 1v13c3.3-2.1 6.7-2.2 9.5-1z"></path></svg>';
-  var ICONS = { dark: MOON, sepia: BOOK, light: SUN };
 
   /** Is the element really on screen (inside the visible part of the page, not hidden)? */
   function onScreen(el) {
@@ -588,17 +601,22 @@
 
   var li = null;
 
+  /** Which way the dots slide out: into the page, away from the edge the button sits at. */
+  function direction(dir) {
+    box.setAttribute('data-dir', dir);
+  }
+
   function detach() {
-    btn.classList.remove('mertools-dt-float', 'mertools-dt-burger');
-    ['right', 'bottom', 'top', 'left', 'position'].forEach(function (k) { btn.style.removeProperty(k); });
+    box.classList.remove('mertools-dt-float', 'mertools-dt-burger');
+    ['right', 'bottom', 'top', 'left', 'position'].forEach(function (k) { box.style.removeProperty(k); });
     if (li && li.parentNode) li.parentNode.removeChild(li);
-    if (btn.parentNode) btn.parentNode.removeChild(btn);
+    if (box.parentNode) box.parentNode.removeChild(box);
   }
 
   function placeFloat() {
     detach();
-    btn.classList.add('mertools-dt-float');
-    document.body.appendChild(btn);
+    box.classList.add('mertools-dt-float');
+    document.body.appendChild(box);
     keepFloatVisible();
   }
 
@@ -617,7 +635,7 @@
   }
 
   function keepFloatVisible() {
-    if (!btn || !btn.classList.contains('mertools-dt-float')) return;
+    if (!box || !box.classList.contains('mertools-dt-float')) return;
     var vv = window.visualViewport || { offsetLeft: 0, offsetTop: 0, width: window.innerWidth, height: window.innerHeight };
     var fx = cfg.fx >= 0 ? cfg.fx : 18, fy = cfg.fy >= 0 ? cfg.fy : 18, gap = 10;
     var place = FLOATS[cfg.place] ? cfg.place : 'float';
@@ -644,14 +662,14 @@
         }
       }
     }
-    btn.setAttribute('data-side', right !== null ? 'right' : 'left');
-    btn.style.setProperty('right', right !== null ? Math.max(right, 8) + 'px' : 'auto');
-    btn.style.setProperty('left', left !== null ? Math.max(left, 4) + 'px' : 'auto');
-    btn.style.setProperty('bottom', Math.max(bottom, 8) + 'px');
+    direction(right !== null ? 'left' : 'right');
+    box.style.setProperty('right', right !== null ? Math.max(right, 8) + 'px' : 'auto');
+    box.style.setProperty('left', left !== null ? Math.max(left, 4) + 'px' : 'auto');
+    box.style.setProperty('bottom', Math.max(bottom, 8) + 'px');
   }
 
   function place() {
-    if (!btn) return;
+    if (!box) return;
     var host = header();
     if (FLOATS[cfg.place] || !host) {
       placeFloat();
@@ -663,35 +681,83 @@
       detach();
       li = li || document.createElement('li');
       li.className = 'nav-item mertools-dt-li';
-      li.appendChild(btn);
+      li.appendChild(box);
       if (cfg.place === 'start') ul.insertBefore(li, ul.firstChild); else ul.appendChild(li);
-      if (onScreen(btn)) { matchMenu(); return; }
+      if (onScreen(btn)) { direction('down'); matchMenu(); return; }
     }
     // 2. beside the hamburger (phones: the menu is closed, off-screen)
     var burger = hamburger(host);
     if (burger) {
       detach();
-      btn.classList.add('mertools-dt-burger');
-      burger.parentNode.insertBefore(btn, burger);
+      box.classList.add('mertools-dt-burger');
+      burger.parentNode.insertBefore(box, burger);
       // just left of the hamburger, centred on it: measured on screen, so it works whatever the
       // containing block of the header column is
-      btn.style.position = 'absolute';
-      btn.style.left = '0px';
-      btn.style.top = '0px';
+      box.style.position = 'absolute';
+      box.style.left = '0px';
+      box.style.top = '0px';
       // the icon itself: the hamburger wrapper is often wider than its icon
       var icon = burger.querySelector('i, svg, img, span') || burger;
       var r0 = btn.getBoundingClientRect(), rb = icon.getBoundingClientRect();
       if (rb.width < 4) rb = burger.getBoundingClientRect();
-      btn.style.left = Math.round(rb.left - r0.width - 12 - r0.left) + 'px';
-      btn.style.top = Math.round(rb.top + (rb.height - r0.height) / 2 - r0.top) + 'px';
-      if (onScreen(btn)) return;
+      box.style.left = Math.round(rb.left - r0.width - 12 - r0.left) + 'px';
+      box.style.top = Math.round(rb.top + (rb.height - r0.height) / 2 - r0.top) + 'px';
+      if (onScreen(btn)) { direction('down'); return; }
     }
     // 3. floating in the visible part of the screen
     placeFloat();
   }
 
+  /** The palette dots: one per palette offered in the settings, in the colours of that palette. */
+  function buildDots() {
+    var keys = Object.keys(cfg.pals || {});
+    if (!cfg.picker || keys.length < 2) return;
+    dots = document.createElement('span');
+    dots.className = 'mertools-dt-dots';
+    dots.setAttribute('role', 'group');
+    dots.setAttribute('aria-label', cfg.choose || 'Colours of dark mode');
+    var row = document.createElement('span');
+    row.className = 'mertools-dt-dots-in';
+    keys.forEach(function (k) {
+      var p = cfg.pals[k], d = document.createElement('button'), name = (cfg.names && cfg.names[k]) || k;
+      d.type = 'button';
+      d.className = 'mertools-dt-dot';
+      d.setAttribute('data-palette', k);
+      d.setAttribute('aria-label', name);
+      d.setAttribute('title', name);
+      d.style.setProperty('--dot-bg', p.bg);
+      d.style.setProperty('--dot-fg', p.title);
+      d.style.setProperty('--dot-sf', p.surface);
+      d.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        choosePalette(k);
+      });
+      row.appendChild(d);
+    });
+    dots.appendChild(row);
+    box.appendChild(dots);
+    // touch screens have no hover: a long press on the button opens the dots, a tap elsewhere closes them
+    var timer = 0, longPress = false;
+    btn.addEventListener('touchstart', function () {
+      longPress = false;
+      timer = setTimeout(function () { longPress = true; box.classList.add('is-open'); }, 450);
+    }, { passive: true });
+    ['touchend', 'touchmove', 'touchcancel'].forEach(function (ev) {
+      btn.addEventListener(ev, function () { clearTimeout(timer); }, { passive: true });
+    });
+    btn.addEventListener('click', function (e) {
+      if (longPress) { e.preventDefault(); e.stopImmediatePropagation(); longPress = false; }
+    }, true);
+    btn.addEventListener('contextmenu', function (e) { if (box.classList.contains('is-open')) e.preventDefault(); });
+    document.addEventListener('click', function (e) { if (!box.contains(e.target)) box.classList.remove('is-open'); });
+    box.addEventListener('keydown', function (e) { if (e.key === 'Escape') { box.classList.remove('is-open'); btn.focus(); } });
+  }
+
   function build() {
     if (btn || cfg.toggle === false) return;
+    box = document.createElement('span');
+    box.className = 'mertools-dt-box';
     btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'mertools-dt';
@@ -703,6 +769,8 @@
       apply(nx);
       store(nx);
     });
+    box.appendChild(btn);
+    buildDots();
     place();
     update();
 

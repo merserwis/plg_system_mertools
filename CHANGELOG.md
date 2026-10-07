@@ -2,6 +2,13 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.10 (Beta) — 2026-10-07
+
+### 🎨 Palette dots — visitors choose the colours of dark mode
+
+- **Sepia is a dark palette now** (dark brown paper with cream text), next to Slate, Charcoal, Midnight, Warm and Dim — not a separate light theme any more. The toggle button switches light ↔ dark again. A visitor who chose the sepia theme in 0.0.8 gets dark mode with the sepia palette.
+- **Dots by the toggle button**: when the pointer is over the button (keyboard focus, or a long press on phones), dots in the colours of the palettes slide out — into the page, away from the edge the button is at. A click on a dot switches dark mode to that palette; the choice is remembered. The settings choose which palettes are offered (*Palettes to choose from*); the intensity applies to all of them. The dots can be switched off.
+
 ## 0.0.9 (Beta) — 2026-10-07
 
 ### 🌙 Toggle button positions

@@ -26,7 +26,13 @@ use Joomla\Registry\Registry;
 
 final class DarkMode
 {
-    public const PALETTES = ['slate', 'charcoal', 'midnight', 'warm', 'dim', 'custom'];
+    public const PALETTES = ['slate', 'charcoal', 'midnight', 'warm', 'sepia', 'dim', 'custom'];
+
+    /** Palettes offered to visitors (the dots by the toggle) when the setting was never saved. */
+    public const OFFERED_DEFAULT = ['slate', 'midnight', 'warm', 'sepia', 'charcoal'];
+
+    /** localStorage key of the palette a visitor chose. */
+    public const PALETTE_STORAGE = 'mertools-palette';
 
     /**
      * Dark palettes. Each is the dark value of the Gridbox theme variables. "bg_dark" is the
@@ -57,6 +63,12 @@ final class DarkMode
             'title' => '#efe9e1', 'text' => '#cfc7bb', 'muted' => 'rgba(239,233,225,.45)',
             'border' => '#423b32', 'hover' => '#322c26', 'shadow' => 'rgba(0,0,0,.5)',
         ],
+        // sepia: dark brown paper with cream text, warm like old photographs
+        'sepia' => [
+            'bg' => '#2a2219', 'surface' => '#352b20', 'bg_dark' => '#1d1711',
+            'title' => '#f2e6cf', 'text' => '#dccbad', 'muted' => 'rgba(242,230,207,.5)',
+            'border' => '#4d3e2d', 'hover' => '#3c3124', 'shadow' => 'rgba(0,0,0,.5)',
+        ],
         // dim, low contrast (the gentlest on the eyes)
         'dim' => [
             'bg' => '#262a31', 'surface' => '#2f343d', 'bg_dark' => '#1e2127',
@@ -72,13 +84,6 @@ final class DarkMode
     ];
 
     public const KEYS = ['bg', 'surface', 'bg_dark', 'title', 'text', 'muted', 'border', 'hover', 'shadow'];
-
-    /** Sepia: a warm, paper-like light theme for reading (the same Gridbox variables). */
-    public const SEPIA = [
-        'bg' => '#f4ecd8', 'surface' => '#ede2c8', 'bg_dark' => '#4a3b2c',
-        'title' => '#3b2e22', 'text' => '#4f3f30', 'muted' => 'rgba(59,46,34,.6)',
-        'border' => '#d6c6a5', 'hover' => '#e8dbbd', 'shadow' => 'rgba(74,59,44,.18)',
-    ];
 
     /** The palette colours the intensity slider deepens or softens. */
     public const SHADES = ['bg', 'surface', 'bg_dark', 'hover', 'border'];
@@ -128,15 +133,35 @@ final class DarkMode
         return $out;
     }
 
-    public static function sepiaEnabled(Registry $params): bool
-    {
-        return (bool) (int) $params->get('dark_sepia', 1);
-    }
-
-    /** @return string[] the themes the toggle cycles through */
+    /** @return string[] the themes the toggle switches between */
     public static function themes(Registry $params): array
     {
-        return self::sepiaEnabled($params) ? ['light', 'dark', 'sepia'] : ['light', 'dark'];
+        return ['light', 'dark'];
+    }
+
+    /** The default dark palette (the one set in the settings). */
+    public static function paletteKey(Registry $params): string
+    {
+        $key = (string) $params->get('dark_palette', 'slate');
+
+        return in_array($key, self::PALETTES, true) ? $key : 'slate';
+    }
+
+    /** @return string[] the palettes visitors can choose with the dots (always with the default one first) */
+    public static function offered(Registry $params): array
+    {
+        $raw  = $params->get('dark_palettes', null);
+        $list = $raw === null ? self::OFFERED_DEFAULT : (is_array($raw) ? $raw : array_filter(explode(',', (string) $raw)));
+        $list = array_values(array_intersect(self::PALETTES, array_map('strval', $list)));
+        $def  = self::paletteKey($params);
+
+        return array_values(array_unique(array_merge([$def], $list)));
+    }
+
+    /** Are the palette dots shown by the toggle? */
+    public static function picker(Registry $params): bool
+    {
+        return (bool) (int) $params->get('dark_picker', 1) && count(self::offered($params)) > 1;
     }
 
     /** localStorage key / data attribute base. */
@@ -149,10 +174,15 @@ final class DarkMode
         return $value !== '' && preg_match('/^(#[0-9a-f]{3,8}|rgba?\([0-9.,\s%]+\)|hsla?\([0-9.,\s%a-z]+\)|transparent)$/i', $value) ? $value : $default;
     }
 
-    /** @return array<string,string> the resolved dark palette (preset or custom, with the intensity applied). */
+    /** @return array<string,string> the resolved default dark palette (preset or custom, with the intensity applied). */
     public static function palette(Registry $params): array
     {
-        $key = (string) $params->get('dark_palette', 'slate');
+        return self::paletteOf($params, self::paletteKey($params));
+    }
+
+    /** @return array<string,string> one dark palette by key, with the intensity applied */
+    public static function paletteOf(Registry $params, string $key): array
+    {
         if ($key === 'custom') {
             $out = [];
             foreach (self::KEYS as $k) {
@@ -228,13 +258,14 @@ final class DarkMode
         }
 
         $css = 'html[data-mertools-theme="dark"] body{' . $vars . '}';
+        // the other palettes a visitor can choose with the dots (the attribute is set before the first paint)
+        foreach (self::offered($params) as $key) {
+            if ($key !== self::paletteKey($params)) {
+                $css .= 'html[data-mertools-theme="dark"][data-mertools-palette="' . $key . '"] body{' . self::vars(self::paletteOf($params, $key)) . '}';
+            }
+        }
         // native controls, scrollbars and form fields follow
         $css .= 'html[data-mertools-theme="dark"]{color-scheme:dark;}';
-        // sepia: warm paper tones, the site's accent kept
-        if (self::sepiaEnabled($params)) {
-            $css .= 'html[data-mertools-theme="sepia"] body{' . self::vars(self::SEPIA) . '}'
-                . 'html[data-mertools-theme="sepia"]{color-scheme:light;}';
-        }
         // a gentle cross-fade when switching (only the colours, not layout)
         if ((int) $params->get('dark_transition', 1)) {
             $css .= 'html[data-mertools-theme] body,html[data-mertools-theme] body header,html[data-mertools-theme] body section,'
@@ -298,25 +329,47 @@ final class DarkMode
         $accent = self::accent($params) ?? 'var(--primary,#34dca2)';
         [$box, $icon] = self::toggleSize($params);
 
+        $dot = max(14, (int) round($box * 0.45));
+
         return '.mertools-dt-li{display:inline-flex;align-items:center;align-self:center;vertical-align:middle;list-style:none;margin:0;padding:0}'
             . '.mertools-dt-li::before,.mertools-dt-li::after{display:none!important}'
+            . '.mertools-dt-box{position:relative;display:inline-flex;align-items:center;vertical-align:middle;z-index:2}'
             . '.mertools-dt{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;width:' . $box . 'px;height:' . $box . 'px;'
             . 'min-width:' . $box . 'px;flex:0 0 auto;padding:0;margin:0 6px;border:2px solid currentColor;border-radius:50%;'
             . 'background:transparent;color:var(--title,#1f2328);opacity:.9;cursor:pointer;line-height:0;font-size:0;'
             . 'transition:background-color .2s,border-color .2s,color .2s,opacity .2s,transform .2s;-webkit-appearance:none;appearance:none;'
-            . '-webkit-tap-highlight-color:transparent;vertical-align:middle;position:relative;z-index:2}'
+            . '-webkit-tap-highlight-color:transparent;vertical-align:middle;position:relative}'
             . '.mertools-dt:hover{opacity:1;background:var(--hover,rgba(128,128,128,.14));color:' . $accent . ';transform:scale(1.06)}'
             . '.mertools-dt:focus-visible{outline:3px solid ' . $accent . ';outline-offset:2px;opacity:1}'
             . '.mertools-dt svg{width:' . $icon . 'px;height:' . $icon . 'px;display:block;flex:0 0 auto;pointer-events:none}'
             . 'html[data-mertools-theme="dark"] .mertools-dt{color:var(--title,#e8ecf3)}'
             . '.mertools-dt-li .mertools-dt,html[data-mertools-theme="dark"] .mertools-dt-li .mertools-dt{color:var(--mt-dt-color,var(--title,currentColor))}'
             // beside the hamburger on phones
-            . '.mertools-dt.mertools-dt-burger{margin:0}'
-            // floating: always on top, in the visible part of the screen (the script adjusts the offsets)
-            . '.mertools-dt.mertools-dt-float{position:fixed;right:18px;bottom:18px;z-index:2147483000;margin:0;opacity:1;'
-            . 'border-width:1px;border-color:rgba(128,128,128,.35);background:var(--bg-primary,#fff);color:var(--title,#1f2328);'
-            . 'box-shadow:0 6px 22px rgba(0,0,0,.28),0 2px 6px rgba(0,0,0,.18)}'
-            . 'html[data-mertools-theme="dark"] .mertools-dt.mertools-dt-float{background:var(--bg-secondary,#232c3d);color:var(--title,#e8ecf3)}';
+            . '.mertools-dt-box.mertools-dt-burger .mertools-dt{margin:0}'
+            // floating: always on top, in the visible part of the screen (the script sets the offsets)
+            . '.mertools-dt-box.mertools-dt-float{position:fixed;right:18px;bottom:18px;z-index:2147483000}'
+            . '.mertools-dt-float .mertools-dt{margin:0;opacity:1;border-width:1px;border-color:rgba(128,128,128,.35);background:var(--bg-primary,#fff);'
+            . 'color:var(--title,#1f2328);box-shadow:0 6px 22px rgba(0,0,0,.28),0 2px 6px rgba(0,0,0,.18)}'
+            . 'html[data-mertools-theme="dark"] .mertools-dt-float .mertools-dt{background:var(--bg-secondary,#232c3d);color:var(--title,#e8ecf3)}'
+            // the palette dots: slide out of the button on hover / keyboard focus / long press, into the page
+            . '.mertools-dt-dots{position:absolute;display:flex;opacity:0;visibility:hidden;pointer-events:none;'
+            . 'transition:opacity .22s ease,transform .22s ease,visibility 0s linear .22s}'
+            . '.mertools-dt-dots-in{display:flex;gap:8px;padding:7px 9px;border-radius:999px;background:var(--bg-secondary,#fff);'
+            . 'border:1px solid var(--border,rgba(128,128,128,.3));box-shadow:0 8px 24px rgba(0,0,0,.22)}'
+            . '.mertools-dt-box[data-dir="left"] .mertools-dt-dots{right:100%;top:50%;padding-right:8px;transform:translate(12px,-50%)}'
+            . '.mertools-dt-box[data-dir="right"] .mertools-dt-dots{left:100%;top:50%;padding-left:8px;transform:translate(-12px,-50%)}'
+            . '.mertools-dt-box[data-dir="down"] .mertools-dt-dots{top:100%;right:0;padding-top:8px;transform:translateY(-10px)}'
+            . '.mertools-dt-box:hover .mertools-dt-dots,.mertools-dt-box:has(:focus-visible) .mertools-dt-dots,.mertools-dt-box.is-open .mertools-dt-dots'
+            . '{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .22s ease,transform .22s ease,visibility 0s}'
+            . '.mertools-dt-box[data-dir="left"]:is(:hover,:has(:focus-visible),.is-open) .mertools-dt-dots{transform:translate(0,-50%)}'
+            . '.mertools-dt-box[data-dir="right"]:is(:hover,:has(:focus-visible),.is-open) .mertools-dt-dots{transform:translate(0,-50%)}'
+            . '.mertools-dt-box[data-dir="down"]:is(:hover,:has(:focus-visible),.is-open) .mertools-dt-dots{transform:translateY(0)}'
+            . '.mertools-dt-dot{box-sizing:border-box;width:' . $dot . 'px;height:' . $dot . 'px;padding:0;margin:0;border-radius:50%;cursor:pointer;'
+            . 'border:2px solid var(--dot-fg);background:linear-gradient(135deg,var(--dot-bg) 0 55%,var(--dot-sf) 55% 100%);'
+            . 'box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s;-webkit-appearance:none;appearance:none;flex:0 0 auto}'
+            . '.mertools-dt-dot:hover,.mertools-dt-dot:focus-visible{transform:scale(1.18);outline:none}'
+            . '.mertools-dt-dot[aria-pressed="true"]{box-shadow:0 0 0 2px var(--bg-secondary,#fff),0 0 0 4px ' . $accent . '}'
+            . '@media (prefers-reduced-motion:reduce){.mertools-dt-dots,.mertools-dt-dot{transition:none}}';
     }
 
     /** The early script (in <head>): sets the theme before the first paint so there is no flash. */
@@ -324,8 +377,12 @@ final class DarkMode
     {
         $def = self::defaultMode($params);
 
+        // a visitor's stored "sepia" theme (0.0.8) is dark mode with the sepia palette now
         return '(function(){try{var k=' . json_encode(self::STORAGE) . ',s=localStorage.getItem(k),d=' . json_encode($def) . ',a='
-            . json_encode(self::themes($params)) . ',t;'
+            . json_encode(self::themes($params)) . ',o=' . json_encode(self::offered($params)) . ',p=localStorage.getItem('
+            . json_encode(self::PALETTE_STORAGE) . '),t;'
+            . 'if(s==="sepia"){s="dark";if(!p&&o.indexOf("sepia")>-1)p="sepia"}'
+            . 'if(o.indexOf(p)>-1){document.documentElement.setAttribute("data-mertools-palette",p)}'
             . 'if(a.indexOf(s)>-1){t=s}else if(a.indexOf(d)>-1){t=d}'
             . 'else{t=(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light"}'
             . 'document.documentElement.setAttribute("data-mertools-theme",t);}catch(e){}})();';
@@ -345,8 +402,11 @@ final class DarkMode
             'a11y'     => trim(str_replace(['{', '}', '<', '>', ';'], '', (string) $params->get('dark_a11y_selector', '._access-icon'))) ?: '._access-icon',
             'adaptive' => (bool) (int) $params->get('dark_adaptive', 1),
             'pal'      => self::palette($params),
-            'sepia'    => self::sepiaEnabled($params) ? self::SEPIA : null,
             'themes'   => self::themes($params),
+            'palette'  => self::paletteKey($params),
+            'pals'     => array_combine(self::offered($params), array_map(fn ($k) => self::paletteOf($params, $k), self::offered($params))),
+            'picker'   => self::picker($params),
+            'pkey'     => self::PALETTE_STORAGE,
             'accent'   => self::accent($params),
             'logo'     => self::logoUrl($params),
             'logoSel'  => self::logoSelector($params),

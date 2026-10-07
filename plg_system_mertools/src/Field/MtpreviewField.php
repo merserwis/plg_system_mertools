@@ -31,7 +31,6 @@ final class MtpreviewField extends FormField
         $t    = fn (string $k) => htmlspecialchars(Text::_('PLG_SYSTEM_MERTOOLS_DARK_PREVIEW_' . $k), ENT_QUOTES, 'UTF-8');
         $data = htmlspecialchars(json_encode([
             'presets'   => DarkMode::presets(),
-            'sepia'     => DarkMode::SEPIA,
             'shades'    => DarkMode::SHADES,
             'intensity' => Text::_('PLG_SYSTEM_MERTOOLS_DARK_PREVIEW_INTENSITY'),
         ]), ENT_QUOTES, 'UTF-8');
@@ -60,7 +59,6 @@ final class MtpreviewField extends FormField
             . '<div class="mt-pv" data-mt-preview="' . $data . '">'
             . '<div class="mt-pv-bar">'
             . '<button type="button" data-t="dark" aria-pressed="true">' . $t('DARK') . '</button>'
-            . '<button type="button" data-t="sepia" aria-pressed="false">' . $t('SEPIA') . '</button>'
             . '<button type="button" data-t="light" aria-pressed="false">' . $t('LIGHT') . '</button>'
             . '<span class="mt-pv-int"></span></div>'
             . '<div class="mt-pv-page">'

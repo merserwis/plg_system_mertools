@@ -6,7 +6,7 @@
     <creationDate>2026-10-07</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>0.0.9</version>
+    <version>0.0.10</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -61,24 +61,34 @@
                     <option value="charcoal">PLG_SYSTEM_MERTOOLS_DARK_PAL_CHARCOAL</option>
                     <option value="midnight">PLG_SYSTEM_MERTOOLS_DARK_PAL_MIDNIGHT</option>
                     <option value="warm">PLG_SYSTEM_MERTOOLS_DARK_PAL_WARM</option>
+                    <option value="sepia">PLG_SYSTEM_MERTOOLS_DARK_PAL_SEPIA</option>
                     <option value="dim">PLG_SYSTEM_MERTOOLS_DARK_PAL_DIM</option>
                     <option value="custom">PLG_SYSTEM_MERTOOLS_DARK_PAL_CUSTOM</option>
+                </field>
+                <field name="dark_picker" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1[AND]dark_toggle:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_PICKER_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_PICKER_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="dark_palettes" type="checkboxes" default="slate,midnight,warm,sepia,charcoal" showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_picker:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_PALETTES_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_PALETTES_DESC">
+                    <option value="slate">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_SLATE</option>
+                    <option value="charcoal">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_CHARCOAL</option>
+                    <option value="midnight">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_MIDNIGHT</option>
+                    <option value="warm">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_WARM</option>
+                    <option value="sepia">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_SEPIA</option>
+                    <option value="dim">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_DIM</option>
+                    <option value="custom">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_CUSTOM</option>
                 </field>
                 <field name="dark_intensity" type="range" default="50" min="0" max="100" step="1" showon="dark_enabled:1"
                     label="PLG_SYSTEM_MERTOOLS_DARK_INTENSITY_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_INTENSITY_DESC" />
                 <field name="dark_preview" type="mtpreview" showon="dark_enabled:1" hiddenLabel="true"
                     label="PLG_SYSTEM_MERTOOLS_DARK_PREVIEW_LABEL" />
-                <field name="dark_sepia" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_SEPIA_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_SEPIA_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
                 <field name="dark_default" type="list" default="auto" showon="dark_enabled:1"
                     label="PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_DESC">
                     <option value="auto">PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_AUTO</option>
                     <option value="light">PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_LIGHT</option>
                     <option value="dark">PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_DARK</option>
-                    <option value="sepia" showon="dark_sepia:1">PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_SEPIA</option>
                 </field>
 
                 <field name="dark_accent_site" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1"
