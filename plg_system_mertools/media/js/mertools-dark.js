@@ -125,8 +125,18 @@
     return b;
   }
 
+  /** Text written by CSS (content: "…" on ::before / ::after), e.g. a cookie banner's message. */
+  function pseudoText(el) {
+    for (var i = 0; i < 2; i++) {
+      var ps = getComputedStyle(el, i ? '::after' : '::before'), c = ps.content;
+      if (c && c !== 'none' && c !== 'normal' && /^["'].*[A-Za-z0-9\u00C0-\u024F\u0400-\u04FF].*["']$/.test(c)) return ps;
+    }
+    return null;
+  }
+
   function ownText(el) {
     if (FORM[el.tagName]) return true;
+    if (pseudoText(el)) return true;
     for (var n = el.firstChild; n; n = n.nextSibling) {
       if (n.nodeType === 3 && n.nodeValue.trim() !== '') return true;
     }
@@ -149,6 +159,12 @@
   }
 
   function fixText(el, cs) {
+    var hasOwn = false;
+    for (var n = el.firstChild; n; n = n.nextSibling) {
+      if (n.nodeType === 3 && n.nodeValue.trim() !== '') { hasOwn = true; break; }
+    }
+    var ps = hasOwn || FORM[el.tagName] ? null : pseudoText(el);
+    if (ps) cs = ps;
     var fg = parse(cs.color);
     if (!fg) return;
     var bg = backdrop(el);
@@ -182,6 +198,7 @@
       el.style.setProperty('--mt-fg-h', rgb(p.accent));
     }
     el.setAttribute('data-mt-fg', '');
+    if (ps) el.setAttribute('data-mt-fgp', '');
   }
 
   function adapt(scope) {
@@ -204,12 +221,33 @@
     root.classList.remove('mertools-dt-calc');
   }
 
-  var done = false, pending = [], timer = 0;
+  var done = false, pending = [], timer = 0, refreshTimer = 0;
 
   function adaptAll() {
     if (done || current() !== 'dark') return;
     done = true;
     adapt(document.body);
+  }
+
+  /** Everything again from the site's own colours: styles that arrived later (a stylesheet loaded after
+   *  this script, lazy sections) may have changed them. Runs in one task, so nothing flickers. */
+  function refresh() {
+    if (!done || current() !== 'dark') return;
+    [].forEach.call(document.querySelectorAll('[data-mt-bg],[data-mt-fg]'), function (el) {
+      el.removeAttribute('data-mt-bg');
+      el.removeAttribute('data-mt-fg');
+      el.removeAttribute('data-mt-fgp');
+      el.style.removeProperty('--mt-bg');
+      el.style.removeProperty('--mt-fg');
+      el.style.removeProperty('--mt-fg-h');
+    });
+    adapt(document.body);
+    update();
+  }
+
+  function refreshSoon(delay) {
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(refresh, delay || 300);
   }
 
   function watch() {
@@ -226,10 +264,55 @@
         }, 200);
       }
     }).observe(document.body, { childList: true, subtree: true });
+    // stylesheets added or finishing later change the colours of what is already adapted
+    new MutationObserver(function (records) {
+      records.forEach(function (r) {
+        r.addedNodes.forEach(function (n) {
+          if (n.nodeName === 'STYLE' || (n.nodeName === 'LINK' && /stylesheet/i.test(n.rel || ''))) refreshSoon();
+        });
+      });
+    }).observe(document.head, { childList: true });
+    document.addEventListener('load', function (e) {
+      var t = e.target;
+      if (t && t.nodeName === 'LINK' && /stylesheet/i.test(t.rel || '')) refreshSoon();
+    }, true);
+  }
+
+  // ------------------------------------------------------------------ logo for dark mode
+
+  /** Swaps the logo image to the dark-mode logo and back. Gridbox lazy loading writes the address
+   *  from data-gridbox-lazyload-src later, so that attribute is swapped too. */
+  function logos() {
+    if (!cfg.logo || !cfg.logoSel) return;
+    var dark = current() === 'dark', list;
+    try { list = document.querySelectorAll(cfg.logoSel); } catch (e) { return; }
+    [].forEach.call(list, function (el) {
+      var imgs = el.tagName === 'IMG' ? [el] : [].slice.call(el.querySelectorAll('img'));
+      imgs.forEach(function (img) {
+        if (dark) {
+          if (!img.hasAttribute('data-mt-logo')) {
+            img.setAttribute('data-mt-logo', JSON.stringify({ src: img.getAttribute('src'), srcset: img.getAttribute('srcset'),
+              lazy: img.getAttribute('data-gridbox-lazyload-src') }));
+          }
+          if (img.hasAttribute('data-gridbox-lazyload-src')) img.setAttribute('data-gridbox-lazyload-src', cfg.logo);
+          img.removeAttribute('srcset');
+          img.setAttribute('src', cfg.logo);
+        } else if (img.hasAttribute('data-mt-logo')) {
+          var o = {};
+          try { o = JSON.parse(img.getAttribute('data-mt-logo')) || {}; } catch (e) { o = {}; }
+          if (o.lazy !== null && o.lazy !== undefined) img.setAttribute('data-gridbox-lazyload-src', o.lazy);
+          if (o.srcset) img.setAttribute('srcset', o.srcset);
+          // the lazy loader may have replaced the placeholder meanwhile: restore the real image
+          img.setAttribute('src', o.lazy || o.src || img.getAttribute('src'));
+          img.removeAttribute('data-mt-logo');
+        }
+      });
+    });
   }
 
   function apply(theme) {
     root.setAttribute('data-mertools-theme', theme === 'dark' ? 'dark' : 'light');
+    logos();
     if (theme === 'dark') adaptAll();
     update();
   }
@@ -411,13 +494,12 @@
 
   function start() {
     build();
+    logos();
     adaptAll();
     update();
     watch();
-    // late styles (lazy sections, fonts) — one more pass over what appeared meanwhile
-    window.addEventListener('load', function () {
-      if (current() === 'dark') setTimeout(function () { adapt(document.body); }, 400);
-    });
+    // late styles (stylesheets loaded after this script, lazy sections) — everything once more
+    window.addEventListener('load', function () { refreshSoon(400); });
   }
 
   if (document.readyState === 'loading') {

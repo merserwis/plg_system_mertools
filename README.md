@@ -61,12 +61,13 @@ An elegant dark theme for the whole front-end, with a toggle button in the heade
 - **Accent as in Gridbox:** keep the site's brand accent in dark mode, or choose another.
 - **Default for new visitors:** Automatic (follows the visitor's system setting), Light or Dark. A remembered choice always wins, and the theme is applied before the first paint (no flash).
 - **Adapted colours:** Gridbox writes many colours straight into section and element styles (text, links, headings, header and accordion backgrounds), so the variables alone do not reach them. In dark mode the script darkens light backgrounds and lightens text that is too dark for its background just enough for a 4.5:1 contrast, keeping its hue; readable brand colours and texts on vivid buttons stay as designed, and content loaded later is adapted too. The fixes are data attributes used only by the dark theme, so the light theme is unchanged. Option *Adapt the site colours* (on by default).
+- **Logo for dark mode:** a second logo (light lettering) chosen in the media manager replaces the header logo in dark mode, also with Gridbox lazy loading; other logos via a CSS selector.
 - **Toggle button:** at the end (or start) of the menu, in the colour of the menu links, in the size you type in pixels (24–96, default 44). On phones, where the menu is folded behind the hamburger, it moves next to the hamburger, or floats in the corner of the visible screen. A floating button can also be chosen. The header selector can be changed for other templates.
 - **Options:** smooth cross-fade on switch; optionally dim bright photos in dark mode.
 
 How it works: the toggle sets `data-mertools-theme="dark"` on `<html>`; the plugin's CSS then redefines the Gridbox variables (`--bg-primary`, `--text`, `--title`, `--border`, …) for that state at a higher specificity (`html[data-mertools-theme="dark"] body`). The choice is kept in `localStorage`. The Gridbox core files are not touched.
 
-**Settings:** tab *Dark mode*. Saving the settings, installing and updating empty Joomla's page cache, so the change is visible at once. If the site is behind Cloudflare, its cache needs no purge — the script address changes with every version.
+**Settings:** tab *Dark mode*. Saving the settings, installing and updating empty Joomla's page cache (`administrator/cache/page`, or the configured cache path), so the change is visible at once. If the site is behind Cloudflare, its cache needs no purge — the script address changes with every version.
 
 ## Languages
 

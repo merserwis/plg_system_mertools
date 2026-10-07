@@ -52,7 +52,8 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
         if ($type === 'install' || $type === 'update' || $type === 'discover_install') {
             try {
                 Factory::getContainer()->get(\Joomla\CMS\Cache\CacheControllerFactoryInterface::class)
-                    ->createCacheController('callback', ['defaultgroup' => 'page', 'cachebase' => JPATH_SITE . '/cache'])
+                    ->createCacheController('callback', ['defaultgroup' => 'page',
+                        'cachebase' => ((string) Factory::getApplication()->get('cache_path', '')) ?: (\defined('JPATH_CACHE') ? JPATH_CACHE : JPATH_ADMINISTRATOR . '/cache')])
                     ->clean('page');
             } catch (\Throwable $e) {
             }

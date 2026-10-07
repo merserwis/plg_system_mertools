@@ -20,6 +20,8 @@ namespace Merserwis\Plugin\System\MerTools\Tool;
 
 \defined('_JEXEC') or die;
 
+use Joomla\CMS\HTML\HTMLHelper;
+use Joomla\CMS\Uri\Uri;
 use Joomla\Registry\Registry;
 
 final class DarkMode
@@ -116,6 +118,34 @@ final class DarkMode
         return in_array($m, ['auto', 'light', 'dark'], true) ? $m : 'auto';
     }
 
+    public const LOGO_SELECTOR = 'header .ba-item-logo img';
+
+    /** The address of the logo for dark mode chosen in the settings, or null. */
+    public static function logoUrl(Registry $params): ?string
+    {
+        $value = trim((string) $params->get('dark_logo', ''));
+        if ($value === '') {
+            return null;
+        }
+        $url = (string) HTMLHelper::cleanImageURL($value)->url;
+        if ($url === '' || preg_match('#^(javascript|data|vbscript):#i', $url)) {
+            return null;
+        }
+        if (!preg_match('#^(https?:)?//#i', $url)) {
+            $url = rtrim(Uri::root(true), '/') . '/' . ltrim($url, '/');
+        }
+
+        return $url;
+    }
+
+    /** The logo images to replace: a CSS selector list (characters that could leave the rule are removed). */
+    public static function logoSelector(Registry $params): string
+    {
+        $sel = trim(str_replace(['{', '}', '<', '>', ';', '\\'], '', (string) $params->get('dark_logo_selector', self::LOGO_SELECTOR)));
+
+        return $sel !== '' ? $sel : self::LOGO_SELECTOR;
+    }
+
     /** The CSS: the dark palette as the Gridbox variables, plus the toggle button and a soft transition. */
     public static function css(Registry $params): string
     {
@@ -144,8 +174,16 @@ final class DarkMode
         if ((int) $params->get('dark_adaptive', 1)) {
             $css .= 'html[data-mertools-theme="dark"] [data-mt-bg]{background-color:var(--mt-bg)!important}'
                 . 'html[data-mertools-theme="dark"] [data-mt-fg]{color:var(--mt-fg)!important}'
+                . 'html[data-mertools-theme="dark"] [data-mt-fgp]::before,html[data-mertools-theme="dark"] [data-mt-fgp]::after{color:var(--mt-fg)!important}'
                 . 'html[data-mertools-theme="dark"] a:hover[data-mt-fg],html[data-mertools-theme="dark"] a:hover [data-mt-fg]{color:var(--mt-fg-h,var(--mt-fg))!important}'
                 . 'html.mertools-dt-calc *,html.mertools-dt-calc *::before,html.mertools-dt-calc *::after{transition:none!important}';
+        }
+        // the logo for dark mode, shown from the first paint (the script also swaps the image address,
+        // for browsers that do not draw "content" on images and for Gridbox's lazy loading)
+        $logo = self::logoUrl($params);
+        if ($logo !== null) {
+            $rules = array_map(fn ($s) => 'html[data-mertools-theme="dark"] ' . trim($s), array_filter(explode(',', self::logoSelector($params)), 'trim'));
+            $css  .= implode(',', $rules) . '{content:url("' . str_replace(['"', "\n", "\r"], ['%22', '', ''], $logo) . '")}';
         }
         // slightly calm very bright images in dark mode (optional)
         if ((int) $params->get('dark_dim_media', 0)) {
@@ -221,6 +259,8 @@ final class DarkMode
             'adaptive' => (bool) (int) $params->get('dark_adaptive', 1),
             'pal'      => self::palette($params),
             'accent'   => self::accent($params),
+            'logo'     => self::logoUrl($params),
+            'logoSel'  => self::logoSelector($params),
         ];
     }
 }

@@ -32,7 +32,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.6';
+    public const VERSION = '0.0.7';
 
     protected $autoloadLanguage = true;
 
@@ -117,12 +117,24 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         self::cleanPageCache();
     }
 
+    /** Where Joomla keeps its cache: the configured path, else administrator/cache (site and administrator share it since Joomla 4). */
+    public static function cacheBase(): string
+    {
+        try {
+            $path = (string) Factory::getApplication()->get('cache_path', '');
+        } catch (\Throwable $e) {
+            $path = '';
+        }
+
+        return $path !== '' ? $path : (\defined('JPATH_CACHE') ? JPATH_CACHE : JPATH_ADMINISTRATOR . '/cache');
+    }
+
     /** Empties Joomla's page cache of the site (System - Page Cache), also when called from the administrator. */
     public static function cleanPageCache(): void
     {
         try {
             Factory::getContainer()->get(CacheControllerFactoryInterface::class)
-                ->createCacheController('callback', ['defaultgroup' => 'page', 'cachebase' => JPATH_SITE . '/cache'])
+                ->createCacheController('callback', ['defaultgroup' => 'page', 'cachebase' => self::cacheBase()])
                 ->clean('page');
         } catch (\Throwable $e) {
             // nothing cached, or a cache backend that cannot be emptied from here

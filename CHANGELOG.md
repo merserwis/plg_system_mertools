@@ -2,6 +2,15 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.7 (Beta) — 2026-10-07
+
+### 🌙 Dark mode
+
+- **Logo for dark mode** (new): choose a version of the logo for the dark background (e.g. with light lettering) in the media manager; it replaces the site logo in dark mode from the first paint, also with Gridbox's lazy loading. By default the Gridbox Logo element in the header; more logos can be added with a CSS selector.
+- **Page cache really emptied**: since Joomla 4 the site keeps its page cache in `administrator/cache` (or the configured cache path); 0.0.6 emptied the wrong folder, so a site with *System - Page Cache* still served the previous pages after an update. Installing, updating and saving the settings now empty the right one.
+- **Colours checked again when late styles arrive**: a stylesheet loaded after the page (or a lazy section) no longer leaves a light section unadapted — everything is checked again at once, without flicker.
+- **Text written by CSS** (`content: "…"` on `::before` / `::after`, e.g. the message of a cookie banner) is adapted too.
+
 ## 0.0.6 (Beta) — 2026-10-07
 
 ### 🌙 Dark mode
