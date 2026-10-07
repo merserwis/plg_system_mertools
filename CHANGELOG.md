@@ -2,6 +2,21 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.14 (Beta) — 2026-10-07
+
+### 📞 New tool: Click to call (tab *Phone numbers*, on by default)
+
+- Phone numbers written as plain text on the pages become links that dial them (`tel:`), also where nobody set a link — e.g. the contact rows under the products (“Kamil Turowski 22 531 00 94 / 533 394 222”), footers, the contact page.
+- Polish numbers in the usual forms (`22 531 00 94`, `(22) 531-00-94`, `533 394 222`, `+48 533-394-222`, `0048…`) and international numbers starting with `+`. The link dials the number with the country code (default +48, can be changed or left empty).
+- Left alone: existing links, buttons, form fields, code, numbers that are not phones (NIP, REGON, KRS, PESEL, bank accounts, serial and catalogue numbers, EAN, prices, standards like 60364-4-41, dates, postal codes) and fax numbers (but “tel./fax” is a phone). Areas can be excluded with a CSS selector.
+- Looks like the text around it (underlined on hover), or like the site's links. A number never breaks across lines.
+- On all devices, or only on phones and tablets.
+- Light: a small script runs once the browser is idle after loading (about 15 ms on a product page with the CPU slowed 4×), and only on text with enough digits; content added later is checked the same way. The page content in Gridbox is not changed.
+
+### 🛠 Fixed
+
+- Nothing of MerTools is added inside the Gridbox page builder, so links and the colour marks of dark mode can never be saved into the page content.
+
 ## 0.0.13 (Beta) — 2026-10-07
 
 ### 📱 New tool: No sideways shift on phones (tab *Page layout*, on by default)

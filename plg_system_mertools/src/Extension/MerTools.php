@@ -29,11 +29,12 @@ use Joomla\Event\Priority;
 use Joomla\Event\SubscriberInterface;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\Layout;
+use Merserwis\Plugin\System\MerTools\Tool\Phones;
 use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.13';
+    public const VERSION = '0.0.14';
 
     protected $autoloadLanguage = true;
 
@@ -76,8 +77,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * Front-end pages (HTML documents only): the page layout fix for phones, and dark mode — the dark
-     * palette CSS, the no-flash inline script and the toggle script.
+     * Front-end pages (HTML documents only, not the Gridbox builder): the page layout fix for phones,
+     * click-to-call phone numbers, and dark mode — the dark palette CSS, the no-flash inline script
+     * and the toggle script.
      */
     public function onBeforeCompileHead(): void
     {
@@ -86,17 +88,22 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             return;
         }
         $document = $app->getDocument();
-        if (!$document || $document->getType() !== 'html') {
+        if (!$document || $document->getType() !== 'html' || $this->inBuilder()) {
             return;
         }
+        $wa = $document->getWebAssetManager();
         if ((int) $this->params->get('layout_clip_x', 1)) {
             $document->addStyleDeclaration(Layout::css());
+        }
+        if (Phones::enabled($this->params)) {
+            $document->addStyleDeclaration(Phones::css($this->params));
+            $document->addScriptOptions('plg_system_mertools', ['tel' => Phones::jsConfig($this->params)]);
+            $wa->registerAndUseScript('plg_system_mertools.tel', 'plg_system_mertools/mertools-tel.js', [], ['defer' => true]);
         }
         if (!(int) $this->params->get('dark_enabled', 0)) {
             return;
         }
 
-        $wa = $document->getWebAssetManager();
         // the theme has to be set before the first paint, so this inline script goes in the head first
         $wa->addInlineScript(DarkMode::inlineScript($this->params), ['position' => 'before'], ['type' => 'text/javascript']);
         $document->addStyleDeclaration(DarkMode::css($this->params));
@@ -149,6 +156,17 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         } catch (\Throwable $e) {
             // nothing cached, or a cache backend that cannot be emptied from here
         }
+    }
+
+    /**
+     * The Gridbox page builder (its editor frame shows the page on the site side): nothing is added
+     * there, or links and colour marks could be saved into the page content.
+     */
+    private function inBuilder(): bool
+    {
+        $input = $this->getApplication()->getInput();
+
+        return $input->getCmd('option') === 'com_gridbox' && \in_array($input->getCmd('view'), ['editor', 'gridbox'], true);
     }
 
     private function translate(string $key): string
