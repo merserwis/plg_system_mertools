@@ -2,6 +2,14 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.11 (Beta) — 2026-10-07
+
+### 🌙 Dark mode
+
+- **Bright buttons** (e.g. orange “Get the offer”) are adapted now too. New option *Bright buttons in dark mode*: **Outline** (default) — the dark background of the palette with a ring in the brand colour, like the other adapted buttons; **Softer** — the brand colour toned down; **Unchanged**. Only buttons with a label: small badges, round icons and large coloured blocks keep their colour.
+- **Toggle button**: its outline and its shadow can be switched off.
+- The floating button keeps **20 px** from the accessibility button (was 10 px).
+
 ## 0.0.10 (Beta) — 2026-10-07
 
 ### 🎨 Palette dots — visitors choose the colours of dark mode

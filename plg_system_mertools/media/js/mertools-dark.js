@@ -236,10 +236,45 @@
     return (el.tagName === 'I' || el.tagName === 'SPAN') && !el.firstElementChild && /icon|zmdi|fa-|flaticon|ba-icon/.test(el.className || '');
   }
 
+  /** A button or a link styled as one (not a badge, not a large coloured block). */
+  function isButton(el, r) {
+    var tag = el.tagName, cls = typeof el.className === 'string' ? el.className : '';
+    var looks = tag === 'BUTTON' || (tag === 'INPUT' && /^(submit|button|reset)$/i.test(el.type))
+      || el.getAttribute('role') === 'button' || /(^|[\s_-])(btn|button)/i.test(cls) || tag === 'A';
+    // a button has a label: icon-only circles (e.g. a round orange icon) keep their colour
+    return looks && r.height >= 18 && r.height <= 110 && r.width <= Math.min(620, window.innerWidth * 0.9)
+      && (el.textContent || el.value || '').trim().length >= 2;
+  }
+
+  /** Bright brand-coloured buttons (e.g. orange "Get the offer"): kept, softened, or drawn as the other
+   *  adapted buttons — the dark background of the palette with a ring in their own colour. */
+  function fixVividButton(el, cs, r) {
+    var mode = cfg.vivid || 'outline';
+    if (mode === 'keep') return false;
+    var c = parse(cs.backgroundColor);
+    if (!c || c[3] < 0.6) return false;
+    var l = lum(c);
+    if (!(sat(c) > 0.45 && l > 0.06 && l < 0.8) || !isButton(el, r)) return false;
+    var p = palette();
+    if (mode === 'soft') {
+      var soft = mix(c, p.surface, 0.3);
+      soft[3] = c[3];
+      el.style.setProperty('--mt-bg', rgb(soft));
+    } else {
+      el.style.setProperty('--mt-bg', rgb(p.surface));
+      el.style.setProperty('--mt-ring', rgb(c));
+      el.setAttribute('data-mt-ring', '');
+    }
+    el.setAttribute('data-mt-bg', '');
+    return true;
+  }
+
   function fixBackground(el, cs) {
     var bi = cs.backgroundImage;
     if (bi !== 'none' && (/url\(/.test(bi) || !/gradient/.test(bi))) return;
-    var wide = el.getBoundingClientRect().width >= window.innerWidth * 0.9;
+    var rect = el.getBoundingClientRect();
+    if (bi === 'none' && fixVividButton(el, cs, rect)) return;
+    var wide = rect.width >= window.innerWidth * 0.9;
     // dark and mid colours stay; vivid brand colours (buttons, badges) stay
     var nb = darker(parse(cs.backgroundColor) || [0, 0, 0, 0], wide);
     if (nb) {
@@ -367,8 +402,8 @@
 
   var done = false, pending = [], timer = 0, refreshTimer = 0;
 
-  var ATTRS = ['data-mt-bg', 'data-mt-bgi', 'data-mt-fg', 'data-mt-fgp', 'data-mt-bd', 'data-mt-bdb', 'data-mt-bda'];
-  var PROPS = ['--mt-bg', '--mt-bgi', '--mt-fg', '--mt-fg-h'];
+  var ATTRS = ['data-mt-bg', 'data-mt-bgi', 'data-mt-fg', 'data-mt-fgp', 'data-mt-bd', 'data-mt-bdb', 'data-mt-bda', 'data-mt-ring'];
+  var PROPS = ['--mt-bg', '--mt-bgi', '--mt-fg', '--mt-fg-h', '--mt-ring'];
   ['bd', 'bb', 'ba'].forEach(function (p) { SIDE_KEYS.forEach(function (k) { PROPS.push('--mt-' + p + k); }); });
   var MARKED = '[data-mt-bg],[data-mt-bgi],[data-mt-fg],[data-mt-bd],[data-mt-bdb],[data-mt-bda]';
 
@@ -637,7 +672,7 @@
   function keepFloatVisible() {
     if (!box || !box.classList.contains('mertools-dt-float')) return;
     var vv = window.visualViewport || { offsetLeft: 0, offsetTop: 0, width: window.innerWidth, height: window.innerHeight };
-    var fx = cfg.fx >= 0 ? cfg.fx : 18, fy = cfg.fy >= 0 ? cfg.fy : 18, gap = 10;
+    var fx = cfg.fx >= 0 ? cfg.fx : 18, fy = cfg.fy >= 0 ? cfg.fy : 18, gap = 20;
     var place = FLOATS[cfg.place] ? cfg.place : 'float';
     // the visible part of the screen inside the layout viewport that fixed elements are placed against
     var visRight = window.innerWidth - (vv.offsetLeft + vv.width), visBottom = window.innerHeight - (vv.offsetTop + vv.height);

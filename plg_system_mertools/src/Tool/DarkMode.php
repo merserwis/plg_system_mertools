@@ -281,6 +281,7 @@ final class DarkMode
                 . 'html[data-mt-on] [data-mt-fg]{color:var(--mt-fg)!important}'
                 . 'html[data-mt-on] [data-mt-fgp]::before,html[data-mt-on] [data-mt-fgp]::after{color:var(--mt-fg)!important}'
                 . 'html[data-mt-on] a:hover[data-mt-fg],html[data-mt-on] a:hover [data-mt-fg]{color:var(--mt-fg-h,var(--mt-fg))!important}'
+                . 'html[data-mt-on] [data-mt-ring]{box-shadow:inset 0 0 0 2px var(--mt-ring)!important}'
                 . 'html[data-mt-on] [data-mt-bd]{' . $bd('bd') . '}'
                 . 'html[data-mt-on] [data-mt-bdb]::before{' . $bd('bb') . '}'
                 . 'html[data-mt-on] [data-mt-bda]::after{' . $bd('ba') . '}'
@@ -328,6 +329,8 @@ final class DarkMode
     {
         $accent = self::accent($params) ?? 'var(--primary,#34dca2)';
         [$box, $icon] = self::toggleSize($params);
+        $ring   = (int) $params->get('dark_toggle_border', 1);
+        $shadow = (int) $params->get('dark_toggle_shadow', 1);
 
         $dot = max(14, (int) round($box * 0.45));
 
@@ -335,7 +338,7 @@ final class DarkMode
             . '.mertools-dt-li::before,.mertools-dt-li::after{display:none!important}'
             . '.mertools-dt-box{position:relative;display:inline-flex;align-items:center;vertical-align:middle;z-index:2}'
             . '.mertools-dt{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;width:' . $box . 'px;height:' . $box . 'px;'
-            . 'min-width:' . $box . 'px;flex:0 0 auto;padding:0;margin:0 6px;border:2px solid currentColor;border-radius:50%;'
+            . 'min-width:' . $box . 'px;flex:0 0 auto;padding:0;margin:0 6px;border:' . ($ring ? '2px solid currentColor' : '0') . ';border-radius:50%;'
             . 'background:transparent;color:var(--title,#1f2328);opacity:.9;cursor:pointer;line-height:0;font-size:0;'
             . 'transition:background-color .2s,border-color .2s,color .2s,opacity .2s,transform .2s;-webkit-appearance:none;appearance:none;'
             . '-webkit-tap-highlight-color:transparent;vertical-align:middle;position:relative}'
@@ -348,14 +351,16 @@ final class DarkMode
             . '.mertools-dt-box.mertools-dt-burger .mertools-dt{margin:0}'
             // floating: always on top, in the visible part of the screen (the script sets the offsets)
             . '.mertools-dt-box.mertools-dt-float{position:fixed;right:18px;bottom:18px;z-index:2147483000}'
-            . '.mertools-dt-float .mertools-dt{margin:0;opacity:1;border-width:1px;border-color:rgba(128,128,128,.35);background:var(--bg-primary,#fff);'
-            . 'color:var(--title,#1f2328);box-shadow:0 6px 22px rgba(0,0,0,.28),0 2px 6px rgba(0,0,0,.18)}'
+            . '.mertools-dt-float .mertools-dt{margin:0;opacity:1;' . ($ring ? 'border-width:1px;border-color:rgba(128,128,128,.35);' : 'border:0;')
+            . 'background:var(--bg-primary,#fff);color:var(--title,#1f2328);'
+            . 'box-shadow:' . ($shadow ? '0 6px 22px rgba(0,0,0,.28),0 2px 6px rgba(0,0,0,.18)' : 'none') . '}'
             . 'html[data-mertools-theme="dark"] .mertools-dt-float .mertools-dt{background:var(--bg-secondary,#232c3d);color:var(--title,#e8ecf3)}'
             // the palette dots: slide out of the button on hover / keyboard focus / long press, into the page
             . '.mertools-dt-dots{position:absolute;display:flex;opacity:0;visibility:hidden;pointer-events:none;'
             . 'transition:opacity .22s ease,transform .22s ease,visibility 0s linear .22s}'
             . '.mertools-dt-dots-in{display:flex;gap:8px;padding:7px 9px;border-radius:999px;background:var(--bg-secondary,#fff);'
-            . 'border:1px solid var(--border,rgba(128,128,128,.3));box-shadow:0 8px 24px rgba(0,0,0,.22)}'
+            . ($ring ? 'border:1px solid var(--border,rgba(128,128,128,.3));' : 'border:0;')
+            . 'box-shadow:' . ($shadow ? '0 8px 24px rgba(0,0,0,.22)' : 'none') . '}'
             . '.mertools-dt-box[data-dir="left"] .mertools-dt-dots{right:100%;top:50%;padding-right:8px;transform:translate(12px,-50%)}'
             . '.mertools-dt-box[data-dir="right"] .mertools-dt-dots{left:100%;top:50%;padding-left:8px;transform:translate(-12px,-50%)}'
             . '.mertools-dt-box[data-dir="down"] .mertools-dt-dots{top:100%;right:0;padding-top:8px;transform:translateY(-10px)}'
@@ -399,6 +404,7 @@ final class DarkMode
             'place'    => (string) $params->get('dark_toggle_place', 'auto'),
             'fx'       => max(0, min(400, (int) $params->get('dark_float_x', 18))),
             'fy'       => max(0, min(400, (int) $params->get('dark_float_y', 18))),
+            'vivid'    => in_array($v = (string) $params->get('dark_vivid', 'outline'), ['outline', 'soft', 'keep'], true) ? $v : 'outline',
             'a11y'     => trim(str_replace(['{', '}', '<', '>', ';'], '', (string) $params->get('dark_a11y_selector', '._access-icon'))) ?: '._access-icon',
             'adaptive' => (bool) (int) $params->get('dark_adaptive', 1),
             'pal'      => self::palette($params),

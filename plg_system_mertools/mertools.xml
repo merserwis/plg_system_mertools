@@ -6,7 +6,7 @@
     <creationDate>2026-10-07</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>0.0.10</version>
+    <version>0.0.11</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -126,6 +126,16 @@
                 <field name="dark_toggle_size" type="number" default="44" min="24" max="96" step="1" filter="integer"
                     showon="dark_enabled:1[AND]dark_toggle:1"
                     label="PLG_SYSTEM_MERTOOLS_DARK_SIZE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_SIZE_DESC" />
+                <field name="dark_toggle_border" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1[AND]dark_toggle:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_BORDER_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_BORDER_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="dark_toggle_shadow" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1[AND]dark_toggle:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_SHADOW_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_SHADOW_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
                 <field name="dark_header_selector" type="text" default="header.header" showon="dark_enabled:1[AND]dark_toggle:1"
                     label="PLG_SYSTEM_MERTOOLS_DARK_SELECTOR_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_SELECTOR_DESC" />
 
@@ -133,6 +143,12 @@
                     label="PLG_SYSTEM_MERTOOLS_DARK_TRANSITION_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_TRANSITION_DESC">
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
+                </field>
+                <field name="dark_vivid" type="list" default="outline" showon="dark_enabled:1[AND]dark_adaptive:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_VIVID_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_VIVID_DESC">
+                    <option value="outline">PLG_SYSTEM_MERTOOLS_DARK_VIVID_OUTLINE</option>
+                    <option value="soft">PLG_SYSTEM_MERTOOLS_DARK_VIVID_SOFT</option>
+                    <option value="keep">PLG_SYSTEM_MERTOOLS_DARK_VIVID_KEEP</option>
                 </field>
                 <field name="dark_logo" type="media" default="" preview="tooltip" showon="dark_enabled:1"
                     label="PLG_SYSTEM_MERTOOLS_DARK_LOGO_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_LOGO_DESC" />
