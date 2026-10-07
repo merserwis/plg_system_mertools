@@ -21,8 +21,33 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
      * A fresh install enables the plugin so its tools work at once; an update leaves the
      * administrator's choice (enabled or not) as it is.
      */
+    /**
+     * Since 0.0.4 the plugin ships English and Polish only: the files of the languages added by
+     * 0.0.3 are removed (Joomla keeps them on an update).
+     */
+    private function removeDroppedLanguages(): void
+    {
+        foreach (['cs-CZ', 'de-DE', 'fr-FR', 'nl-NL'] as $tag) {
+            foreach ([JPATH_ADMINISTRATOR . '/language/' . $tag . '/plg_system_mertools',
+                JPATH_PLUGINS . '/system/mertools/language/' . $tag . '/plg_system_mertools'] as $base) {
+                foreach (['.ini', '.sys.ini'] as $ext) {
+                    if (is_file($base . $ext)) {
+                        @unlink($base . $ext);
+                    }
+                }
+            }
+            $dir = JPATH_PLUGINS . '/system/mertools/language/' . $tag;
+            if (is_dir($dir) && !(new \FilesystemIterator($dir))->valid()) {
+                @rmdir($dir);
+            }
+        }
+    }
+
     public function postflight(string $type, InstallerAdapter $adapter): bool
     {
+        if ($type === 'update') {
+            $this->removeDroppedLanguages();
+        }
         if ($type !== 'install') {
             return true;
         }

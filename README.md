@@ -69,7 +69,7 @@ How it works: the toggle sets `data-mertools-theme="dark"` on `<html>`; the plug
 
 ## Languages
 
-English (default), German, Polish, French, Czech and Dutch. The settings follow the language of the Joomla administrator; for any other language — or a text a translation lacks — English is shown.
+English (default) and Polish. The settings follow the language of the Joomla administrator; for any other language — or a text a translation lacks — English is shown.
 
 ## Installation
 

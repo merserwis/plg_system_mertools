@@ -2,6 +2,12 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.4 (Beta) — 2026-10-07
+
+### 🌍 Languages
+
+- The settings are in **English (default) and Polish** again. German, French, Czech and Dutch, added in 0.0.3, are removed; their files are removed on update, and those administrators see English.
+
 ## 0.0.3 (Beta) — 2026-10-07
 
 ### 🧪 Beta
