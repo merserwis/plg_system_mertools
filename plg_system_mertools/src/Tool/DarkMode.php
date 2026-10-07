@@ -73,6 +73,72 @@ final class DarkMode
 
     public const KEYS = ['bg', 'surface', 'bg_dark', 'title', 'text', 'muted', 'border', 'hover', 'shadow'];
 
+    /** Sepia: a warm, paper-like light theme for reading (the same Gridbox variables). */
+    public const SEPIA = [
+        'bg' => '#f4ecd8', 'surface' => '#ede2c8', 'bg_dark' => '#4a3b2c',
+        'title' => '#3b2e22', 'text' => '#4f3f30', 'muted' => 'rgba(59,46,34,.6)',
+        'border' => '#d6c6a5', 'hover' => '#e8dbbd', 'shadow' => 'rgba(74,59,44,.18)',
+    ];
+
+    /** The palette colours the intensity slider deepens or softens. */
+    public const SHADES = ['bg', 'surface', 'bg_dark', 'hover', 'border'];
+
+    /** @return array<string, array<string,string>> the dark presets (for the settings preview). */
+    public static function presets(): array
+    {
+        return self::PRESETS + ['custom' => self::CUSTOM_DEFAULT];
+    }
+
+    /** Intensity of the dark theme 0–100; 50 is the palette as designed. */
+    public static function intensity(Registry $params): int
+    {
+        return max(0, min(100, (int) $params->get('dark_intensity', 50)));
+    }
+
+    /** @return int[]|null [r, g, b] of a #rgb / #rrggbb colour */
+    private static function hex(string $c): ?array
+    {
+        if (!preg_match('/^#([0-9a-f]{3}|[0-9a-f]{6})$/i', trim($c), $m)) {
+            return null;
+        }
+        $h = strlen($m[1]) === 3 ? preg_replace('/(.)/', '$1$1', $m[1]) : $m[1];
+
+        return [hexdec(substr($h, 0, 2)), hexdec(substr($h, 2, 2)), hexdec(substr($h, 4, 2))];
+    }
+
+    /**
+     * The intensity applied to one background shade: above 50 it is mixed towards a near-black
+     * (never pure black), below 50 towards a soft slate grey. The settings preview uses the same
+     * formula (media/js/mertools-preview.js).
+     */
+    public static function shade(string $colour, int $intensity): string
+    {
+        $rgb = self::hex($colour);
+        if ($rgb === null || $intensity === 50) {
+            return $colour;
+        }
+        $t      = ($intensity - 50) / 50;
+        $target = $t > 0 ? [6, 8, 11] : [74, 82, 96];
+        $amount = $t > 0 ? $t * 0.55 : -$t * 0.32;
+        $out    = '#';
+        foreach ([0, 1, 2] as $i) {
+            $out .= sprintf('%02x', (int) round($rgb[$i] + ($target[$i] - $rgb[$i]) * $amount));
+        }
+
+        return $out;
+    }
+
+    public static function sepiaEnabled(Registry $params): bool
+    {
+        return (bool) (int) $params->get('dark_sepia', 1);
+    }
+
+    /** @return string[] the themes the toggle cycles through */
+    public static function themes(Registry $params): array
+    {
+        return self::sepiaEnabled($params) ? ['light', 'dark', 'sepia'] : ['light', 'dark'];
+    }
+
     /** localStorage key / data attribute base. */
     public const STORAGE = 'mertools-theme';
 
@@ -83,7 +149,7 @@ final class DarkMode
         return $value !== '' && preg_match('/^(#[0-9a-f]{3,8}|rgba?\([0-9.,\s%]+\)|hsla?\([0-9.,\s%a-z]+\)|transparent)$/i', $value) ? $value : $default;
     }
 
-    /** @return array<string,string> the resolved dark palette (preset or custom). */
+    /** @return array<string,string> the resolved dark palette (preset or custom, with the intensity applied). */
     public static function palette(Registry $params): array
     {
         $key = (string) $params->get('dark_palette', 'slate');
@@ -92,11 +158,15 @@ final class DarkMode
             foreach (self::KEYS as $k) {
                 $out[$k] = self::color((string) $params->get('dark_c_' . $k, ''), self::CUSTOM_DEFAULT[$k]);
             }
-
-            return $out;
+        } else {
+            $out = self::PRESETS[$key] ?? self::PRESETS['slate'];
+        }
+        $i = self::intensity($params);
+        foreach (self::SHADES as $k) {
+            $out[$k] = self::shade($out[$k], $i);
         }
 
-        return self::PRESETS[$key] ?? self::PRESETS['slate'];
+        return $out;
     }
 
     /** The accent colour for dark mode: the site's Gridbox accent (default) or a chosen colour. */
@@ -115,7 +185,7 @@ final class DarkMode
     {
         $m = (string) $params->get('dark_default', 'auto');
 
-        return in_array($m, ['auto', 'light', 'dark'], true) ? $m : 'auto';
+        return in_array($m, array_merge(['auto'], self::themes($params)), true) ? $m : 'auto';
     }
 
     public const LOGO_SELECTOR = 'header .ba-item-logo img';
@@ -149,22 +219,22 @@ final class DarkMode
     /** The CSS: the dark palette as the Gridbox variables, plus the toggle button and a soft transition. */
     public static function css(Registry $params): string
     {
-        $p   = self::palette($params);
-        $sel = 'html[data-mertools-theme="dark"] body';
-
-        $vars = '--bg-primary:' . $p['bg'] . ';--bg-secondary:' . $p['surface'] . ';--bg-dark:' . $p['bg_dark']
-            . ';--bg-dark-accent:' . $p['bg_dark'] . ';--title:' . $p['title'] . ';--text:' . $p['text']
-            . ';--icon:' . $p['text'] . ';--subtitle:' . $p['muted'] . ';--border:' . $p['border']
-            . ';--hover:' . $p['hover'] . ';--shadow:' . $p['shadow'] . ';';
+        $p    = self::palette($params);
+        $vars = self::vars($p);
 
         $accent = self::accent($params);
         if ($accent !== null) {
             $vars .= '--primary:' . $accent . ';';
         }
 
-        $css = $sel . '{' . $vars . '}';
+        $css = 'html[data-mertools-theme="dark"] body{' . $vars . '}';
         // native controls, scrollbars and form fields follow
         $css .= 'html[data-mertools-theme="dark"]{color-scheme:dark;}';
+        // sepia: warm paper tones, the site's accent kept
+        if (self::sepiaEnabled($params)) {
+            $css .= 'html[data-mertools-theme="sepia"] body{' . self::vars(self::SEPIA) . '}'
+                . 'html[data-mertools-theme="sepia"]{color-scheme:light;}';
+        }
         // a gentle cross-fade when switching (only the colours, not layout)
         if ((int) $params->get('dark_transition', 1)) {
             $css .= 'html[data-mertools-theme] body,html[data-mertools-theme] body header,html[data-mertools-theme] body section,'
@@ -172,10 +242,17 @@ final class DarkMode
         }
         // colours Gridbox writes into its element styles, adapted by the script (only used in dark)
         if ((int) $params->get('dark_adaptive', 1)) {
-            $css .= 'html[data-mertools-theme="dark"] [data-mt-bg]{background-color:var(--mt-bg)!important}'
-                . 'html[data-mertools-theme="dark"] [data-mt-fg]{color:var(--mt-fg)!important}'
-                . 'html[data-mertools-theme="dark"] [data-mt-fgp]::before,html[data-mertools-theme="dark"] [data-mt-fgp]::after{color:var(--mt-fg)!important}'
-                . 'html[data-mertools-theme="dark"] a:hover[data-mt-fg],html[data-mertools-theme="dark"] a:hover [data-mt-fg]{color:var(--mt-fg-h,var(--mt-fg))!important}'
+            // html[data-mt-on] is set by the script while the fixes match the current dark or sepia theme
+            $bd  = fn ($p) => 'border-top-color:var(--mt-' . $p . 't)!important;border-right-color:var(--mt-' . $p . 'r)!important;'
+                . 'border-bottom-color:var(--mt-' . $p . 'b)!important;border-left-color:var(--mt-' . $p . 'l)!important';
+            $css .= 'html[data-mt-on] [data-mt-bg]{background-color:var(--mt-bg)!important}'
+                . 'html[data-mt-on] [data-mt-bgi]{background-image:var(--mt-bgi)!important}'
+                . 'html[data-mt-on] [data-mt-fg]{color:var(--mt-fg)!important}'
+                . 'html[data-mt-on] [data-mt-fgp]::before,html[data-mt-on] [data-mt-fgp]::after{color:var(--mt-fg)!important}'
+                . 'html[data-mt-on] a:hover[data-mt-fg],html[data-mt-on] a:hover [data-mt-fg]{color:var(--mt-fg-h,var(--mt-fg))!important}'
+                . 'html[data-mt-on] [data-mt-bd]{' . $bd('bd') . '}'
+                . 'html[data-mt-on] [data-mt-bdb]::before{' . $bd('bb') . '}'
+                . 'html[data-mt-on] [data-mt-bda]::after{' . $bd('ba') . '}'
                 . 'html.mertools-dt-calc *,html.mertools-dt-calc *::before,html.mertools-dt-calc *::after{transition:none!important}';
         }
         // the logo for dark mode, shown from the first paint (the script also swaps the image address,
@@ -191,6 +268,15 @@ final class DarkMode
         }
 
         return $css . self::toggleCss($params);
+    }
+
+    /** The Gridbox theme variables for a palette. */
+    private static function vars(array $p): string
+    {
+        return '--bg-primary:' . $p['bg'] . ';--bg-secondary:' . $p['surface'] . ';--bg-dark:' . $p['bg_dark']
+            . ';--bg-dark-accent:' . $p['bg_dark'] . ';--title:' . $p['title'] . ';--text:' . $p['text']
+            . ';--icon:' . $p['text'] . ';--subtitle:' . $p['muted'] . ';--border:' . $p['border']
+            . ';--hover:' . $p['hover'] . ';--shadow:' . $p['shadow'] . ';';
     }
 
     /** Sizes of the list used up to 0.0.5, still read from saved settings. */
@@ -222,9 +308,6 @@ final class DarkMode
             . '.mertools-dt:hover{opacity:1;background:var(--hover,rgba(128,128,128,.14));color:' . $accent . ';transform:scale(1.06)}'
             . '.mertools-dt:focus-visible{outline:3px solid ' . $accent . ';outline-offset:2px;opacity:1}'
             . '.mertools-dt svg{width:' . $icon . 'px;height:' . $icon . 'px;display:block;flex:0 0 auto;pointer-events:none}'
-            . '.mertools-dt .mertools-dt-sun{display:none}.mertools-dt .mertools-dt-moon{display:block}'
-            . 'html[data-mertools-theme="dark"] .mertools-dt .mertools-dt-sun{display:block}'
-            . 'html[data-mertools-theme="dark"] .mertools-dt .mertools-dt-moon{display:none}'
             . 'html[data-mertools-theme="dark"] .mertools-dt{color:var(--title,#e8ecf3)}'
             . '.mertools-dt-li .mertools-dt,html[data-mertools-theme="dark"] .mertools-dt-li .mertools-dt{color:var(--mt-dt-color,var(--title,currentColor))}'
             // beside the hamburger on phones
@@ -241,8 +324,9 @@ final class DarkMode
     {
         $def = self::defaultMode($params);
 
-        return '(function(){try{var k=' . json_encode(self::STORAGE) . ',s=localStorage.getItem(k),d=' . json_encode($def) . ',t;'
-            . 'if(s==="dark"||s==="light"){t=s}else if(d==="dark"){t="dark"}else if(d==="light"){t="light"}'
+        return '(function(){try{var k=' . json_encode(self::STORAGE) . ',s=localStorage.getItem(k),d=' . json_encode($def) . ',a='
+            . json_encode(self::themes($params)) . ',t;'
+            . 'if(a.indexOf(s)>-1){t=s}else if(a.indexOf(d)>-1){t=d}'
             . 'else{t=(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light"}'
             . 'document.documentElement.setAttribute("data-mertools-theme",t);}catch(e){}})();';
     }
@@ -258,6 +342,8 @@ final class DarkMode
             'place'    => (string) $params->get('dark_toggle_place', 'auto'),
             'adaptive' => (bool) (int) $params->get('dark_adaptive', 1),
             'pal'      => self::palette($params),
+            'sepia'    => self::sepiaEnabled($params) ? self::SEPIA : null,
+            'themes'   => self::themes($params),
             'accent'   => self::accent($params),
             'logo'     => self::logoUrl($params),
             'logoSel'  => self::logoSelector($params),

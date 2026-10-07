@@ -2,6 +2,28 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.8 (Beta) — 2026-10-07
+
+### 📖 Sepia theme (new)
+
+- A third, warm paper-like theme for comfortable reading (option *Sepia theme*, on by default). The toggle button switches **light → dark → sepia**, its icon showing the next theme (moon, open book, sun). Sepia can also be the default for new visitors.
+- The site colours are adapted to it the same way as in dark mode: white backgrounds take the paper tone, neutral grey or black text the warm brown one; brand colours stay.
+
+### 🎚️ Intensity with a live preview (new)
+
+- A slider *Intensity* (0–100) makes the dark theme softer (lighter greys) or deeper (never pure black); 50 is the palette as designed.
+- A **live preview** in the settings shows a small page in the chosen palette, intensity, custom colours and accent as they are changed, before saving — with tabs for dark, sepia and light.
+
+### 🌙 Dark mode
+
+- **Better Search** live results and results page are adapted now: their colours are written with `color-mix()`, which the browser reports as `color(srgb …)` — every CSS colour notation is read now.
+- **Breadcrumbs**: the triangles between the items (borders of `::before` / `::after` in the colour of the item) take the same dark colour as the items; thin light borders take the theme's border colour.
+- **Text on photos and videos** (hero sections with a parallax image or a video background) keeps its colour — the colours behind it cannot be measured. Text that dark mode itself turned dark there (a Gridbox background variable used as text colour) gets the light text colour.
+- Fix: the colour fixes are switched on before they are measured, so text is checked against the already darkened backgrounds (some text could stay dark on a dark background).
+
+- **Gradient backgrounds** are adapted too: the light colours of a gradient (e.g. a footer fading from white to grey) are darkened like plain backgrounds, vivid brand colours in it stay.
+- **Backgrounds that appear later**: Gridbox shows some section backgrounds only when the section scrolls into view (lazy loading) and gives the header a background when it becomes sticky. An element whose classes change is now adapted again together with its content — and when it returns to its previous state, so does its colour.
+
 ## 0.0.7 (Beta) — 2026-10-07
 
 ### 🌙 Dark mode

@@ -32,7 +32,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.7';
+    public const VERSION = '0.0.8';
 
     protected $autoloadLanguage = true;
 
@@ -98,6 +98,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             'dark' => DarkMode::jsConfig($this->params) + [
                 'toDark'  => $this->translate('PLG_SYSTEM_MERTOOLS_DARK_TO_DARK'),
                 'toLight' => $this->translate('PLG_SYSTEM_MERTOOLS_DARK_TO_LIGHT'),
+                'toSepia' => $this->translate('PLG_SYSTEM_MERTOOLS_DARK_TO_SEPIA'),
             ],
         ]);
         $wa->registerAndUseScript('plg_system_mertools.dark', 'plg_system_mertools/mertools-dark.js', [], ['defer' => true]);

@@ -6,7 +6,7 @@
     <creationDate>2026-10-07</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>0.0.7</version>
+    <version>0.0.8</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -26,7 +26,7 @@
         <language tag="pl-PL">pl-PL/plg_system_mertools.sys.ini</language>
     </languages>
     <config>
-        <fields name="params">
+        <fields name="params" addfieldprefix="Merserwis\Plugin\System\MerTools\Field">
             <fieldset name="basic">
                 <field name="intro_note" type="note" class="alert alert-info" label="PLG_SYSTEM_MERTOOLS_INTRO_LABEL" description="PLG_SYSTEM_MERTOOLS_INTRO_DESC" />
             </fieldset>
@@ -64,11 +64,21 @@
                     <option value="dim">PLG_SYSTEM_MERTOOLS_DARK_PAL_DIM</option>
                     <option value="custom">PLG_SYSTEM_MERTOOLS_DARK_PAL_CUSTOM</option>
                 </field>
+                <field name="dark_intensity" type="range" default="50" min="0" max="100" step="1" showon="dark_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_INTENSITY_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_INTENSITY_DESC" />
+                <field name="dark_preview" type="mtpreview" showon="dark_enabled:1" hiddenLabel="true"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_PREVIEW_LABEL" />
+                <field name="dark_sepia" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_SEPIA_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_SEPIA_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
                 <field name="dark_default" type="list" default="auto" showon="dark_enabled:1"
                     label="PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_DESC">
                     <option value="auto">PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_AUTO</option>
                     <option value="light">PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_LIGHT</option>
                     <option value="dark">PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_DARK</option>
+                    <option value="sepia" showon="dark_sepia:1">PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_SEPIA</option>
                 </field>
 
                 <field name="dark_accent_site" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1"

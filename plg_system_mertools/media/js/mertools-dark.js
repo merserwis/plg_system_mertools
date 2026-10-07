@@ -1,9 +1,9 @@
 /**
- * MerTools for Gridbox — dark mode. The theme itself is set very early by a small inline script in
- * the head (no flash); this script
+ * MerTools for Gridbox — dark mode and sepia. The theme itself is set very early by a small inline
+ * script in the head (no flash); this script
  *  - builds the toggle button and keeps it where a visitor can see it (the menu on desktop, beside
  *    the hamburger on phones, or floating in the visible part of the screen),
- *  - switches the theme on click, remembers the choice and follows the system when "auto",
+ *  - switches light → dark → sepia on click, remembers the choice and follows the system when "auto",
  *  - adapts the colours Gridbox writes into its element styles (they do not use the theme
  *    variables): light backgrounds are darkened and text too dark for its background is lightened
  *    just enough to be readable, keeping its hue. The fixes are data attributes that only the dark
@@ -21,8 +21,12 @@
   var KEY = cfg.key || 'mertools-theme';
   var root = document.documentElement;
 
+  var THEMES = cfg.themes && cfg.themes.length ? cfg.themes : ['light', 'dark'];
+
+  /** The theme shown now: "dark", "sepia" (when offered) or "light". */
   function current() {
-    return root.getAttribute('data-mertools-theme') === 'dark' ? 'dark' : 'light';
+    var t = root.getAttribute('data-mertools-theme');
+    return t !== 'light' && THEMES.indexOf(t) > -1 ? t : 'light';
   }
 
   function store(theme) {
@@ -38,13 +42,35 @@
   var SKIP = { SCRIPT: 1, STYLE: 1, LINK: 1, META: 1, NOSCRIPT: 1, BR: 1, IMG: 1, PICTURE: 1, SOURCE: 1, VIDEO: 1, AUDIO: 1,
     CANVAS: 1, IFRAME: 1, SVG: 1, PATH: 1, OBJECT: 1, EMBED: 1, TEMPLATE: 1 };
   var FORM = { INPUT: 1, TEXTAREA: 1, SELECT: 1 };
-  var pal = null;
+  var pals = {};
 
+  var parsed = {}, ctx = null;
+
+  /** Any CSS colour as [r, g, b, a]: rgb()/rgba() directly, color(srgb …) (what color-mix() computes
+   *  to), and every other notation (oklch, lab, hsl…) through a 1×1 canvas. Cached. */
   function parse(c) {
-    var m = /rgba?\(([^)]+)\)/.exec(c || '');
-    if (!m) return null;
-    var p = m[1].split(/[\s,\/]+/).filter(Boolean).map(parseFloat);
-    return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1];
+    if (!c || c === 'transparent' || c === 'none') return c === 'transparent' ? [0, 0, 0, 0] : null;
+    if (parsed.hasOwnProperty(c)) return parsed[c];
+    var out = null, m = /^rgba?\(([^)]+)\)$/.exec(c);
+    if (m) {
+      var p = m[1].split(/[\s,\/]+/).filter(Boolean).map(parseFloat);
+      out = [p[0], p[1], p[2], p.length > 3 ? p[3] : 1];
+    } else if ((m = /^color\(srgb\s+([^)]+)\)$/.exec(c))) {
+      var q = m[1].split(/[\s\/]+/).filter(Boolean).map(parseFloat);
+      out = [q[0] * 255, q[1] * 255, q[2] * 255, q.length > 3 ? q[3] : 1];
+    } else {
+      try {
+        ctx = ctx || document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+        ctx.clearRect(0, 0, 1, 1);
+        ctx.fillStyle = '#000';
+        ctx.fillStyle = c;
+        ctx.fillRect(0, 0, 1, 1);
+        var d = ctx.getImageData(0, 0, 1, 1).data;
+        out = [d[0], d[1], d[2], d[3] / 255];
+      } catch (e) { out = null; }
+    }
+    parsed[c] = out;
+    return out;
   }
 
   function cssColor(value) {
@@ -86,34 +112,79 @@
     return c.length > 3 && c[3] < 1 ? 'rgba(' + s + ',' + (+c[3].toFixed(3)) + ')' : 'rgb(' + s + ')';
   }
 
+  /** The palette of the current theme (dark or sepia) as parsed colours. */
   function palette() {
-    if (pal) return pal;
-    var p = cfg.pal || {};
+    var theme = current();
+    if (pals[theme]) return pals[theme];
+    var p = (theme === 'sepia' ? cfg.sepia : cfg.pal) || {};
     var accent = cfg.accent || getComputedStyle(document.body).getPropertyValue('--primary').trim();
-    pal = {
+    var pal = {
+      theme: theme,
       bg: cssColor(p.bg) || [27, 34, 48, 1],
       surface: cssColor(p.surface) || [35, 44, 61, 1],
       dark: cssColor(p.bg_dark) || [16, 21, 31, 1],
       title: cssColor(p.title) || [232, 236, 243, 1],
+      border: cssColor(p.border) || [51, 62, 82, 1],
       accent: cssColor(accent)
     };
-    // the colours dark mode itself gives to text (the theme variables)
+    // the lightest and the darkest colour of the palette: the two directions a text can be moved
+    var ends = [pal.title, pal.bg, pal.dark].sort(function (a, b) { return lum(b) - lum(a); });
+    pal.hi = ends[0];
+    pal.lo = ends[2];
+    // the colours the theme itself gives to text (the theme variables), and its background colours
     pal.own = [p.title, p.text, p.muted, p.bg, p.surface, p.bg_dark].map(cssColor).filter(Boolean);
+    pal.bgs = [p.bg, p.surface, p.bg_dark].map(cssColor).filter(Boolean);
+    pals[theme] = pal;
     return pal;
   }
 
+  function near(o, c) {
+    return Math.abs(o[0] - c[0]) + Math.abs(o[1] - c[1]) + Math.abs(o[2] - c[2]) < 6 && Math.abs((o[3] || 1) - (c[3] || 1)) < 0.05;
+  }
+
   function ownColour(c) {
-    return palette().own.some(function (o) {
-      return Math.abs(o[0] - c[0]) + Math.abs(o[1] - c[1]) + Math.abs(o[2] - c[2]) < 6 && Math.abs((o[3] || 1) - (c[3] || 1)) < 0.05;
-    });
+    return palette().own.some(function (o) { return near(o, c); });
+  }
+
+  var mediaCache = new Map();
+
+  /** Does a photo, video or image layer lie under the content of this element? Gridbox puts section
+   *  images in a separate absolutely positioned layer (.parallax-wrapper, slideshows, video), not in
+   *  the background of the text's ancestors. */
+  function mediaLayer(e, from) {
+    if (mediaCache.has(e)) return mediaCache.get(e);
+    var found = false, box = e.getBoundingClientRect(), area = box.width * box.height;
+    if (area > 0) {
+      for (var c = e.firstElementChild, n = 0; c && n < 12 && !found; c = c.nextElementSibling, n++) {
+        if (c === from) continue;
+        var cs = getComputedStyle(c);
+        if (cs.position !== 'absolute' && cs.position !== 'fixed' && c.tagName !== 'VIDEO') continue;
+        var r = c.getBoundingClientRect();
+        if (r.width * r.height < area * 0.5) continue;
+        found = c.tagName === 'IMG' || c.tagName === 'VIDEO' || c.tagName === 'PICTURE' || c.tagName === 'IFRAME'
+          || /url\(/.test(cs.backgroundImage)
+          || /video-background|parallax|slideshow/.test(typeof c.className === 'string' ? c.className : '')
+          || !!c.querySelector('img, video, picture, iframe, [style*="url("]')
+          || [].some.call(c.querySelectorAll('*'), function (d, i) { return i < 20 && /url\(/.test(getComputedStyle(d).backgroundImage); });
+      }
+    }
+    mediaCache.set(e, found);
+    return found;
   }
 
   /** The colour behind an element (after the fixes), or null when it is an image. */
   function backdrop(el) {
     var layers = [];
-    for (var e = el; e && e.nodeType === 1; e = e.parentElement) {
-      var cs = getComputedStyle(e);
-      if (cs.backgroundImage !== 'none' && !/gradient/.test(cs.backgroundImage)) return null;
+    for (var e = el, prev = null; e && e.nodeType === 1; prev = e, e = e.parentElement) {
+      if (e !== el && e !== document.body && e !== root && mediaLayer(e, prev)) return null;
+      var cs = getComputedStyle(e), bi = cs.backgroundImage;
+      if (bi !== 'none' && (/url\(/.test(bi) || !/gradient/.test(bi))) return null;
+      // a gradient above the background colour: counted as its average colour
+      var g = bi !== 'none' ? gradientAverage(bi) : null;
+      if (g) {
+        layers.push(g);
+        if (g[3] >= 1) break;
+      }
       var c = parse(cs.backgroundColor);
       if (c && c[3] > 0) {
         layers.push(c);
@@ -134,6 +205,26 @@
     return null;
   }
 
+  var COLOR_RE = /(?:rgba?|color|oklch|oklab|lch|lab|hsla?|hwb)\([^()]*\)/g;
+
+  function gradientAverage(bi) {
+    var list = (bi.match(COLOR_RE) || []).map(parse).filter(Boolean);
+    if (!list.length) return null;
+    var s = [0, 0, 0, 0];
+    list.forEach(function (c) { s[0] += c[0]; s[1] += c[1]; s[2] += c[2]; s[3] += c[3]; });
+    return [s[0] / list.length, s[1] / list.length, s[2] / list.length, s[3] / list.length];
+  }
+
+  /** The theme's colour for a light background colour (darker in dark mode, warm paper in sepia),
+   *  keeping its tone; null when it should stay. */
+  function darker(c, wide) {
+    var l = lum(c);
+    if (c[3] < 0.35 || l < 0.5 || (sat(c) > 0.55 && l < 0.8)) return null;
+    var p = palette(), nb = mix(c, wide ? p.bg : p.surface, wide ? 0.96 : 0.9);
+    nb[3] = c[3];
+    return nb;
+  }
+
   function ownText(el) {
     if (FORM[el.tagName]) return true;
     if (pseudoText(el)) return true;
@@ -145,17 +236,55 @@
   }
 
   function fixBackground(el, cs) {
-    if (cs.backgroundImage !== 'none' && !/gradient/.test(cs.backgroundImage)) return;
-    var c = parse(cs.backgroundColor);
-    if (!c || c[3] < 0.35) return;
-    var l = lum(c);
+    var bi = cs.backgroundImage;
+    if (bi !== 'none' && (/url\(/.test(bi) || !/gradient/.test(bi))) return;
+    var wide = el.getBoundingClientRect().width >= window.innerWidth * 0.9;
     // dark and mid colours stay; vivid brand colours (buttons, badges) stay
-    if (l < 0.5 || (sat(c) > 0.55 && l < 0.8)) return;
-    var p = palette(), wide = el.getBoundingClientRect().width >= window.innerWidth * 0.9;
-    var nb = mix(c, wide ? p.bg : p.surface, wide ? 0.96 : 0.9);
-    nb[3] = c[3];
-    el.style.setProperty('--mt-bg', rgb(nb));
-    el.setAttribute('data-mt-bg', '');
+    var nb = darker(parse(cs.backgroundColor) || [0, 0, 0, 0], wide);
+    if (nb) {
+      el.style.setProperty('--mt-bg', rgb(nb));
+      el.setAttribute('data-mt-bg', '');
+    }
+    // a gradient (e.g. a light footer fading to grey): its light colours darkened the same way
+    if (bi !== 'none') {
+      var changed = false;
+      var ng = bi.replace(COLOR_RE, function (tok) {
+        var d = darker(parse(tok) || [0, 0, 0, 0], wide);
+        if (!d) return tok;
+        changed = true;
+        return rgb(d);
+      });
+      if (changed) {
+        el.style.setProperty('--mt-bgi', ng);
+        el.setAttribute('data-mt-bgi', '');
+      }
+    }
+  }
+
+  var SIDES = ['Top', 'Right', 'Bottom', 'Left'], SIDE_KEYS = ['t', 'r', 'b', 'l'];
+
+  /** Light border colours of an element and of its ::before / ::after (e.g. the triangles between
+   *  breadcrumb items, drawn with borders in the colour of the item): thin lines take the theme's
+   *  border colour, wide borders (shapes) the same colour a background would get. */
+  function fixBorders(el, cs) {
+    var targets = [[cs, 'bd', 'data-mt-bd']];
+    for (var i = 0; i < 2; i++) {
+      var ps = getComputedStyle(el, i ? '::after' : '::before');
+      if (ps.content && ps.content !== 'none' && ps.content !== 'normal') targets.push([ps, i ? 'ba' : 'bb', i ? 'data-mt-bda' : 'data-mt-bdb']);
+    }
+    targets.forEach(function (tg) {
+      var s = tg[0], changed = false, vals = [];
+      for (var k = 0; k < 4; k++) {
+        var w = parseFloat(s['border' + SIDES[k] + 'Width']) || 0, col = s['border' + SIDES[k] + 'Color'], c = w > 0 ? parse(col) : null;
+        var d = c && c[3] > 0.35 ? darker(c, false) : null;
+        if (d && w <= 3) d = palette().border.slice(0, 3).concat([c[3]]);
+        vals.push(d ? rgb(d) : col);
+        if (d) changed = true;
+      }
+      if (!changed) return;
+      for (var j = 0; j < 4; j++) el.style.setProperty('--mt-' + tg[1] + SIDE_KEYS[j], vals[j]);
+      el.setAttribute(tg[2], '');
+    });
   }
 
   function fixText(el, cs) {
@@ -168,10 +297,31 @@
     var fg = parse(cs.color);
     if (!fg) return;
     var bg = backdrop(el);
-    if (!bg) return;
+    if (!bg) {
+      // over a photo or video: the colours behind are unknown, so the text keeps its colour — unless
+      // dark mode itself turned it dark: a Gridbox background variable used as text colour (white on
+      // the photo in the light theme) becomes the dark background colour; it gets the light text colour
+      var pm = palette();
+      if (lum(pm.bg) < 0.2 && pm.bgs.some(function (o) { return near(o, fg); })) {
+        el.style.setProperty('--mt-fg', rgb(pm.title));
+        el.setAttribute('data-mt-fg', '');
+        if (ps) el.setAttribute('data-mt-fgp', '');
+      }
+      return;
+    }
     var size = parseFloat(cs.fontSize) || 16;
     var need = (size >= 24 || (size >= 18.6 && parseInt(cs.fontWeight, 10) >= 700)) ? 3 : 4.5;
-    var shown = over(fg, bg), now = contrast(shown, bg);
+    var shown = over(fg, bg), now = contrast(shown, bg), p0 = palette();
+    // sepia: neutral dark text (greys, black written into element styles) takes the warm brown tone
+    if (now >= need && p0.theme === 'sepia' && sat(shown) < 0.12 && lum(shown) < 0.2) {
+      var warm = mix(shown, p0.title, 0.75);
+      if (contrast(warm, bg) >= need) {
+        el.style.setProperty('--mt-fg', rgb(warm));
+        el.setAttribute('data-mt-fg', '');
+        if (ps) el.setAttribute('data-mt-fgp', '');
+      }
+      return;
+    }
     if (now >= need) return;
     // text on a vivid brand colour (buttons, badges) keeps the site's design — unless its colour
     // comes from the dark palette (a theme variable), i.e. dark mode itself changed it
@@ -181,7 +331,7 @@
     // (a fixed text always aims at 4.5:1, also when the large-text minimum of 3:1 would pass)
     need = 4.5;
     var p = palette(), fix = null, step = 1, best = null, bestC = now;
-    [p.title, p.dark].forEach(function (towards) {
+    [p.hi, p.lo].forEach(function (towards) {
       for (var t = 0.15; t <= 1.0001; t += 0.15) {
         var c = mix(shown, towards, Math.min(t, 1)), cr = contrast(c, bg);
         if (cr >= need) {
@@ -202,15 +352,18 @@
   }
 
   function adapt(scope) {
-    if (cfg.adaptive === false || current() !== 'dark' || !document.body) return;
+    if (cfg.adaptive === false || current() === 'light' || !document.body) return;
     root.classList.add('mertools-dt-calc');
+    mediaCache = new Map();
     var list = scope === document.body ? document.body.querySelectorAll('*') : [scope].concat([].slice.call(scope.querySelectorAll('*')));
     var i, el;
     // backgrounds first: the text check reads the fixed backgrounds
     for (i = 0; i < list.length; i++) {
       el = list[i];
-      if (SKIP[el.tagName.toUpperCase()] || el.hasAttribute('data-mt-bg') || el.closest('.mertools-dt')) continue;
-      fixBackground(el, getComputedStyle(el));
+      if (SKIP[el.tagName.toUpperCase()] || el.hasAttribute('data-mt-bg') || el.hasAttribute('data-mt-bgi') || el.closest('.mertools-dt')) continue;
+      var ecs = getComputedStyle(el);
+      fixBackground(el, ecs);
+      if (!el.hasAttribute('data-mt-bd') && !el.hasAttribute('data-mt-bdb') && !el.hasAttribute('data-mt-bda')) fixBorders(el, ecs);
     }
     for (i = 0; i < list.length; i++) {
       el = list[i];
@@ -223,24 +376,43 @@
 
   var done = false, pending = [], timer = 0, refreshTimer = 0;
 
+  var ATTRS = ['data-mt-bg', 'data-mt-bgi', 'data-mt-fg', 'data-mt-fgp', 'data-mt-bd', 'data-mt-bdb', 'data-mt-bda'];
+  var PROPS = ['--mt-bg', '--mt-bgi', '--mt-fg', '--mt-fg-h'];
+  ['bd', 'bb', 'ba'].forEach(function (p) { SIDE_KEYS.forEach(function (k) { PROPS.push('--mt-' + p + k); }); });
+  var MARKED = '[data-mt-bg],[data-mt-bgi],[data-mt-fg],[data-mt-bd],[data-mt-bdb],[data-mt-bda]';
+
+  function unmark(el) {
+    ATTRS.forEach(function (a) { el.removeAttribute(a); });
+    PROPS.forEach(function (p) { el.style.removeProperty(p); });
+  }
+
+  /** The fixes for the current theme, computed from the site's own colours (in one task: no flicker).
+   *  Every switch to dark or sepia recomputes them, since the two themes need different colours. */
   function adaptAll() {
-    if (done || current() !== 'dark') return;
+    if (current() === 'light') {
+      root.removeAttribute('data-mt-on');
+      return;
+    }
+    [].forEach.call(document.querySelectorAll(MARKED), unmark);
     done = true;
+    // on before the pass: the text check has to see the backgrounds already fixed
+    if (cfg.adaptive !== false) root.setAttribute('data-mt-on', '');
     adapt(document.body);
+  }
+
+  /** One element and its content again from the site's own colours (in one task: no flicker). */
+  function readapt(el) {
+    if (!el.isConnected) return;
+    if (el.matches(MARKED)) unmark(el);
+    [].forEach.call(el.querySelectorAll(MARKED), unmark);
+    adapt(el);
   }
 
   /** Everything again from the site's own colours: styles that arrived later (a stylesheet loaded after
    *  this script, lazy sections) may have changed them. Runs in one task, so nothing flickers. */
   function refresh() {
-    if (!done || current() !== 'dark') return;
-    [].forEach.call(document.querySelectorAll('[data-mt-bg],[data-mt-fg]'), function (el) {
-      el.removeAttribute('data-mt-bg');
-      el.removeAttribute('data-mt-fg');
-      el.removeAttribute('data-mt-fgp');
-      el.style.removeProperty('--mt-bg');
-      el.style.removeProperty('--mt-fg');
-      el.style.removeProperty('--mt-fg-h');
-    });
+    if (!done || current() === 'light') return;
+    [].forEach.call(document.querySelectorAll(MARKED), unmark);
     adapt(document.body);
     update();
   }
@@ -253,7 +425,7 @@
   function watch() {
     if (cfg.adaptive === false || !window.MutationObserver) return;
     new MutationObserver(function (records) {
-      if (!done) return;
+      if (!done || current() === 'light') return;
       records.forEach(function (r) {
         r.addedNodes.forEach(function (n) { if (n.nodeType === 1 && !n.classList.contains('mertools-dt')) pending.push(n); });
       });
@@ -264,6 +436,26 @@
         }, 200);
       }
     }).observe(document.body, { childList: true, subtree: true });
+    // Gridbox changes classes when a lazy section background appears ("lazy-load-image"), when the
+    // header becomes sticky, on sliders… — such an element is adapted again with its content
+    var changed = [], ctimer = 0;
+    new MutationObserver(function (records) {
+      if (!done || current() === 'light') return;
+      records.forEach(function (r) {
+        var t = r.target;
+        if (t.nodeType === 1 && t !== root && t !== document.body && !t.classList.contains('mertools-dt')
+            && !t.classList.contains('mertools-dt-li') && changed.indexOf(t) < 0) changed.push(t);
+      });
+      if (changed.length && !ctimer) {
+        ctimer = setTimeout(function () {
+          var list = changed; changed = []; ctimer = 0;
+          // only the outermost changed elements: their content is redone with them
+          list.filter(function (el) {
+            return !list.some(function (o) { return o !== el && o.contains(el); });
+          }).forEach(readapt);
+        }, 120);
+      }
+    }).observe(document.body, { attributes: true, attributeFilter: ['class'], subtree: true });
     // stylesheets added or finishing later change the colours of what is already adapted
     new MutationObserver(function (records) {
       records.forEach(function (r) {
@@ -311,9 +503,9 @@
   }
 
   function apply(theme) {
-    root.setAttribute('data-mertools-theme', theme === 'dark' ? 'dark' : 'light');
+    root.setAttribute('data-mertools-theme', THEMES.indexOf(theme) > -1 ? theme : 'light');
     logos();
-    if (theme === 'dark') adaptAll();
+    adaptAll();
     update();
   }
 
@@ -332,15 +524,26 @@
     if (!btn) return;
     btn.style.removeProperty('--mt-dt-color');
     matchMenu();
-    var dark = current() === 'dark';
-    btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
-    var label = dark ? (cfg.toLight || 'Switch to light mode') : (cfg.toDark || 'Switch to dark mode');
+    // the icon and the label say what a click does: the next theme of the cycle
+    var nx = next();
+    btn.innerHTML = ICONS[nx] || MOON;
+    btn.setAttribute('data-next', nx);
+    btn.setAttribute('aria-pressed', current() === 'light' ? 'false' : 'true');
+    var label = { dark: cfg.toDark || 'Switch to dark mode', sepia: cfg.toSepia || 'Switch to sepia mode',
+      light: cfg.toLight || 'Switch to light mode' }[nx];
     btn.setAttribute('aria-label', label);
     btn.setAttribute('title', label);
   }
 
+  function next() {
+    return THEMES[(THEMES.indexOf(current()) + 1) % THEMES.length];
+  }
+
   var SUN = '<svg class="mertools-dt-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"></path></svg>';
   var MOON = '<svg class="mertools-dt-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.5 14.3a8.5 8.5 0 0 1-10.8-10.8 0.7 0.7 0 0 0-0.9-0.9 9.8 9.8 0 1 0 12.6 12.6 0.7 0.7 0 0 0-0.9-0.9z"></path></svg>';
+  // an open book: sepia, the reading theme
+  var BOOK = '<svg class="mertools-dt-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 5.5c2.8-1.2 6.2-1.1 9.5 1v13c-3.3-2.1-6.7-2.2-9.5-1z"></path><path d="M21.5 5.5c-2.8-1.2-6.2-1.1-9.5 1v13c3.3-2.1 6.7-2.2 9.5-1z"></path></svg>';
+  var ICONS = { dark: MOON, sepia: BOOK, light: SUN };
 
   /** Is the element really on screen (inside the visible part of the page, not hidden)? */
   function onScreen(el) {
@@ -456,13 +659,13 @@
     btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'mertools-dt';
-    btn.innerHTML = MOON + SUN;
+    btn.innerHTML = MOON;
     btn.addEventListener('click', function (e) {
       e.preventDefault();
       e.stopPropagation();
-      var next = current() === 'dark' ? 'light' : 'dark';
-      apply(next);
-      store(next);
+      var nx = next();
+      apply(nx);
+      store(nx);
     });
     place();
     update();
