@@ -2,6 +2,13 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.24 (Beta) — 2026-10-08
+
+### 🛠 Fixed: page cache with a relative cache folder
+
+- When Joomla's cache folder is set as a relative path (Global Configuration → *Path to Cache Folder*, e.g. `cache/` on merserwis.pl), the site kept its pages in `<site>/cache`, but the administrator looked in `administrator/cache`, and at the end of a request the working folder can be another one again. So the panel showed no pages, **Empty the page cache** and the emptying after saves in the administrator did not reach the kept pages, and Gridbox data (kept at the end of the request) was not kept at all. MerTools now always uses an absolute path: a relative one is taken from the site root, as the site sees it. Also the emptying of Joomla's own page cache after saving the MerTools settings now finds the right folder.
+- Checked with `cache/` and with the default setting: the panel shows the site's pages and Gridbox data, an administrator save and the button empty them, Gridbox data is kept.
+
 ## 0.0.23 (Beta) — 2026-10-08
 
 ### ⚡ New: page cache for guests (tab *Page speed*, off by default)

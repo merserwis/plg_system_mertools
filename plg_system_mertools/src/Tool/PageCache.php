@@ -62,6 +62,24 @@ final class PageCache
 
     // ---------------------------------------------------------------- pure helpers (unit tested)
 
+    /**
+     * The cache folder as an absolute path. A relative one (Joomla's "cache_path" may be "cache/") is
+     * taken from the site root, as the site sees it: its working folder is the site root, but the
+     * administrator's is administrator/ and at shutdown it can be any.
+     */
+    public static function absolutePath(string $configured, string $root, string $default): string
+    {
+        $path = trim($configured);
+        if ($path === '') {
+            $path = $default;
+        }
+        if (!preg_match('#^(/|\\\\|[A-Za-z]:[\\\\/])#', $path)) {
+            $path = rtrim($root, '/\\') . '/' . ltrim(preg_replace('#^\./#', '', $path), '/\\');
+        }
+
+        return rtrim($path, '/\\');
+    }
+
     /** The query string without campaign tags; '' when nothing else is left. */
     public static function cleanQuery(string $query): string
     {

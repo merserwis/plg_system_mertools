@@ -16,6 +16,13 @@ $check = function (string $label, $got, $exp) use (&$fail) {
     printf("%s %-62s %s\n", $ok ? 'OK ' : 'FAIL', $label, $ok ? '' : "\n   got=" . var_export($got, true) . "\n   exp=" . var_export($exp, true));
 };
 
+// ---------------------------------------------------------------- cache folder
+$check('folder: relative = from the site root', PageCache::absolutePath('cache/', '/home/m/public_html', '/x/administrator/cache'), '/home/m/public_html/cache');
+$check('folder: ./relative', PageCache::absolutePath('./cache', '/srv/site/', '/d'), '/srv/site/cache');
+$check('folder: absolute kept', PageCache::absolutePath('/var/cache/joomla/', '/srv/site', '/d'), '/var/cache/joomla');
+$check('folder: empty = default', PageCache::absolutePath('', '/srv/site', '/srv/site/administrator/cache'), '/srv/site/administrator/cache');
+$check('folder: Windows absolute kept', PageCache::absolutePath('C:\\www\\cache', '/srv', '/d'), 'C:\\www\\cache');
+
 // ---------------------------------------------------------------- addresses
 $check('query: campaign tags only', PageCache::cleanQuery('utm_source=fb&utm_medium=cpc&gclid=x&fbclid=y&srsltid=z'), '');
 $check('query: other utm_ tag', PageCache::cleanQuery('utm_whatever=1'), '');

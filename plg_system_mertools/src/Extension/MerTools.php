@@ -63,7 +63,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.23';
+    public const VERSION = '0.0.24';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
@@ -739,7 +739,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         self::cleanPageCache();
     }
 
-    /** Where Joomla keeps its cache: the configured path, else administrator/cache (site and administrator share it since Joomla 4). */
+    /**
+     * Where Joomla keeps its cache: the configured path, else administrator/cache (site and administrator
+     * share it since Joomla 4). Always an absolute path: a relative one ("cache/" on merserwis.pl) would
+     * point elsewhere in the administrator and at shutdown, where the working folder is another one.
+     */
     public static function cacheBase(): string
     {
         try {
@@ -748,7 +752,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $path = '';
         }
 
-        return $path !== '' ? $path : (\defined('JPATH_CACHE') ? JPATH_CACHE : JPATH_ADMINISTRATOR . '/cache');
+        return PageCache::absolutePath($path, JPATH_ROOT, \defined('JPATH_CACHE') ? JPATH_CACHE : JPATH_ADMINISTRATOR . '/cache');
     }
 
     /** Empties Joomla's page cache of the site (System - Page Cache), also when called from the administrator. */
