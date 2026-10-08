@@ -17,6 +17,9 @@
  *    Added in onBeforeCompileHead (CSS + a no-flash inline script + the toggle script).
  *  - Page not found (404): redirect to a chosen page (home by default) instead of the error page,
  *    without editing the template's error.php. Runs on onError, after System - Redirect.
+ *  - Old shop carts: Gridbox never removes a cart; this removes the carts nobody can open any more
+ *    (empty ones at once, abandoned ones after N days without use) — by hand, daily or above a limit.
+ *    Watching in onAfterInitialise, the hourly job in onAfterRespond, the buttons in onAfterRoute.
  *  - Links to a product option: a link with a chosen product option ("?Zestawy+Metrel+MI+3155=…")
  *    opens the product with that option selected. Runs in onAfterRoute, on Gridbox pages only.
  */
@@ -28,11 +31,15 @@ namespace Merserwis\Plugin\System\MerTools\Extension;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Event\ErrorEvent;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\Router\Route;
+use Joomla\CMS\Session\Session;
 use Joomla\CMS\Uri\Uri;
+use Joomla\Database\DatabaseInterface;
 use Joomla\Event\Priority;
 use Joomla\Event\SubscriberInterface;
+use Merserwis\Plugin\System\MerTools\Tool\CartCleaner;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\Layout;
 use Merserwis\Plugin\System\MerTools\Tool\NotFound;
@@ -42,7 +49,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.18';
+    public const VERSION = '0.0.19';
 
     protected $autoloadLanguage = true;
 
@@ -55,6 +62,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             'onAfterRender'       => 'onAfterRender',
             // after System - Redirect, so a redirect set for a single address in Joomla still wins
             'onError'             => ['onError', Priority::LOW],
+            // after the response has gone to the visitor: the hourly job of the cart clean-up
+            'onAfterRespond'      => ['onAfterRespond', Priority::MIN],
             'onBeforeCompileHead' => 'onBeforeCompileHead',
             'onExtensionAfterSave' => 'onExtensionAfterSave',
         ];
@@ -66,6 +75,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     public function onAfterInitialise(): void
     {
         $app = $this->getApplication();
+        if ($app->isClient('site')) {
+            $this->trackCart();
+        }
 
         // front-end only; a GET only (a 301 on a POST would drop the body); not inside the installer
         if (!$app->isClient('site') || strtoupper((string) $app->getInput()->getMethod()) !== 'GET') {
@@ -96,6 +108,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     public function onAfterRoute(): void
     {
         $app = $this->getApplication();
+        if ($app->isClient('administrator')) {
+            $this->handleAdministratorAction();
+
+            return;
+        }
         if (!$app->isClient('site') || strtoupper((string) $app->getInput()->getMethod()) !== 'GET'
             || !(int) $this->params->get('shop_option_links', 1)) {
             return;
@@ -111,6 +128,124 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $input->get->set($name, $value);
             $_GET[$name] = $value;
         }
+    }
+
+    // ---------------------------------------------------------------- old shop carts
+
+    private function cartsOn(): bool
+    {
+        return (bool) (int) $this->params->get('cart_enabled', 1);
+    }
+
+    private function cartCleaner(): CartCleaner
+    {
+        return new CartCleaner(Factory::getContainer()->get(DatabaseInterface::class));
+    }
+
+    /** A request with Gridbox's cart cookie: note that the cart is in use (it must not be removed). */
+    private function trackCart(): void
+    {
+        if (!$this->cartsOn()) {
+            return;
+        }
+        $id = $this->getApplication()->getInput()->cookie->getInt('gridbox_store_cart', 0);
+        if ($id <= 0) {
+            return;
+        }
+        try {
+            $this->cartCleaner()->track($id, time());
+        } catch (\Throwable $e) {
+            // no Gridbox shop or no tables yet: nothing to note
+        }
+    }
+
+    /**
+     * After the page has been sent: at most once an hour (a file in the cache folder keeps the time,
+     * so other requests cost one stat), the watching bookkeeping and the automatic clean-up.
+     */
+    public function onAfterRespond(): void
+    {
+        $app = $this->getApplication();
+        if (!$app->isClient('site') || !$this->cartsOn()) {
+            return;
+        }
+        $gate = self::cacheBase() . '/mertools-cart-tick';
+        $now  = time();
+        if (is_file($gate) && (int) @filemtime($gate) > $now - 3600) {
+            return;
+        }
+        if (!@touch($gate) && is_file($gate)) {
+            return;
+        }
+
+        // the visitor has the page already; the work goes on without them waiting where PHP allows it
+        $finished = false;
+        if (\function_exists('fastcgi_finish_request')) {
+            $finished = @fastcgi_finish_request();
+        } elseif (\function_exists('litespeed_finish_request')) {
+            $finished = @litespeed_finish_request();
+        }
+        try {
+            $cleaner = $this->cartCleaner();
+            if (!$cleaner->supported()) {
+                return;
+            }
+            $cleaner->tick($now, (string) $this->params->get('cart_mode', 'manual'), (int) $this->params->get('cart_limit', 50000),
+                (int) $this->params->get('cart_days', 30), (bool) (int) $this->params->get('cart_empty', 1), $finished ? 8.0 : 2.0);
+        } catch (\Throwable $e) {
+            // tried again in an hour
+        }
+    }
+
+    /**
+     * The buttons of the cart clean-up in the plugin settings (figures, check, clean now): POST,
+     * the form token and the right to edit plugins are required. The days and the empty-cart choice
+     * come from the form as it is on screen, also unsaved.
+     */
+    private function handleAdministratorAction(): void
+    {
+        $app    = $this->getApplication();
+        $input  = $app->getInput();
+        $action = $input->getCmd('mertools_action', '');
+        if (!\in_array($action, ['cart_stats', 'cart_check', 'cart_clean'], true)) {
+            return;
+        }
+        $this->loadLanguage();
+        $user = $app->getIdentity();
+        if ($input->getMethod() !== 'POST' || !$user || !$user->authorise('core.edit', 'com_plugins') || !Session::checkToken('request')) {
+            $this->sendJson(['success' => false, 'message' => Text::_('JERROR_ALERTNOAUTHOR')], 403);
+        }
+
+        $cleaner = $this->cartCleaner();
+        if (!$cleaner->supported()) {
+            $this->sendJson(['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_CART_UNSUPPORTED')]);
+        }
+        $days  = $input->post->getInt('days', (int) $this->params->get('cart_days', 30));
+        $empty = (bool) $input->post->getInt('empty', (int) $this->params->get('cart_empty', 1));
+        $now   = time();
+        try {
+            if ($action === 'cart_stats') {
+                $this->sendJson(['success' => true, 'stats' => $cleaner->stats($now, $days)]);
+            }
+            @set_time_limit(90);
+            $result = $cleaner->run($now, $days, $empty, true, $action === 'cart_check', 25.0, 'manual', $action === 'cart_clean');
+            $this->sendJson(['success' => true, 'result' => $result, 'stats' => $cleaner->stats($now, $days)]);
+        } catch (\Throwable $e) {
+            $this->sendJson(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    private function sendJson(array $data, int $status = 200): void
+    {
+        $app = $this->getApplication();
+        $app->setHeader('Content-Type', 'application/json; charset=utf-8', true);
+        $app->setHeader('Cache-Control', 'no-store', true);
+        if ($status !== 200) {
+            $app->setHeader('Status', (string) $status, true);
+        }
+        $app->sendHeaders();
+        echo json_encode($data);
+        $app->close();
     }
 
     /**

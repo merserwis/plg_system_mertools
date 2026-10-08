@@ -2,6 +2,17 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.19 (Beta) — 2026-10-08
+
+### 🧹 New tool: Tidy up old carts (tab *Shop*)
+
+- Gridbox keeps every cart ever started in the database and never removes one, also the carts of orders placed long ago, so the cart tables only grow (on merserwis.pl over 192,000 carts).
+- The **Clean and optimise** button removes the carts nobody can open any more and then rebuilds the cart tables, so the database really gets smaller (deleted rows alone do not shrink InnoDB tables). **Check** first shows what would be removed. The panel shows the number of carts, cart items and the size of the cart tables.
+- Which carts go: **empty carts** right away, and **carts with products** that nobody has used for the set number of days (default 30, at least 8). A visitor gets back to a cart only through Gridbox's cookie, valid for 7 days after the last change, so a cart unused for longer can never be opened again. The carts table has no dates, so MerTools notes when each cart is used, and carts with products can only be removed after MerTools has watched them for that many days (the panel shows the date).
+- Never touched: orders and all their data (they keep their own copies of the products), carts with files attached to their products, carts used in the last hour, the newest carts. If a visitor whose cart was removed comes back, Gridbox simply starts a new cart.
+- Optionally automatic: once a day, or when there are more carts than a limit (default: by hand only). The automatic run goes after the page has been sent to the visitor, in small batches, at most once an hour.
+- Uninstalling MerTools removes its own tables; the Gridbox tables stay.
+
 ## 0.0.18 (Beta) — 2026-10-08
 
 ### 🧭 New tool: Redirect missing pages (tab *404 pages*, on by default)

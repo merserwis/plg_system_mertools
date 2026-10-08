@@ -43,10 +43,36 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
         }
     }
 
+    /** Uninstalling removes the tables of the cart clean-up; Gridbox's own tables stay as they are. */
+    public function uninstall(InstallerAdapter $adapter): bool
+    {
+        try {
+            $db = Factory::getContainer()->get(DatabaseInterface::class);
+            foreach (['#__mertools_cart_seen', '#__mertools_cart_marks', '#__mertools_cart_queue', '#__mertools_state'] as $table) {
+                $db->setQuery('DROP TABLE IF EXISTS ' . $db->quoteName($table))->execute();
+            }
+        } catch (\Throwable $e) {
+        }
+
+        return true;
+    }
+
     public function postflight(string $type, InstallerAdapter $adapter): bool
     {
         if ($type === 'update') {
             $this->removeDroppedLanguages();
+        }
+        // the tables of the cart clean-up (also created when first needed)
+        if ($type === 'install' || $type === 'update' || $type === 'discover_install') {
+            try {
+                // a fresh install has no autoloading for the plugin yet: the class from the package
+                if (!class_exists(\Merserwis\Plugin\System\MerTools\Tool\CartCleaner::class) && is_file(__DIR__ . '/src/Tool/CartCleaner.php')) {
+                    require_once __DIR__ . '/src/Tool/CartCleaner.php';
+                }
+                (new \Merserwis\Plugin\System\MerTools\Tool\CartCleaner(Factory::getContainer()->get(DatabaseInterface::class)))->ensureTables();
+            } catch (\Throwable $e) {
+                // created later, at the first use
+            }
         }
         // pages kept by Joomla's page cache still point to the previous script version and settings
         if ($type === 'install' || $type === 'update' || $type === 'discover_install') {
