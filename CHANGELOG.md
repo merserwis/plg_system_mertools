@@ -2,6 +2,14 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.22 (Beta) — 2026-10-08
+
+### 🛠 Fixed: stretched images with *Images without waiting or jumping*
+
+- With the option on, some images were stretched or too big: the logo and the Forbes / Gazele Biznesu badges in the header, pictures in the menu, blog lists and category pages. Gridbox sizes images by its 100×100 placeholder (its style `img[width="100"][height="100"]` lets them take their natural size within the layout), and 0.0.21 replaced it with the real size of the file, so that style no longer applied. Now the 100×100 stays, and the real proportions are added as `aspect-ratio`: the images look exactly as without the option, and the place for each image is still kept before it loads.
+- Only the first two images of the header (the logo) load at once. The pictures in the menu (the mega menu and the phone menu) are left to Gridbox as before — the browser's own lazy loading never loaded them while the menu was closed.
+- Checked on merserwis.pl (home, category, product, blog list, article; computer and phone, with the menu open): every image has the same size as without the option.
+
 ## 0.0.21 (Beta) — 2026-10-08
 
 ### 🚀 New tools: faster pages (tab *Page speed*)

@@ -30,20 +30,30 @@ $html = '<body><header class="header"><img src="' . $ph . '" alt="Merserwis logo
     . '<img height="1" width="1" style="display:none" src="' . $ph . '" data-gridbox-lazyload-src="https://www.facebook.com/tr?id=1&amp;ev=PageView">'
     . '<img src="' . $ph . '" width="100" height="100" data-gridbox-lazyload-src="https://cdn.example.com/a.jpg" class="lazy-load-image"></div></body>';
 $out = Speedup::images($html, $site, $size);
-$check('logo in header: eager, real src and size', $has($out, '<img decoding="async" loading="eager" width="240" height="60" src="https://www.merserwis.pl/images/logo.png" alt="Merserwis logo"'), true);
+$check('logo in header: eager, real src, Gridbox size kept, proportions', $has($out, '<img decoding="async" loading="eager" style="aspect-ratio:240/60" src="https://www.merserwis.pl/images/logo.png" alt="Merserwis logo" width="100" height="100">'), true);
 $check('logo: no lazy class left (class attribute gone)', $has($out, 'logo.png" alt="Merserwis logo" title') || !preg_match('#logo\.png"[^>]*lazy-load-image#', $out), true);
-$check('below the header: lazy, real size, other classes kept', $has($out, '<img decoding="async" loading="lazy" width="800" height="600" src="/images/known.jpg" alt="" class="foo">'), true);
-$check('unknown size: placeholder 100x100 dropped', $has($out, '<img decoding="async" loading="lazy" src="/images/mystery.jpg" alt="x">'), true);
+$check('below the header: lazy, proportions, other classes kept', $has($out, '<img decoding="async" loading="lazy" style="aspect-ratio:800/600" src="/images/known.jpg" alt="" width="100" height="100" class="foo">'), true);
+$check('unknown size: Gridbox size kept, no proportions', $has($out, '<img decoding="async" loading="lazy" src="/images/mystery.jpg" alt="x" width="100" height="100">'), true);
+$check('existing style kept, proportions added', $has(Speedup::images('<img src="' . $ph . '" style="border:0" width="100" height="100" data-gridbox-lazyload-src="/images/known.jpg">', $site, $size), 'style="border:0;aspect-ratio:800/600"'), true);
+$check('empty style filled', $has(Speedup::images('<img src="' . $ph . '" style="" data-gridbox-lazyload-src="/images/known.jpg">', $site, $size), 'style="aspect-ratio:800/600"'), true);
 $check('tracking pixel untouched', $has($out, '<img height="1" width="1" style="display:none" src="' . $ph . '" data-gridbox-lazyload-src="https://www.facebook.com/tr?id=1&amp;ev=PageView">'), true);
 $check('other site untouched', $has($out, 'data-gridbox-lazyload-src="https://cdn.example.com/a.jpg" class="lazy-load-image"'), true);
 $check('no placeholder left for local images', substr_count($out, 'src="' . $ph . '"'), 2);
+$check('Gridbox 100x100 kept everywhere', substr_count($out, 'width="100" height="100"'), 4);
 $check('images: idempotent', Speedup::images($out, $site, $size), $out);
+$hdr = '<header><img src="P" width="100" height="100" data-gridbox-lazyload-src="/a.jpg" class="lazy-load-image"><img src="P" width="100" height="100" data-gridbox-lazyload-src="/b.jpg" class="lazy-load-image">'
+    . '<img src="P" width="100" height="100" data-gridbox-lazyload-src="/menu-promo.jpg" class="lazy-load-image"></header>';
+$ho  = Speedup::images($hdr, $site, $size);
+$check('header: first two at once', substr_count($ho, 'loading="eager"'), 2);
+$check('header: menu pictures left to Gridbox', $has($ho, '<img src="P" width="100" height="100" data-gridbox-lazyload-src="/menu-promo.jpg" class="lazy-load-image">'), true);
 $check('srcset carried over', $has(Speedup::images('<img src="' . $ph . '" data-gridbox-lazyload-src="/a.jpg" data-gridbox-lazyload-srcset="/a.jpg 1x, /a2.jpg 2x">', $site, $size), 'srcset="/a.jpg 1x, /a2.jpg 2x"'), true);
 
 // ---------------------------------------------------------------- header backgrounds
 $h = '<div class="lazy-load-image x"></div><header class="header"><div class="ba-section row-fluid lazy-load-image" id="a"></div><div class="lazy-load-image"></div></header><div class="lazy-load-image"></div>';
 $check('header backgrounds shown, others kept', Speedup::headerBackgrounds($h),
-    '<div class="lazy-load-image x"></div><header class="header"><div class="ba-section row-fluid" id="a"></div><div class=""></div></header><div class="lazy-load-image"></div>');
+    '<div class="lazy-load-image x"></div><header class="header"><div class="ba-section row-fluid" id="a"></div><div></div></header><div class="lazy-load-image"></div>');
+$check('header pictures keep their class (Gridbox loads them)', Speedup::headerBackgrounds('<header><img src="P" class="lazy-load-image" data-gridbox-lazyload-src="/m.jpg"></header>'),
+    '<header><img src="P" class="lazy-load-image" data-gridbox-lazyload-src="/m.jpg"></header>');
 
 // ---------------------------------------------------------------- main photo
 $p = '<title>T</title></head><body><div class="slideshow-content ba-field-content lightbox-enabled lazy-load-image" tabindex="0"> <li class="item active"><div class="ba-slideshow-img" data-src="https://www.merserwis.pl/images/p.jpg" style="background-image: url(https://www.merserwis.pl/images/p.jpg);"></div></li>'

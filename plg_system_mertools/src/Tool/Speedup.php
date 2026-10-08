@@ -9,8 +9,9 @@
  *
  *  - images: Gridbox's lazy loading gives every image a 100×100 placeholder and loads the real one
  *    by script, also the logo and other images at the top. Here each image of this site gets its
- *    real address and real size at once (no layout shift), with the browser's own lazy loading for
- *    the ones further down and normal loading for those in the header;
+ *    real address at once and its real proportions (aspect-ratio; Gridbox's own width/height stay,
+ *    its CSS sizes images by them), with the browser's own lazy loading for the ones further down
+ *    and normal loading for those in the header;
  *  - the main product photo: the first product slideshow shows its picture at once (Gridbox keeps
  *    it hidden until its script runs) and the browser fetches it first;
  *  - a YouTube video in a section background starts after the first interaction or a few seconds
@@ -55,20 +56,32 @@ final class Speedup
                 if (preg_match('#display\s*:\s*none|\bwidth="1"|\bheight="1"#i', $tag) || !self::isLocal($src, $siteBase)) {
                     return $tag;
                 }
-                $eager = $headerStart !== false && $headerEnd !== false && $offset > $headerStart && $offset < $headerEnd && $eagerLeft-- > 0;
+                $inHeader = $headerStart !== false && $headerEnd !== false && $offset > $headerStart && $offset < $headerEnd;
+                // the header: its first pictures (logo, badges) at once; the rest are mostly menu pictures,
+                // hidden until the menu opens, which Gridbox loads at the right moment: left to Gridbox
+                if ($inHeader && $eagerLeft-- <= 0) {
+                    return $tag;
+                }
+                $eager = $inHeader;
 
                 $tag = preg_replace('#\ssrc="[^"]*"#i', ' src="' . $m[1][0] . '"', $tag, 1);
                 $tag = preg_replace('#\sdata-gridbox-lazyload-src="[^"]*"#i', '', $tag);
                 $tag = preg_replace('#\sdata-gridbox-lazyload-srcset="([^"]*)"#i', ' srcset="$1"', $tag);
                 $tag = self::removeClass($tag, 'lazy-load-image');
 
+                // Gridbox's width="100" height="100" stay: its CSS (img[width="100"][height="100"] {height: auto;
+                // width: auto}) sizes the picture by them, other sizes would stretch it. The real proportions
+                // go in aspect-ratio, which only counts while one side is automatic: the same look once loaded,
+                // the right space reserved before.
                 $dims = $size($src);
-                if ($dims) {
-                    $tag = preg_replace('#\s(width|height)="[^"]*"#i', '', $tag);
-                    $tag = preg_replace('#^<img\b#i', '<img width="' . (int) $dims[0] . '" height="' . (int) $dims[1] . '"', $tag);
-                } elseif (preg_match('#\swidth="100"#i', $tag) && preg_match('#\sheight="100"#i', $tag)) {
-                    // Gridbox's placeholder size: wrong for nearly every picture, so better none
-                    $tag = preg_replace('#\s(width|height)="100"#i', '', $tag);
+                if ($dims && $dims[0] > 0 && $dims[1] > 0 && !preg_match('#aspect-ratio#i', $tag)) {
+                    $ratio = 'aspect-ratio:' . (int) $dims[0] . '/' . (int) $dims[1];
+                    if (preg_match('#\sstyle="([^"]*)"#i', $tag, $st)) {
+                        $css = trim($st[1]);
+                        $tag = str_replace($st[0], ' style="' . ($css === '' ? '' : rtrim($css, ';') . ';') . $ratio . '"', $tag);
+                    } else {
+                        $tag = preg_replace('#^<img\b#i', '<img style="' . $ratio . '"', $tag);
+                    }
                 }
                 if (!preg_match('#\sloading=#i', $tag)) {
                     $tag = preg_replace('#^<img\b#i', '<img loading="' . ($eager ? 'eager' : 'lazy') . '"', $tag);
@@ -81,7 +94,11 @@ final class Speedup
             }, $html, -1, $count, PREG_OFFSET_CAPTURE);
     }
 
-    /** Backgrounds in the header shown at once (Gridbox hides them until its script runs). */
+    /**
+     * Backgrounds in the header shown at once (Gridbox hides them until its script runs). Only
+     * sections, rows and columns: pictures (<img>) keep their class, Gridbox still loads those
+     * that images() leaves to it (menu pictures).
+     */
     public static function headerBackgrounds(string $html): string
     {
         $start = stripos($html, '<header');
@@ -89,9 +106,10 @@ final class Speedup
         if ($start === false || $end === false || $end < $start) {
             return $html;
         }
-        $header = substr($html, $start, $end - $start);
+        $header = (string) preg_replace_callback('#<(?!img\b)[a-z][a-z0-9-]*\b[^>]*\sclass="[^"]*\blazy-load-image\b[^"]*"[^>]*>#i',
+            fn (array $m) => self::removeClass($m[0], 'lazy-load-image'), substr($html, $start, $end - $start));
 
-        return substr($html, 0, $start) . self::removeClassAll($header, 'lazy-load-image') . substr($html, $end);
+        return substr($html, 0, $start) . $header . substr($html, $end);
     }
 
     /**
@@ -231,10 +249,4 @@ final class Speedup
         }, $tag, 1);
     }
 
-    private static function removeClassAll(string $html, string $class): string
-    {
-        return (string) preg_replace_callback('#\sclass="([^"]*\b' . preg_quote($class, '#') . '\b[^"]*)"#i', function ($m) use ($class) {
-            return ' class="' . trim(preg_replace('#\s*\b' . preg_quote($class, '#') . '\b#', '', $m[1])) . '"';
-        }, $html);
-    }
 }
