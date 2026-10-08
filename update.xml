@@ -6,6 +6,26 @@
         <element>pkg_mertools</element>
         <type>package</type>
         <client>site</client>
+        <version>0.0.20</version>
+        <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
+        <downloads>
+            <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.20/pkg_mertools-0.0.20.zip</downloadurl>
+        </downloads>
+        <sha256>bdf167462201436101c4a6672fb1f4e8e6a3f4ebe25f8d4832ae49a9afc4ff66</sha256>
+        <tags>
+            <tag>stable</tag>
+        </tags>
+        <maintainer>Merserwis</maintainer>
+        <maintainerurl>https://github.com/merserwis/</maintainerurl>
+        <targetplatform name="joomla" version="6\..*"/>
+        <php_minimum>8.2</php_minimum>
+    </update>
+    <update>
+        <name>MerTools for Gridbox</name>
+        <description>MerTools for Gridbox — fixes and optimisations for Balbooa Gridbox that its own settings cannot do.</description>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <client>site</client>
         <version>0.0.19</version>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>

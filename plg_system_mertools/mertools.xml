@@ -6,7 +6,7 @@
     <creationDate>2026-10-07</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>0.0.19</version>
+    <version>0.0.20</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -45,6 +45,22 @@
                     <option value="302">PLG_SYSTEM_MERTOOLS_URL_CODE_302</option>
                 </field>
                 <field name="url_cf_note" type="note" class="alert alert-warning" description="PLG_SYSTEM_MERTOOLS_URL_CF_NOTE" />
+            </fieldset>
+
+            <!-- ============================================================ Page speed -->
+            <fieldset name="speed" label="PLG_SYSTEM_MERTOOLS_FIELDSET_SPEED">
+                <field name="speed_key" type="password" default="" filter="string" autocomplete="off"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_KEY_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_KEY_DESC" />
+                <field name="speed_urls" type="textarea" default="/" rows="4" filter="string"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_URLS_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_URLS_DESC" />
+                <field name="speed_runs" type="list" default="3"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_RUNS_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_RUNS_DESC">
+                    <option value="1">1</option>
+                    <option value="3">3</option>
+                    <option value="5">5</option>
+                </field>
+                <field name="speed_panel" type="mtspeed" hiddenLabel="true"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_PANEL_LABEL" />
             </fieldset>
 
             <!-- ============================================================ Page not found (404) -->

@@ -2,6 +2,17 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.20 (Beta) — 2026-10-08
+
+### ⏱ New tool: Page speed panel (tab *Page speed*)
+
+- Measures chosen pages with Google PageSpeed Insights, on phone and desktop, straight from the plugin settings (**Measure all pages**, or one page with **Measure**). Each page can be tested 1, 3 or 5 times; the median is kept, because the score varies by a few points between tests.
+- The first measurement of a page is its **baseline** (the state before the changes). Every later one is shown next to it with the change in score and in each metric (LCP, TBT, CLS, FCP, Speed Index, server time), in green or red. Small changes within the usual noise are not shown. Any measurement can be made the baseline.
+- The **history** of each page keeps the MerTools version and the tools that were on at each measurement, so it shows what a change brought, plus the biggest opportunities of the latest test.
+- **Real users:** the figures of the Chrome UX Report for the whole site (TTFB, FCP, LCP, INP, CLS of the last 28 days), which tell how fast the site is for its visitors — Google's lab test runs from its own servers, usually in the USA.
+- Needs a free PageSpeed Insights API key from Google Cloud Console (without one Google often refuses: the shared quota is used up). The test runs in the administrator's browser, so the PHP time limit of the host does not matter. Up to 10 pages; full addresses of other sites can be added to compare.
+- Uninstalling MerTools removes the table of measurements.
+
 ## 0.0.19 (Beta) — 2026-10-08
 
 ### 🧹 New tool: Tidy up old carts (tab *Shop*)

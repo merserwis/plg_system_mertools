@@ -20,6 +20,8 @@
  *  - Old shop carts: Gridbox never removes a cart; this removes the carts nobody can open any more
  *    (empty ones at once, abandoned ones after N days without use) — by hand, daily or above a limit.
  *    Watching in onAfterInitialise, the hourly job in onAfterRespond, the buttons in onAfterRoute.
+ *  - Page speed panel: PageSpeed Insights measurements of chosen pages with a baseline, so every
+ *    change can be compared with the state before it (Speed + MtspeedField + mertools-speed.js).
  *  - Links to a product option: a link with a chosen product option ("?Zestawy+Metrel+MI+3155=…")
  *    opens the product with that option selected. Runs in onAfterRoute, on Gridbox pages only.
  */
@@ -45,11 +47,12 @@ use Merserwis\Plugin\System\MerTools\Tool\Layout;
 use Merserwis\Plugin\System\MerTools\Tool\NotFound;
 use Merserwis\Plugin\System\MerTools\Tool\Phones;
 use Merserwis\Plugin\System\MerTools\Tool\ProductLinks;
+use Merserwis\Plugin\System\MerTools\Tool\Speed;
 use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.19';
+    public const VERSION = '0.0.20';
 
     protected $autoloadLanguage = true;
 
@@ -207,13 +210,17 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $app    = $this->getApplication();
         $input  = $app->getInput();
         $action = $input->getCmd('mertools_action', '');
-        if (!\in_array($action, ['cart_stats', 'cart_check', 'cart_clean'], true)) {
+        if (!\in_array($action, ['cart_stats', 'cart_check', 'cart_clean', 'speed_list', 'speed_save', 'speed_baseline', 'speed_delete'], true)) {
             return;
         }
         $this->loadLanguage();
         $user = $app->getIdentity();
         if ($input->getMethod() !== 'POST' || !$user || !$user->authorise('core.edit', 'com_plugins') || !Session::checkToken('request')) {
             $this->sendJson(['success' => false, 'message' => Text::_('JERROR_ALERTNOAUTHOR')], 403);
+        }
+
+        if (str_starts_with($action, 'speed_')) {
+            $this->handleSpeedAction($action);
         }
 
         $cleaner = $this->cartCleaner();
@@ -230,6 +237,32 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             @set_time_limit(90);
             $result = $cleaner->run($now, $days, $empty, true, $action === 'cart_check', 25.0, 'manual', $action === 'cart_clean');
             $this->sendJson(['success' => true, 'result' => $result, 'stats' => $cleaner->stats($now, $days)]);
+        } catch (\Throwable $e) {
+            $this->sendJson(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /** The page speed panel: list, keep a measurement (summary from the browser), baseline, delete. */
+    private function handleSpeedAction(string $action): void
+    {
+        $input = $this->getApplication()->getInput();
+        $speed = new Speed(Factory::getContainer()->get(DatabaseInterface::class));
+        try {
+            if ($action === 'speed_save') {
+                $data = json_decode((string) $input->post->get('data', '', 'raw'), true);
+                $m    = \is_array($data) ? Speed::clean($data) : null;
+                if (!$m) {
+                    $this->sendJson(['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_SPEED_BAD_RESULT')]);
+                }
+                $defaults = ['url_collapse_slashes' => 1, 'notfound_redirect' => 1, 'layout_clip_x' => 1, 'shop_option_links' => 1,
+                    'cart_enabled' => 1, 'tel_enabled' => 1, 'dark_enabled' => 0];
+                $speed->save($m, self::VERSION, Speed::enabledTools($this->params->toArray(), $defaults), time());
+            } elseif ($action === 'speed_baseline') {
+                $speed->setBaseline($input->post->getInt('id', 0));
+            } elseif ($action === 'speed_delete') {
+                $speed->delete($input->post->getInt('id', 0));
+            }
+            $this->sendJson(['success' => true, 'rows' => $speed->all()]);
         } catch (\Throwable $e) {
             $this->sendJson(['success' => false, 'message' => $e->getMessage()]);
         }

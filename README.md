@@ -65,6 +65,10 @@ Gridbox never removes a cart, so its cart tables only grow. **Clean and optimise
 
 Phone numbers written as plain text (contact rows, footers, product pages) become `tel:` links, so a tap on a phone dials them — no need to add links by hand in Gridbox. Polish numbers in the usual forms (`22 531 00 94`, `(22) 531-00-94`, `533 394 222`, with or without +48) and international numbers starting with `+` are found; links, buttons, forms, code and numbers that are not phones (NIP, REGON, KRS, bank accounts, serial numbers, prices, standards, fax numbers) are left alone. The links look like the text around them (or like the site's links), the country code is added for dialling from abroad (default +48), and areas can be excluded with a CSS selector. A small script does it in the browser when it is idle; the page content is not changed. On by default, tab *Phone numbers*.
 
+### ⏱ Page speed — PageSpeed Insights panel with before/after
+
+Tab *Page speed*: measure chosen pages with PageSpeed Insights (phone and desktop, median of 1–5 tests) and compare every result with a baseline taken before the changes — score and LCP, TBT, CLS, FCP, Speed Index and server time, with the change in green or red. The history keeps the MerTools version and the tools that were on, and the real-user figures of Chrome (CrUX) show how fast the site is for its visitors. Needs a free PageSpeed Insights API key.
+
 ### 🧭 404 pages — redirect missing pages
 
 A missing page (404) sends the visitor to a chosen page instead of the error page: the home page (default), a menu item or any address, with a permanent (301) or temporary (302) redirect. No more editing the template's `error.php` after every Gridbox update. Redirects set for single addresses in Joomla's Redirects component take precedence; form posts, AJAX/JSON requests and excluded paths keep the normal 404, and a missing target never loops. On by default, tab *404 pages*.

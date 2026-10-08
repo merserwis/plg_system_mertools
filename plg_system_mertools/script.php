@@ -43,12 +43,12 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
         }
     }
 
-    /** Uninstalling removes the tables of the cart clean-up; Gridbox's own tables stay as they are. */
+    /** Uninstalling removes the tables of MerTools (cart clean-up, speed measurements); Gridbox's own tables stay as they are. */
     public function uninstall(InstallerAdapter $adapter): bool
     {
         try {
             $db = Factory::getContainer()->get(DatabaseInterface::class);
-            foreach (['#__mertools_cart_seen', '#__mertools_cart_marks', '#__mertools_cart_queue', '#__mertools_state'] as $table) {
+            foreach (['#__mertools_cart_seen', '#__mertools_cart_marks', '#__mertools_cart_queue', '#__mertools_state', '#__mertools_speed'] as $table) {
                 $db->setQuery('DROP TABLE IF EXISTS ' . $db->quoteName($table))->execute();
             }
         } catch (\Throwable $e) {
@@ -70,6 +70,10 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
                     require_once __DIR__ . '/src/Tool/CartCleaner.php';
                 }
                 (new \Merserwis\Plugin\System\MerTools\Tool\CartCleaner(Factory::getContainer()->get(DatabaseInterface::class)))->ensureTables();
+                if (!class_exists(\Merserwis\Plugin\System\MerTools\Tool\Speed::class) && is_file(__DIR__ . '/src/Tool/Speed.php')) {
+                    require_once __DIR__ . '/src/Tool/Speed.php';
+                }
+                (new \Merserwis\Plugin\System\MerTools\Tool\Speed(Factory::getContainer()->get(DatabaseInterface::class)))->ensureTables();
             } catch (\Throwable $e) {
                 // created later, at the first use
             }
