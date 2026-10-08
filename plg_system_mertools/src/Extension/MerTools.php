@@ -15,6 +15,8 @@
  *  - Dark mode: an elegant dark palette (never pure black) built from Gridbox's own CSS variables,
  *    with a toggle button in the header, several palettes and the option to keep the Gridbox accent.
  *    Added in onBeforeCompileHead (CSS + a no-flash inline script + the toggle script).
+ *  - Links to a product option: a link with a chosen product option ("?Zestawy+Metrel+MI+3155=…")
+ *    opens the product with that option selected. Runs in onAfterRoute, on Gridbox pages only.
  */
 
 namespace Merserwis\Plugin\System\MerTools\Extension;
@@ -30,11 +32,12 @@ use Joomla\Event\SubscriberInterface;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\Layout;
 use Merserwis\Plugin\System\MerTools\Tool\Phones;
+use Merserwis\Plugin\System\MerTools\Tool\ProductLinks;
 use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.14';
+    public const VERSION = '0.0.15';
 
     protected $autoloadLanguage = true;
 
@@ -43,6 +46,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         return [
             // before routing, so the clean address is served before Gridbox or the SEF router act
             'onAfterInitialise'   => ['onAfterInitialise', Priority::HIGH],
+            'onAfterRoute'        => 'onAfterRoute',
             'onBeforeCompileHead' => 'onBeforeCompileHead',
             'onExtensionAfterSave' => 'onExtensionAfterSave',
         ];
@@ -74,6 +78,31 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $code = (int) $this->params->get('url_redirect_code', 301) === 302 ? 302 : 301;
 
         $app->redirect($base . $target, $code);
+    }
+
+    /**
+     * Links to a product option: give Gridbox the option parameters of the address under their real
+     * names (PHP turns "Zestawy Metrel MI 3155" into "Zestawy_Metrel_MI_3155"), so its own code selects
+     * the option named in the link. After routing, so only Gridbox pages are touched.
+     */
+    public function onAfterRoute(): void
+    {
+        $app = $this->getApplication();
+        if (!$app->isClient('site') || strtoupper((string) $app->getInput()->getMethod()) !== 'GET'
+            || !(int) $this->params->get('shop_option_links', 1)) {
+            return;
+        }
+        $input = $app->getInput();
+        if ($input->getCmd('option') !== 'com_gridbox' || $input->getCmd('view') !== 'page') {
+            return;
+        }
+
+        $restored = ProductLinks::restoredParams((string) $input->server->getRaw('QUERY_STRING', ''), $input->get->getArray());
+        foreach ($restored as $name => $value) {
+            // Gridbox reads $input->get; anything that builds its own input from $_GET later sees them too
+            $input->get->set($name, $value);
+            $_GET[$name] = $value;
+        }
     }
 
     /**

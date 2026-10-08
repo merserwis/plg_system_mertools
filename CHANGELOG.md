@@ -2,6 +2,15 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.15 (Beta) — 2026-10-08
+
+### 🛒 New tool: Links to a product option (tab *Shop*, on by default)
+
+- When an option or set of a product is chosen, Gridbox adds it to the page address, e.g. `?Zestawy+Metrel+MI+3155=MI+3155+EurotestXD+ST%2B+…`. Opening such a link showed the main product with nothing selected, so a customer sent a link to a specific set saw something else.
+- The cause: Gridbox looks the option up under the name of the option group (“Zestawy Metrel MI 3155”), but PHP stores parameters whose names have a space, a dot or a square bracket under a changed name (“Zestawy_Metrel_MI_3155”; “Length [m]” even becomes an array). So the lookup failed for nearly every product.
+- MerTools now gives Gridbox these parameters under their real names. The link opens the product with the option selected: its price, SKU and images, “Add to cart” ready. This also works for products with several option groups, and with `%20` instead of `+` or other parameters in the address (e.g. `utm_source`). Choosing another option, reloading and copying the address keep working as before.
+- Only Gridbox pages are touched, nothing already in the address is overwritten, and the Gridbox files are not changed. A link to an option that no longer exists opens the product as before.
+
 ## 0.0.14 (Beta) — 2026-10-07
 
 ### 📞 New tool: Click to call (tab *Phone numbers*, on by default)
