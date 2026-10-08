@@ -16,6 +16,11 @@
  * turns HTML entities into characters. An option saved as "GPT-12002 &#128308;" (a red dot) arrives as
  * "GPT-12002 🔴" and never matches either, so the product opens with its default option.
  *
+ * And one in Gridbox's script: when the page opens, it reads the chosen options from their
+ * data-value attribute, which an option shown as a radio button does not have. A radio button the
+ * server selected from the link is then taken as nothing chosen, so the default option replaces it,
+ * or "Add to cart" does nothing. markChosenRadios() gives that one radio button its data-value.
+ *
  * This reads the raw query string and gives back the parameters under their real names, so Gridbox's
  * own selection code finds them, with "&" in a value written as "&amp;" so that the filter gives back
  * exactly the value of the link. A parameter PHP already has is only touched when its value has an
@@ -81,5 +86,28 @@ final class ProductLinks
         }
 
         return $restored;
+    }
+
+    /**
+     * The page with each radio-button option that the server selected given a data-value, so that
+     * Gridbox's script sees it as chosen. Nothing else is changed; a page without one is returned as is.
+     *
+     * @param string $html the rendered page
+     *
+     * @return string
+     */
+    public static function markChosenRadios(string $html): string
+    {
+        if (!str_contains($html, 'name="variation-')) {
+            return $html;
+        }
+
+        $marked = preg_replace(
+            '#<input(?=[^>]*\btype="radio")(?=[^>]*\bname="variation-\d+")(?=[^>]*\bclass="active")(?![^>]*\bdata-value=)([^>]*?)\bvalue="(\d+)"#',
+            '<input$1value="$2" data-value="$2"',
+            $html
+        );
+
+        return $marked ?? $html;
     }
 }

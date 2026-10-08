@@ -37,7 +37,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.16';
+    public const VERSION = '0.0.17';
 
     protected $autoloadLanguage = true;
 
@@ -47,6 +47,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             // before routing, so the clean address is served before Gridbox or the SEF router act
             'onAfterInitialise'   => ['onAfterInitialise', Priority::HIGH],
             'onAfterRoute'        => 'onAfterRoute',
+            'onAfterRender'       => 'onAfterRender',
             'onBeforeCompileHead' => 'onBeforeCompileHead',
             'onExtensionAfterSave' => 'onExtensionAfterSave',
         ];
@@ -102,6 +103,31 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             // Gridbox reads $input->get; anything that builds its own input from $_GET later sees them too
             $input->get->set($name, $value);
             $_GET[$name] = $value;
+        }
+    }
+
+    /**
+     * Links to a product option, the second half: a radio-button option the server selected from the
+     * link gets the data-value Gridbox's script reads, or the script would take it as nothing chosen.
+     */
+    public function onAfterRender(): void
+    {
+        $app = $this->getApplication();
+        if (!$app->isClient('site') || !(int) $this->params->get('shop_option_links', 1)) {
+            return;
+        }
+        $input = $app->getInput();
+        if ($input->getCmd('option') !== 'com_gridbox' || $input->getCmd('view') !== 'page') {
+            return;
+        }
+        $document = $app->getDocument();
+        if (!$document || $document->getType() !== 'html') {
+            return;
+        }
+        $body   = (string) $app->getBody();
+        $marked = ProductLinks::markChosenRadios($body);
+        if ($marked !== $body) {
+            $app->setBody($marked);
         }
     }
 

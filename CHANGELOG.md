@@ -2,6 +2,13 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.17 (Beta) — 2026-10-08
+
+### 🛠 Fixed: links to a product option shown as radio buttons (tab *Shop*)
+
+- Links to an option were checked with every kind of Gridbox option: drop-down list, tags, colours, images and radio buttons, also two kinds in one product. Each link opens the product with the chosen option, its price and SKU, and “Add to cart” adds that option.
+- Radio buttons needed a fix in Gridbox's script. The server selected the right option, but when the page opened, the script read the chosen options from an attribute that radio buttons do not have. It took the option as not chosen: on a product with a default option the default replaced the one from the link, and on a product without one “Add to cart” did nothing. MerTools now gives the selected radio button that attribute; nothing else on the page changes.
+
 ## 0.0.16 (Beta) — 2026-10-08
 
 ### 🛠 Fixed: links to a product option whose name has a symbol (tab *Shop*)

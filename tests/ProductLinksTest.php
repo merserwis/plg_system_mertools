@@ -81,6 +81,29 @@ $ok   = restore($many) === [];
 $fail += $ok ? 0 : 1;
 printf("%s 51 pairs are ignored\n", $ok ? 'OK ' : 'FAIL');
 
+// radio buttons: the one the server selected gets a data-value, nothing else changes
+$radios = [
+    // Gridbox's markup after its HTML pass (one line per input)
+    ['<input type="radio" name="variation-8" class="" value="91"><input type="radio" name="variation-8" class="active" value="92" checked>',
+     '<input type="radio" name="variation-8" class="" value="91"><input type="radio" name="variation-8" class="active" value="92" data-value="92" checked>'],
+    // attributes on several lines, as in the template
+    ["<input type=\"radio\" name=\"variation-3\"\n    class=\"active\"\n    value=\"1716187482786\" checked>",
+     "<input type=\"radio\" name=\"variation-3\"\n    class=\"active\"\n    value=\"1716187482786\" data-value=\"1716187482786\" checked>"],
+    // already has one: left alone (no double attribute)
+    ['<input type="radio" name="variation-8" class="active" data-value="92" value="92" checked>',
+     '<input type="radio" name="variation-8" class="active" data-value="92" value="92" checked>'],
+    // other radios (extra options, forms) and other inputs are not touched
+    ['<input type="radio" name="extra-5" class="active" value="7" checked><input type="text" name="variation-8" class="active" value="9">',
+     '<input type="radio" name="extra-5" class="active" value="7" checked><input type="text" name="variation-8" class="active" value="9">'],
+    ['<p>no options</p>', '<p>no options</p>'],
+];
+foreach ($radios as $i => [$in, $exp]) {
+    $got = ProductLinks::markChosenRadios($in);
+    $ok  = $got === $exp;
+    $fail += $ok ? 0 : 1;
+    printf("%s radio %d %s\n", $ok ? 'OK ' : 'FAIL', $i + 1, $ok ? '' : 'got=' . $got);
+}
+
 // with Joomla at hand (the test site): every value goes through Joomla's input filter, as Gridbox
 // reads it, and has to come back exactly as in the link
 $autoload = getenv('JOOMLA_AUTOLOAD') ?: '/var/www/html/libraries/vendor/autoload.php';
@@ -99,5 +122,5 @@ if (is_file($autoload)) {
     }
 }
 
-echo $fail === 0 ? "\nALL PASS (" . (count($cases) + 1 + $extra) . ")\n" : "\n$fail FAILED\n";
+echo $fail === 0 ? "\nALL PASS (" . (count($cases) + 1 + count($radios) + $extra) . ")\n" : "\n$fail FAILED\n";
 exit($fail === 0 ? 0 : 1);
