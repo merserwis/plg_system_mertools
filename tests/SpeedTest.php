@@ -43,6 +43,11 @@ $check('clean: score clamped', Speed::clean(['score' => 250] + $good)['score'], 
 $check('clean: runs clamped', Speed::clean(['runs' => 99] + $good)['runs'], 10);
 
 $check('tools: defaults', Speed::enabledTools([], ['layout_clip_x' => 1, 'dark_enabled' => 0]), ['layout']);
+$check('clean: document time kept', Speed::clean(['doc' => 3653.2] + $good)['doc'], 3653);
+$check('clean: no document time (older panel)', $c['doc'], null);
+$check('clean: bad document time', Speed::clean(['doc' => 'x'] + $good)['doc'], null);
+$check('tools: phone video mode', Speed::enabledTools(['speed_video_phone' => 'none', 'speed_cache' => '1'], ['speed_cache_data' => 1]), ['videophone', 'pagecache', 'gridboxdata']);
+$check('tools: phone video as on computers', Speed::enabledTools(['speed_video_phone' => 'video', 'speed_cache_data' => '0']), []);
 $check('tools: saved win', Speed::enabledTools(['layout_clip_x' => '0', 'dark_enabled' => '1', 'tel_enabled' => 1], ['layout_clip_x' => 1]), ['tel', 'dark']);
 
 echo $fail === 0 ? "\nALL PASS\n" : "\n$fail FAILED\n";

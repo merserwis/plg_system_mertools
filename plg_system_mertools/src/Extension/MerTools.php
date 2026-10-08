@@ -27,6 +27,10 @@
  *    In onAfterRender, after Gridbox has finished the page (lowest priority).
  *  - Links to a product option: a link with a chosen product option ("?Zestawy+Metrel+MI+3155=…")
  *    opens the product with that option selected. Runs in onAfterRoute, on Gridbox pages only.
+ *  - Page cache for guests (PageCache): the finished page of a guest is kept and the next guests get
+ *    it at once, also Gridbox's two data requests before a page is shown. Served in onAfterRoute,
+ *    kept in onAfterRespond, emptied after any change (a shutdown function, as Gridbox ends its
+ *    save requests with exit).
  */
 
 namespace Merserwis\Plugin\System\MerTools\Extension;
@@ -36,6 +40,7 @@ namespace Merserwis\Plugin\System\MerTools\Extension;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Event\ErrorEvent;
 use Joomla\CMS\Factory;
+use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\Router\Route;
@@ -49,6 +54,7 @@ use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\ImageSize;
 use Merserwis\Plugin\System\MerTools\Tool\Layout;
 use Merserwis\Plugin\System\MerTools\Tool\NotFound;
+use Merserwis\Plugin\System\MerTools\Tool\PageCache;
 use Merserwis\Plugin\System\MerTools\Tool\Phones;
 use Merserwis\Plugin\System\MerTools\Tool\ProductLinks;
 use Merserwis\Plugin\System\MerTools\Tool\Speed;
@@ -57,19 +63,23 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.22';
+    public const VERSION = '0.0.23';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
 
     protected $autoloadLanguage = true;
 
+    /** a page of this request that may be kept: key, address, start time; 'ok' once the page qualified */
+    private ?array $pageToStore = null;
+
     public static function getSubscribedEvents(): array
     {
         return [
             // before routing, so the clean address is served before Gridbox or the SEF router act
             'onAfterInitialise'   => ['onAfterInitialise', Priority::HIGH],
-            'onAfterRoute'        => 'onAfterRoute',
+            // early, so a kept page is sent before other plugins do their work for nothing
+            'onAfterRoute'        => ['onAfterRoute', Priority::HIGH],
             // after Gridbox has finished the page (its lazy loading and deferred loading)
             'onAfterRender'       => ['onAfterRender', Priority::MIN],
             // after System - Redirect, so a redirect set for a single address in Joomla still wins
@@ -120,10 +130,16 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     public function onAfterRoute(): void
     {
         $app = $this->getApplication();
+        if ($app->isClient('administrator') || $app->isClient('site')) {
+            $this->purgeOnChange();
+        }
         if ($app->isClient('administrator')) {
             $this->handleAdministratorAction();
 
             return;
+        }
+        if ($app->isClient('site')) {
+            $this->servePageCache();
         }
         if (!$app->isClient('site') || strtoupper((string) $app->getInput()->getMethod()) !== 'GET'
             || !(int) $this->params->get('shop_option_links', 1)) {
@@ -139,6 +155,234 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             // Gridbox reads $input->get; anything that builds its own input from $_GET later sees them too
             $input->get->set($name, $value);
             $_GET[$name] = $value;
+        }
+    }
+
+    // ---------------------------------------------------------------- page cache for guests
+
+    private function pageCacheOn(): bool
+    {
+        return (bool) (int) $this->params->get('speed_cache', 0);
+    }
+
+    private function dataCacheOn(): bool
+    {
+        return (bool) (int) $this->params->get('speed_cache_data', 1);
+    }
+
+    private function pageCache(): PageCache
+    {
+        return new PageCache(self::cacheBase() . '/' . PageCache::DIR);
+    }
+
+    private function cacheTtl(): int
+    {
+        return max(5, min(1440, (int) $this->params->get('speed_cache_ttl', 240))) * 60;
+    }
+
+    /**
+     * A request that changes what pages show (a save in Joomla or in the Gridbox editor, an order, a
+     * comment): the kept pages go once it has finished — Gridbox ends its requests with exit, so after
+     * the response, at shutdown, and only then (emptied earlier, a guest could keep the old page again).
+     */
+    private function purgeOnChange(): void
+    {
+        if (!$this->pageCacheOn() && !$this->dataCacheOn()) {
+            return;
+        }
+        $app   = $this->getApplication();
+        $input = $app->getInput();
+        $user  = $app->getIdentity();
+        if (!PageCache::changes((string) $input->getMethod(), !$user || $user->guest, (string) $input->getCmd('option', ''), (string) $input->getString('task', ''))) {
+            return;
+        }
+        $cache = $this->pageCache();
+        register_shutdown_function(static function () use ($cache): void {
+            try {
+                $cache->purge();
+            } catch (\Throwable $e) {
+            }
+        });
+    }
+
+    /** Guests: a kept page or Gridbox data answer is sent at once; otherwise noted to be kept. */
+    private function servePageCache(): void
+    {
+        $app   = $this->getApplication();
+        $input = $app->getInput();
+        $user  = $app->getIdentity();
+        if (($user && !$user->guest) || (!$this->pageCacheOn() && !$this->dataCacheOn())) {
+            return;
+        }
+        $method = strtoupper((string) $input->getMethod());
+        $kind   = PageCache::dataRequest((string) $input->getCmd('option', ''), (string) $input->getString('task', ''), (string) $input->getString('module', ''));
+        if ($kind !== null) {
+            // Gridbox asks for its texts by POST too; nothing is posted that changes the answer
+            if ($this->dataCacheOn() && ($method === 'GET' || $method === 'HEAD' || ($method === 'POST' && $kind === 'language'))) {
+                $this->gridboxData($kind);
+            }
+
+            return;
+        }
+        if (!$this->pageCacheOn() || !\in_array($method, ['GET', 'HEAD'], true) || $app->getMessageQueue()
+            || $input->getCmd('format', 'html') !== 'html' || $input->getCmd('tmpl', '') !== '' || $this->inBuilder()) {
+            return;
+        }
+        // the Markdown version of a page (AI Markdown) and addresses with parameters (search, filters)
+        $server = $input->server;
+        if (stripos((string) $server->getString('HTTP_ACCEPT', ''), 'text/markdown') !== false || $input->get('output', '', 'cmd') !== ''
+            || $input->get('markdown', '', 'cmd') !== '' || PageCache::cleanQuery((string) $server->getRaw('QUERY_STRING', '')) !== '') {
+            return;
+        }
+        $lines = fn (string $s) => array_filter(array_map('trim', preg_split('/\R/', $s) ?: []));
+        if (PageCache::hasCookie($_COOKIE, array_merge(PageCache::SKIP_COOKIES, $lines((string) $this->params->get('speed_cache_cookies', ''))))) {
+            return;
+        }
+        $uri  = Uri::getInstance();
+        $path = (string) $uri->getPath();
+        foreach ($lines((string) $this->params->get('speed_cache_exclude', '')) as $part) {
+            if (stripos($path, $part) !== false) {
+                return;
+            }
+        }
+
+        $url   = $uri->toString(['scheme', 'host', 'port', 'path']);
+        $cache = $this->pageCache();
+        $key   = $cache->key('page', $url);
+        $entry = null;
+        try {
+            $entry = $cache->read($key, $this->cacheTtl(), microtime(true));
+        } catch (\Throwable $e) {
+        }
+        $viewed = $input->cookie->get('gridbox_viewed_products', [], 'array');
+        if ($entry) {
+            // "Recently viewed products" of this visitor would differ from the kept one
+            if (!empty($entry['meta']['viewed']) && PageCache::viewedOthers($viewed, (int) $entry['meta']['viewed'])) {
+                return;
+            }
+            $this->sendPage($entry);
+        }
+        $this->pageToStore = ['key' => $key, 'url' => $url, 'started' => (float) $server->getFloat('REQUEST_TIME_FLOAT', microtime(true))];
+    }
+
+    /** Send a kept page with this visitor's token and nonce, as Joomla would have sent it, and stop. */
+    private function sendPage(array $entry): void
+    {
+        $app  = $this->getApplication();
+        $meta = $entry['meta'];
+        $html = PageCache::forServe($entry['body'], (string) $app->getFormToken(), $app->get('csp_nonce'));
+
+        // what Gridbox does on a page view: the "recently viewed" cookie and the hit counter
+        if (!empty($meta['viewed'])) {
+            $options = ['expires' => time() + 604800, 'path' => $app->get('cookie_path', '/') ?: '/', 'domain' => (string) $app->get('cookie_domain', ''),
+                'secure' => $app->isSSLConnection(), 'httponly' => true, 'samesite' => 'Lax'];
+            setcookie('gridbox_viewed_products[0]', (string) (int) $meta['viewed'], $options);
+        }
+        if (!empty($meta['page'])) {
+            try {
+                $db = Factory::getContainer()->get(DatabaseInterface::class);
+                $db->setQuery('UPDATE ' . $db->quoteName('#__gridbox_pages') . ' SET ' . $db->quoteName('hits') . ' = ' . $db->quoteName('hits')
+                    . ' + 1 WHERE ' . $db->quoteName('id') . ' = ' . (int) $meta['page'])->execute();
+            } catch (\Throwable $e) {
+            }
+        }
+
+        $app->setHeader('Content-Type', (string) ($meta['type'] ?? 'text/html; charset=utf-8'), true);
+        foreach ((array) ($meta['headers'] ?? []) as $header) {
+            if (\is_array($header) && \count($header) === 2) {
+                $app->setHeader((string) $header[0], (string) $header[1]);
+            }
+        }
+        $app->setHeader('Expires', 'Wed, 17 Aug 2005 00:00:00 GMT', true);
+        $app->setHeader('Last-Modified', gmdate('D, d M Y H:i:s', (int) $meta['time']) . ' GMT', true);
+        $app->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0', true);
+        $app->setHeader('Pragma', 'no-cache', true);
+        $app->setHeader('X-MerTools-Cache', 'HIT', true);
+        // the no-store above stays (Joomla would add a bare no-cache to an uncachable answer)
+        $app->allowCache(true);
+        $app->setBody($html);
+        echo $app->toString((bool) $app->get('gzip'));
+        $app->close();
+    }
+
+    /**
+     * Gridbox's page items or texts: the kept answer at once, else Gridbox answers (and ends with exit)
+     * and its answer is kept on the way out, if complete.
+     */
+    private function gridboxData(string $kind): void
+    {
+        $app     = $this->getApplication();
+        $server  = $app->getInput()->server;
+        $address = Uri::getInstance()->toString(['scheme', 'host', 'port', 'path']) . '?' . (string) $server->getRaw('QUERY_STRING', '')
+            . '|' . $app->getLanguage()->getTag();
+        $cache   = $this->pageCache();
+        $key     = $cache->key('data', $address);
+        try {
+            $entry = $cache->read($key, $this->cacheTtl(), microtime(true));
+        } catch (\Throwable $e) {
+            $entry = null;
+        }
+        if ($entry) {
+            header('Content-Type: text/javascript; charset=UTF-8');
+            header('X-MerTools-Cache: HIT');
+            echo $entry['body'];
+            $app->close();
+        }
+
+        $started = (float) $server->getFloat('REQUEST_TIME_FLOAT', microtime(true));
+        $buffer  = '';
+        ob_start(static function (string $chunk, int $phase) use (&$buffer, $cache, $key, $kind, $started): string {
+            $buffer .= $chunk;
+            if ($phase & PHP_OUTPUT_HANDLER_FINAL) {
+                try {
+                    if (http_response_code() === 200 && PageCache::validData($kind, $buffer)) {
+                        $cache->write($key, ['kind' => 'data', 'time' => microtime(true)], $buffer, $started);
+                    }
+                } catch (\Throwable $e) {
+                }
+            }
+
+            return $chunk;
+        });
+    }
+
+    /** After the page has been sent: keep it, if it qualified and nothing in the answer speaks against it. */
+    private function storePage(): void
+    {
+        $store             = $this->pageToStore;
+        $this->pageToStore = null;
+        if (!$store || empty($store['ok']) || http_response_code() !== 200) {
+            return;
+        }
+        $app     = $this->getApplication();
+        $headers = headers_list();
+        $viewed  = PageCache::cookieCheck($headers, (string) $app->getSession()->getName());
+        $body    = (string) $app->getBody();
+        if ($viewed === null || !PageCache::storable($body)) {
+            return;
+        }
+        $input = $app->getInput();
+        $page  = $input->getCmd('option') === 'com_gridbox' && $input->getCmd('view') === 'page' ? $input->getInt('id', 0) : 0;
+        $meta  = ['kind' => 'page', 'time' => microtime(true), 'url' => $store['url'], 'type' => PageCache::contentType($headers),
+            'headers' => PageCache::replayHeaders($headers), 'viewed' => $viewed, 'page' => $page];
+        try {
+            $this->pageCache()->write($store['key'], $meta, PageCache::forStore($body, (string) $app->getFormToken(), $app->get('csp_nonce')), $store['started']);
+        } catch (\Throwable $e) {
+        }
+    }
+
+    /** Once an hour (after a page was sent): expired entries go, and the oldest above the limit. */
+    private function prunePageCache(): void
+    {
+        $gate = self::cacheBase() . '/mertools-pcache-tick';
+        $now  = time();
+        if (is_file($gate) && (int) @filemtime($gate) > $now - 3600) {
+            return;
+        }
+        @touch($gate);
+        try {
+            $this->pageCache()->prune($this->cacheTtl(), max(100, min(100000, (int) $this->params->get('speed_cache_max', 5000))), microtime(true));
+        } catch (\Throwable $e) {
         }
     }
 
@@ -178,7 +422,16 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     public function onAfterRespond(): void
     {
         $app = $this->getApplication();
-        if (!$app->isClient('site') || !$this->cartsOn()) {
+        if (!$app->isClient('site')) {
+            return;
+        }
+        if ($this->pageToStore) {
+            $this->storePage();
+        }
+        if ($this->pageCacheOn() || $this->dataCacheOn()) {
+            $this->prunePageCache();
+        }
+        if (!$this->cartsOn()) {
             return;
         }
         $gate = self::cacheBase() . '/mertools-cart-tick';
@@ -219,7 +472,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $app    = $this->getApplication();
         $input  = $app->getInput();
         $action = $input->getCmd('mertools_action', '');
-        if (!\in_array($action, ['cart_stats', 'cart_check', 'cart_clean', 'speed_list', 'speed_save', 'speed_baseline', 'speed_delete'], true)) {
+        if (!\in_array($action, ['cart_stats', 'cart_check', 'cart_clean', 'speed_list', 'speed_save', 'speed_baseline', 'speed_delete',
+            'pcache_stats', 'pcache_clear'], true)) {
             return;
         }
         $this->loadLanguage();
@@ -230,6 +484,17 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
 
         if (str_starts_with($action, 'speed_')) {
             $this->handleSpeedAction($action);
+        }
+        if (str_starts_with($action, 'pcache_')) {
+            try {
+                $cache = $this->pageCache();
+                if ($action === 'pcache_clear') {
+                    $cache->purge();
+                }
+                $this->sendJson(['success' => true, 'stats' => $cache->stats($this->cacheTtl(), microtime(true))]);
+            } catch (\Throwable $e) {
+                $this->sendJson(['success' => false, 'message' => $e->getMessage()]);
+            }
         }
 
         $cleaner = $this->cartCleaner();
@@ -265,7 +530,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                 }
                 $defaults = ['url_collapse_slashes' => 1, 'notfound_redirect' => 1, 'layout_clip_x' => 1, 'shop_option_links' => 1,
                     'cart_enabled' => 1, 'tel_enabled' => 1, 'dark_enabled' => 0, 'speed_images' => 1, 'speed_mainphoto' => 1,
-                    'speed_video' => 1, 'speed_scripts' => 0];
+                    'speed_video' => 1, 'speed_video_phone' => 'none', 'speed_scripts' => 0, 'speed_cache' => 0, 'speed_cache_data' => 1];
                 $speed->save($m, self::VERSION, Speed::enabledTools($this->params->toArray(), $defaults), time());
             } elseif ($action === 'speed_baseline') {
                 $speed->setBaseline($input->post->getInt('id', 0));
@@ -366,6 +631,15 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if ($new !== $body) {
             $app->setBody($new);
         }
+        if ($this->pageToStore) {
+            if (PageCache::storable($new)) {
+                // the page is kept as sent: Joomla would otherwise compress it before onAfterRespond
+                $this->pageToStore['ok'] = true;
+                $app->set('gzip', false);
+            } else {
+                $this->pageToStore = null;
+            }
+        }
     }
 
     /** The faster-first-view tools that are switched on, applied to the finished page. */
@@ -387,7 +661,13 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                 }
             }
             if ((int) $p->get('speed_video', 1)) {
-                $html = Speedup::delayVideoBackground($html, (int) $p->get('speed_video_delay', 3));
+                $image = trim((string) $p->get('speed_video_phone_image', ''));
+                if ($image !== '') {
+                    $image = HTMLHelper::cleanImageURL($image)->url;
+                    $image = preg_match('#^(https?:)?//#i', $image) ? $image : Uri::root(true) . '/' . ltrim($image, '/');
+                }
+                $html = Speedup::delayVideoBackground($html, (int) $p->get('speed_video_delay', 3), (string) $p->get('speed_video_phone', 'none'),
+                    (int) $p->get('speed_video_phone_width', 768), $image, (string) $p->get('speed_video_phone_color', '#1a1a1a'));
             }
             if ((int) $p->get('speed_scripts', 0)) {
                 $lines = fn (string $s) => preg_split('/\R/', $s) ?: [];

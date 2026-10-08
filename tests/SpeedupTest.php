@@ -72,6 +72,17 @@ $check('video delay right after gridbox.js', str_starts_with($v, '<script src="/
 $check('video delay: 3000 ms', $has($v, 'setTimeout(run,3000)'), true);
 $check('video delay: before the next script', $has($v, '})(window,document);</script><script src="/x.js"></script>'), true);
 $check('no gridbox.js: nothing', Speedup::delayVideoBackground('<p>x</p>', 3), '<p>x</p>');
+$check('video as on computers: no phone code', $has($v, 'matchMedia'), false);
+$n = Speedup::delayVideoBackground($g, 3, 'none', 768, '', '#1a1a1a');
+$check('phones without video: width and colour', $has($n, 'matchMedia("(max-width:768px)")') && $has($n, 'var col="#1a1a1a",img="",pic=0;'), true);
+$check('phones without video: colour at DOMContentLoaded, no start', $has($n, 'if(ph){d.readyState==="loading"?d.addEventListener("DOMContentLoaded",paint):paint()}') && $has($n, 'if(ph){paint();return}'), true);
+$check('phones without video: elsewhere still delayed', $has($n, 'setTimeout(run,3000)'), true);
+$i = Speedup::delayVideoBackground($g, 3, 'image', 600, '/images/hero "x".webp', '#000');
+$check('phone picture: chosen, quotes escaped', $has($i, 'img="/images/hero \\u0022x\\u0022.webp",pic=1') && $has($i, 'max-width:600px'), true);
+$check('phone picture: YouTube thumbnail fallback', $has($i, 'https://i.ytimg.com/vi/"+v.id+"/hqdefault.jpg'), true);
+$check('bad colour dropped', $has(Speedup::delayVideoBackground($g, 3, 'none', 768, '', 'red;}</script>'), 'var col="",'), true);
+$check('unknown phone mode = video', Speedup::delayVideoBackground($g, 3, 'x'), $v);
+$check('width clamped', $has(Speedup::delayVideoBackground($g, 3, 'none', 5), 'max-width:320px'), true);
 
 // ---------------------------------------------------------------- marketing scripts
 $s = '<head><script type="application/json" class="joomla-script-options new">{"googletagmanager.com":1}</script>'

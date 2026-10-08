@@ -31,7 +31,8 @@ final class Speed
     /** the MerTools settings that switch a tool on: snapshot kept with every measurement */
     public const TOOLS = ['url_collapse_slashes' => 'url', 'notfound_redirect' => 'notfound', 'layout_clip_x' => 'layout',
         'shop_option_links' => 'optionlinks', 'cart_enabled' => 'carts', 'tel_enabled' => 'tel', 'dark_enabled' => 'dark',
-        'speed_images' => 'images', 'speed_mainphoto' => 'mainphoto', 'speed_video' => 'videodelay', 'speed_scripts' => 'scriptdelay'];
+        'speed_images' => 'images', 'speed_mainphoto' => 'mainphoto', 'speed_video' => 'videodelay', 'speed_video_phone' => 'videophone',
+        'speed_scripts' => 'scriptdelay', 'speed_cache' => 'pagecache', 'speed_cache_data' => 'gridboxdata'];
 
     private const KEEP_PER_PAGE = 60;
 
@@ -108,6 +109,7 @@ final class Speed
             }
         }
         $out['field'] = $field;
+        $out['doc']   = isset($in['doc']) && is_numeric($in['doc']) ? (int) round(max(0, min(600000, (float) $in['doc']))) : null;
 
         // the biggest opportunities of the lab test (id, title, estimated saving)
         $audits = [];
@@ -135,7 +137,9 @@ final class Speed
     {
         $on = [];
         foreach (self::TOOLS as $key => $code) {
-            if ((int) ($params[$key] ?? ($defaults[$key] ?? 0))) {
+            $value = $params[$key] ?? ($defaults[$key] ?? 0);
+            // a switch (0/1), or a choice whose first value means "as Gridbox does it" (video on phones)
+            if (is_numeric($value) ? (int) $value : !\in_array((string) $value, ['', 'video'], true)) {
                 $on[] = $code;
             }
         }
@@ -150,9 +154,13 @@ final class Speed
         $this->db->setQuery('CREATE TABLE IF NOT EXISTS `#__mertools_speed` (`id` INT UNSIGNED NOT NULL AUTO_INCREMENT,'
             . ' `url` VARCHAR(512) NOT NULL, `strategy` VARCHAR(8) NOT NULL, `measured` DATETIME NOT NULL, `runs` TINYINT UNSIGNED NOT NULL DEFAULT 1,'
             . ' `score` TINYINT UNSIGNED NOT NULL, `fcp` INT UNSIGNED NOT NULL, `lcp` INT UNSIGNED NOT NULL, `tbt` INT UNSIGNED NOT NULL,'
-            . ' `cls` DECIMAL(6,3) NOT NULL, `si` INT UNSIGNED NOT NULL, `ttfb` INT UNSIGNED NOT NULL, `field` MEDIUMTEXT NOT NULL,'
+            . ' `cls` DECIMAL(6,3) NOT NULL, `si` INT UNSIGNED NOT NULL, `ttfb` INT UNSIGNED NOT NULL, `doc` INT UNSIGNED NULL, `field` MEDIUMTEXT NOT NULL,'
             . ' `audits` MEDIUMTEXT NOT NULL, `version` VARCHAR(16) NOT NULL, `tools` VARCHAR(512) NOT NULL, `baseline` TINYINT NOT NULL DEFAULT 0,'
             . ' PRIMARY KEY (`id`), KEY `idx_page` (`url`(191), `strategy`, `measured`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4')->execute();
+        // 0.0.23: the time until the whole HTML arrived (the server time Lighthouse reports can be far too low behind Cloudflare)
+        if (!$this->db->setQuery("SHOW COLUMNS FROM `#__mertools_speed` LIKE 'doc'")->loadResult()) {
+            $this->db->setQuery('ALTER TABLE `#__mertools_speed` ADD `doc` INT UNSIGNED NULL AFTER `ttfb`')->execute();
+        }
     }
 
     /** Keep a checked measurement; the oldest beyond 60 per page and device go (never a baseline). */
@@ -162,7 +170,7 @@ final class Speed
         $db  = $this->db;
         $row = (object) ['url' => $m['url'], 'strategy' => $m['strategy'], 'measured' => gmdate('Y-m-d H:i:s', $now), 'runs' => $m['runs'],
             'score' => $m['score'], 'fcp' => $m['fcp'], 'lcp' => $m['lcp'], 'tbt' => $m['tbt'], 'cls' => $m['cls'], 'si' => $m['si'],
-            'ttfb' => $m['ttfb'], 'field' => json_encode($m['field']), 'audits' => json_encode($m['audits'], JSON_UNESCAPED_UNICODE),
+            'ttfb' => $m['ttfb'], 'doc' => $m['doc'] ?? null, 'field' => json_encode($m['field']), 'audits' => json_encode($m['audits'], JSON_UNESCAPED_UNICODE),
             'version' => mb_substr($version, 0, 16), 'tools' => implode(',', $tools), 'baseline' => 0];
         $db->insertObject('#__mertools_speed', $row, 'id');
 
@@ -189,6 +197,7 @@ final class Speed
             foreach (['id', 'runs', 'score', 'fcp', 'lcp', 'tbt', 'si', 'ttfb', 'baseline'] as $k) {
                 $r[$k] = (int) $r[$k];
             }
+            $r['doc']      = $r['doc'] === null ? null : (int) $r['doc'];
             $r['cls']      = (float) $r['cls'];
             $r['measured'] = strtotime($r['measured'] . ' UTC');
             $r['field']    = json_decode($r['field'], true) ?: [];

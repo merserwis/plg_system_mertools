@@ -15,7 +15,8 @@
  *  - the main product photo: the first product slideshow shows its picture at once (Gridbox keeps
  *    it hidden until its script runs) and the browser fetches it first;
  *  - a YouTube video in a section background starts after the first interaction or a few seconds
- *    after the page has loaded, not while the page is still loading;
+ *    after the page has loaded, not while the page is still loading; on phones it can be left out
+ *    or replaced by a still picture;
  *  - marketing scripts (Tag Manager, Facebook, Clarity…) start at the first interaction.
  *
  * Every function takes the HTML and returns it changed; nothing else is touched.
@@ -148,18 +149,43 @@ final class Speedup
      * Video backgrounds start after the first interaction, or $seconds after the page has loaded
      * (Gridbox starts them while the page is still loading). Wraps app.checkVideoBackground right
      * after Gridbox's own script; the Gridbox file is not changed.
+     *
+     * On phones (screens up to $phoneWidth px, or with the browser's data saver on) $phone decides:
+     * 'video' the same as elsewhere, 'none' no video, 'image' a still picture instead ($phoneImage,
+     * else the video's own poster or YouTube thumbnail). Without the video the section gets $phoneColor
+     * under its overlay (the light colour behind a video would leave white text unreadable), set when
+     * Gridbox shows the page (DOMContentLoaded, its items are known by then), so nothing flashes.
      */
-    public static function delayVideoBackground(string $html, int $seconds): string
+    public static function delayVideoBackground(string $html, int $seconds, string $phone = 'video', int $phoneWidth = 768,
+        string $phoneImage = '', string $phoneColor = '#1a1a1a'): string
     {
         if (!preg_match('#<script\b[^>]*\bsrc="[^"]*templates/gridbox/js/gridbox\.js[^"]*"[^>]*>\s*</script>#i', $html, $m, PREG_OFFSET_CAPTURE)) {
             return $html;
         }
-        $ms = max(0, min(60, $seconds)) * 1000;
-        $js = '<script>(function(w,d){var a=w.app;if(!a||!a.checkVideoBackground||a.mtVideoDelay)return;a.mtVideoDelay=1;'
+        $ms    = max(0, min(60, $seconds)) * 1000;
+        $phone = \in_array($phone, ['none', 'image'], true) ? $phone : 'video';
+        $json  = fn (string $v) => json_encode($v, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+        $js    = '<script>(function(w,d){var a=w.app;if(!a||!a.checkVideoBackground||a.mtVideoDelay)return;a.mtVideoDelay=1;'
             . 'var o=a.checkVideoBackground,go=0,args=[];'
-            . 'function run(){if(go)return;go=1;o.apply(a,args)}'
-            . 'a.checkVideoBackground=function(){args=arguments;if(go)return o.apply(a,arguments);'
-            . self::EVENTS . '.forEach(function(e){w.addEventListener(e,run,{once:true,passive:true})});'
+            . 'function run(){if(go)return;go=1;o.apply(a,args)}';
+        if ($phone !== 'video') {
+            $width = max(320, min(2000, $phoneWidth));
+            $color = preg_match('/^#[0-9a-f]{3,8}$|^rgba?\([0-9.,\s%]+\)$/i', trim($phoneColor)) ? trim($phoneColor) : '';
+            $js .= 'var c=navigator.connection,ph=(w.matchMedia&&w.matchMedia("(max-width:' . $width . 'px)").matches)||!!(c&&c.saveData);'
+                . 'var col=' . $json($color) . ',img=' . $json($phone === 'image' ? $phoneImage : '') . ',pic=' . ($phone === 'image' ? '1' : '0') . ';'
+                // every section, row or column with a video background (Gridbox's items, or the page data before Gridbox has read it)
+                . 'function vids(){var g=w.gridboxItems||{},seen={},out=[];[a.items,g.page,g.header,g.footer].forEach(function(s){if(!s)return;'
+                . 'Object.keys(s).forEach(function(id){var dk=s[id]&&s[id].desktop,e;if(seen[id]||!dk||!dk.background||dk.background.type!=="video")return;'
+                . 'seen[id]=1;e=d.getElementById(id);if(e)out.push([e,dk])})});return out}'
+                . 'function paint(){vids().forEach(function(p){var e=p[0],v=p[1].video||p[1].background.video||{},u;if(col)e.style.backgroundColor=col;if(!pic)return;'
+                . 'u=img||v.image||(v.type==="youtube"&&/^[\w-]{6,20}$/.test(v.id||"")?"https://i.ytimg.com/vi/"+v.id+"/hqdefault.jpg":"");'
+                . 'if(u){e.style.backgroundImage="url(\""+u.replace(/["\\\\]/g,"")+"\")";e.style.backgroundSize="cover";e.style.backgroundPosition="center"}})}'
+                . 'if(ph){d.readyState==="loading"?d.addEventListener("DOMContentLoaded",paint):paint()}'
+                . 'a.checkVideoBackground=function(){args=arguments;if(go)return o.apply(a,arguments);if(ph){paint();return}';
+        } else {
+            $js .= 'a.checkVideoBackground=function(){args=arguments;if(go)return o.apply(a,arguments);';
+        }
+        $js .= self::EVENTS . '.forEach(function(e){w.addEventListener(e,run,{once:true,passive:true})});'
             . 'var t=function(){setTimeout(run,' . $ms . ')};d.readyState==="complete"?t():w.addEventListener("load",t)}})(window,document);</script>';
 
         $end = $m[0][1] + \strlen($m[0][0]);

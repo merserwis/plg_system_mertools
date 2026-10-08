@@ -6,7 +6,7 @@
     <creationDate>2026-10-07</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>0.0.22</version>
+    <version>0.0.23</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -78,6 +78,19 @@
                 </field>
                 <field name="speed_video_delay" type="number" default="3" min="0" max="60" filter="integer" showon="speed_video:1"
                     label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_DELAY_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_DELAY_DESC" />
+                <field name="speed_video_phone" type="list" default="none" showon="speed_video:1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_DESC">
+                    <option value="none">PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_NONE</option>
+                    <option value="image">PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_IMAGE</option>
+                    <option value="video">PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_VIDEO</option>
+                </field>
+                <field name="speed_video_phone_width" type="number" default="768" min="320" max="2000" filter="integer"
+                    showon="speed_video:1[AND]speed_video_phone!:video"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_WIDTH_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_WIDTH_DESC" />
+                <field name="speed_video_phone_color" type="color" default="#1a1a1a" showon="speed_video:1[AND]speed_video_phone!:video"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_COLOR_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_COLOR_DESC" />
+                <field name="speed_video_phone_image" type="media" types="images" preview="tooltip" showon="speed_video:1[AND]speed_video_phone:image"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_PIC_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_PIC_DESC" />
                 <field name="speed_scripts" type="radio" layout="joomla.form.field.radio.switcher" default="0"
                     label="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_DESC">
                     <option value="0">JNO</option>
@@ -91,6 +104,28 @@
                     label="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_KEEP_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_KEEP_DESC" />
                 <field name="speed_scripts_timeout" type="number" default="0" min="0" max="120" filter="integer" showon="speed_scripts:1"
                     label="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_TIMEOUT_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_TIMEOUT_DESC" />
+                <field name="speed_cache_note" type="note" class="alert alert-info" label="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_NOTE_LABEL"
+                    description="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_NOTE_DESC" />
+                <field name="speed_cache" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="speed_cache_data" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_DATA_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_DATA_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="speed_cache_ttl" type="number" default="240" min="5" max="1440" filter="integer" showon="speed_cache:1[OR]speed_cache_data:1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_TTL_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_TTL_DESC" />
+                <field name="speed_cache_exclude" type="textarea" rows="3" default="" filter="string" showon="speed_cache:1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_EXCLUDE_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_EXCLUDE_DESC" />
+                <field name="speed_cache_cookies" type="textarea" rows="2" default="" filter="string" showon="speed_cache:1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_COOKIES_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_COOKIES_DESC" />
+                <field name="speed_cache_max" type="number" default="5000" min="100" max="100000" filter="integer" showon="speed_cache:1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_MAX_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_MAX_DESC" />
+                <field name="speed_cache_panel" type="mtpagecache" showon="speed_cache:1[OR]speed_cache_data:1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_PANEL_LABEL" />
                 <field name="speed_panel" type="mtspeed" hiddenLabel="true"
                     label="PLG_SYSTEM_MERTOOLS_SPEED_PANEL_LABEL" />
             </fieldset>

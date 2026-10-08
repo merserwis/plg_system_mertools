@@ -2,6 +2,30 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.23 (Beta) — 2026-10-08
+
+### ⚡ New: page cache for guests (tab *Page speed*, off by default)
+
+- Gridbox builds every page anew on every visit: on merserwis.pl the browser waits 2–4 s for the first byte (real visitors, Chrome UX Report: 3.9 s on the home page), and only then can anything load. A guest gets the same page as any other guest, so the finished page is now kept in a file and the next guests get it at once (on the test site 15–20 ms instead of the full build).
+- The visitor's own form token (`csrf.token` and token fields) and the CSP nonce are put into every page served from the cache, so forms and AJAX keep working.
+- Never from the cache: logged-in users, anything but GET/HEAD, addresses with parameters (search, filters — campaign tags such as `utm_*`, `gclid`, `fbclid` do not count), pages with a message, the Markdown version of a page (AI Markdown), visitors with products in the cart, a wishlist, another currency, an order in progress or a comment author cookie, pages with a checkout, login, wishlist or submission form, answers other than 200 and answers that set a cookie MerTools does not know. More addresses and cookies can be excluded.
+- Product pages with *Recently viewed products* are served from the cache only to visitors who have not viewed another product (the list would not be theirs); Gridbox's cookie is set as Gridbox sets it, and Gridbox's hit counters keep counting.
+- Emptied on every save, delete, publish… by a logged-in user (Joomla or the Gridbox editor), on a new order, payment, comment or review, with the **Empty the page cache** button, and after the set time (default 240 minutes). The panel shows the pages kept and their size. A cached answer has the header `X-MerTools-Cache: HIT`.
+
+### ⚡ New: Gridbox data from the cache (on by default)
+
+- Before it shows any page, Gridbox's script loads the settings of the page's elements (`task=editor.getItems`) and its texts (`module=gridboxLanguage`) as blocking scripts — two more Joomla requests of 0.4–0.5 s each on merserwis.pl. Their addresses carry the time of the last change of the page, so they are now kept and sent at once. Works also without the page cache; only complete answers are kept.
+
+### 📱 YouTube background on phones
+
+- New setting *On phones* for the video background: **no video** (default), **a picture instead** or **the video as on computers**. Without the video a phone on merserwis.pl downloads about 1.1 MB less (the YouTube player and the video) and TBT drops; LCP does not change. The section gets a background colour (default dark) under its overlay, because the light colour behind a video would leave white text unreadable; it is set in the same frame in which Gridbox shows the page, so nothing flashes.
+- A picture instead of the video (a chosen one, or the video's YouTube thumbnail) becomes the largest element on the screen, so Google counts LCP from it: in the test on merserwis.pl LCP got 1–2 s worse — hence not the default.
+- "Phone" = a window up to 768 px (setting) or the browser's data saver on.
+
+### ⏱ Speed panel: real server time
+
+- The *Server* column showed Lighthouse's *server response time*, which behind Cloudflare can be far too low (merserwis.pl: 60–80 ms, while the HTML took 3.6 s). It now shows the time until Google's test had the whole HTML of the page. Measurements made before 0.0.23 show "–" there and are not compared on it.
+
 ## 0.0.22 (Beta) — 2026-10-08
 
 ### 🛠 Fixed: stretched images with *Images without waiting or jumping*

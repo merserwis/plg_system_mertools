@@ -31,7 +31,7 @@ final class MtspeedField extends FormField
         $wa->registerAndUseScript('plg_system_mertools.speed', 'plg_system_mertools/mertools-speed.js', [], ['defer' => true]);
 
         $keys = ['MEASURE_ALL', 'MEASURE', 'HISTORY', 'HIDE', 'BASELINE', 'SET_BASELINE', 'DELETE', 'CONFIRM_DELETE', 'LATEST', 'CHANGE',
-            'PAGE', 'DEVICE', 'MOBILE', 'DESKTOP', 'SCORE', 'SERVER', 'NOT_MEASURED', 'NO_KEY', 'WORKING', 'DONE', 'FAILED',
+            'PAGE', 'DEVICE', 'MOBILE', 'DESKTOP', 'SCORE', 'SERVER', 'SERVER_HINT', 'NOT_MEASURED', 'NO_KEY', 'WORKING', 'DONE', 'FAILED',
             'API_ERROR', 'FIELD_TITLE', 'FIELD_NONE', 'FIELD_PAGE', 'FIELD_SITE', 'OPPORTUNITIES', 'VERSION', 'TOOLS', 'RUNS', 'SAVING',
             'IS_BASELINE', 'LOADING', 'ERROR', 'HELP', 'FIELD_NOTE'];
         $texts = [];

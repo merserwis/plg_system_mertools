@@ -10,9 +10,11 @@
 
   var API = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
   // good / needs improvement limits of Lighthouse and Core Web Vitals
-  var LIMITS = { fcp: [1800, 3000], lcp: [2500, 4000], tbt: [200, 600], cls: [0.1, 0.25], si: [3400, 5800], ttfb: [800, 1800], inp: [200, 500] };
-  var COLS = ['lcp', 'tbt', 'cls', 'fcp', 'si', 'ttfb'];
-  var NAMES = { lcp: 'LCP', tbt: 'TBT', cls: 'CLS', fcp: 'FCP', si: 'Speed Index', ttfb: 'TTFB', inp: 'INP' };
+  var LIMITS = { fcp: [1800, 3000], lcp: [2500, 4000], tbt: [200, 600], cls: [0.1, 0.25], si: [3400, 5800], ttfb: [800, 1800], doc: [800, 1800], inp: [200, 500] };
+  // "server": the time until the whole HTML arrived in Google's test (Lighthouse's own server response
+  // time can be far too low behind Cloudflare); measurements before 0.0.23 have none
+  var COLS = ['lcp', 'tbt', 'cls', 'fcp', 'si', 'doc'];
+  var NAMES = { lcp: 'LCP', tbt: 'TBT', cls: 'CLS', fcp: 'FCP', si: 'Speed Index', ttfb: 'TTFB', doc: 'HTML', inp: 'INP' };
   var FIELD = { LARGEST_CONTENTFUL_PAINT_MS: 'lcp', INTERACTION_TO_NEXT_PAINT: 'inp', CUMULATIVE_LAYOUT_SHIFT_SCORE: 'cls',
     FIRST_CONTENTFUL_PAINT_MS: 'fcp', EXPERIMENTAL_TIME_TO_FIRST_BYTE: 'ttfb' };
 
@@ -109,6 +111,11 @@
         if (ms > 0 || kb > 0) { audits.push({ id: id, title: x.title, ms: Math.round(ms), kb: kb }); }
       });
       audits.sort(function (p, q) { return (q.ms - p.ms) || (q.kb - p.kb); });
+      // the page's own HTML document (after redirects): from the request to its last byte
+      var reqs = (a['network-requests'] && a['network-requests'].details && a['network-requests'].details.items) || [];
+      var docs = reqs.filter(function (r) { return r.resourceType === 'Document' && typeof r.networkEndTime === 'number'; });
+      var fin = lr.finalDisplayedUrl || lr.finalUrl || url;
+      var doc = docs.filter(function (r) { return r.url === fin; })[0] || docs[docs.length - 1];
       var field = {};
       if (d.loadingExperience && !d.loadingExperience.origin_fallback) { field.page = fieldOf(d.loadingExperience); }
       field.origin = fieldOf(d.originLoadingExperience);
@@ -116,6 +123,7 @@
         url: url, strategy: strategy, runs: 1, score: Math.round((lr.categories.performance.score || 0) * 100),
         fcp: num('first-contentful-paint'), lcp: num('largest-contentful-paint'), tbt: num('total-blocking-time'),
         cls: num('cumulative-layout-shift'), si: num('speed-index'), ttfb: num('server-response-time'),
+        doc: doc ? Math.max(0, doc.networkEndTime - doc.networkRequestTime) : null,
         field: field, audits: audits.slice(0, 8)
       };
     }
@@ -138,8 +146,9 @@
 
     function combine(runs) {
       var out = { url: runs[0].url, strategy: runs[0].strategy, runs: runs.length };
-      ['score', 'fcp', 'lcp', 'tbt', 'cls', 'si', 'ttfb'].forEach(function (k) {
-        out[k] = median(runs.map(function (r) { return r[k]; }));
+      ['score', 'fcp', 'lcp', 'tbt', 'cls', 'si', 'ttfb', 'doc'].forEach(function (k) {
+        var v = runs.map(function (r) { return r[k]; }).filter(function (x) { return typeof x === 'number'; });
+        out[k] = v.length ? median(v) : null;
       });
       // the opportunities and real-user figures of the run closest to the median score
       var best = runs.slice().sort(function (p, q) { return Math.abs(p.score - out.score) - Math.abs(q.score - out.score); })[0];
@@ -207,6 +216,8 @@
 
     // ------------------------------------------------------------ showing
 
+    function known(v) { return typeof v === 'number' && isFinite(v); }
+
     function scoreBadge(v) {
       return el('span', 'mt-score ' + rate('score', v), String(v));
     }
@@ -251,8 +262,10 @@
       renderField();
       table.replaceChildren();
       var thead = el('thead'), tr = el('tr');
-      [T.PAGE, T.DEVICE, T.BASELINE, T.LATEST].concat(COLS.map(function (c) { return c === 'ttfb' ? T.SERVER : NAMES[c]; })).concat(['']).forEach(function (h) {
-        tr.append(el('th', null, h));
+      [T.PAGE, T.DEVICE, T.BASELINE, T.LATEST].concat(COLS.map(function (c) { return c === 'doc' ? T.SERVER : NAMES[c]; })).concat(['']).forEach(function (h, i) {
+        var th = el('th', null, h);
+        if (h === T.SERVER && i >= 4) { th.title = T.SERVER_HINT; }
+        tr.append(th);
       });
       thead.append(tr);
       table.append(thead);
@@ -280,9 +293,11 @@
           row.append(tdBase, tdLast);
           COLS.forEach(function (c) {
             var td = el('td');
-            if (last) {
+            if (last && !known(last[c])) {
+              td.textContent = '–';
+            } else if (last) {
               td.append(el('span', rate(c, last[c]), fmt(c, last[c])));
-              var dd = base && base.id !== last.id ? delta(c, last[c], base[c]) : null;
+              var dd = base && base.id !== last.id && known(base[c]) ? delta(c, last[c], base[c]) : null;
               if (dd) { var w = el('div'); w.append(dd); td.append(w); }
             }
             row.append(td);
@@ -333,7 +348,7 @@
         sc.colSpan = 2;
         sc.append(scoreBadge(r.score));
         tr.append(info, sc);
-        COLS.forEach(function (c) { tr.append(el('td', rate(c, r[c]), fmt(c, r[c]))); });
+        COLS.forEach(function (c) { tr.append(known(r[c]) ? el('td', rate(c, r[c]), fmt(c, r[c])) : el('td', null, '–')); });
         var act = el('td');
         if (!r.baseline) {
           var b = el('button', 'btn btn-sm btn-link p-0 me-2', T.SET_BASELINE);
