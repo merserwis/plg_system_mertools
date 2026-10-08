@@ -15,6 +15,8 @@
  *  - Dark mode: an elegant dark palette (never pure black) built from Gridbox's own CSS variables,
  *    with a toggle button in the header, several palettes and the option to keep the Gridbox accent.
  *    Added in onBeforeCompileHead (CSS + a no-flash inline script + the toggle script).
+ *  - Page not found (404): redirect to a chosen page (home by default) instead of the error page,
+ *    without editing the template's error.php. Runs on onError, after System - Redirect.
  *  - Links to a product option: a link with a chosen product option ("?Zestawy+Metrel+MI+3155=…")
  *    opens the product with that option selected. Runs in onAfterRoute, on Gridbox pages only.
  */
@@ -24,20 +26,23 @@ namespace Merserwis\Plugin\System\MerTools\Extension;
 \defined('_JEXEC') or die;
 
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
+use Joomla\CMS\Event\ErrorEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Plugin\CMSPlugin;
+use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Event\Priority;
 use Joomla\Event\SubscriberInterface;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\Layout;
+use Merserwis\Plugin\System\MerTools\Tool\NotFound;
 use Merserwis\Plugin\System\MerTools\Tool\Phones;
 use Merserwis\Plugin\System\MerTools\Tool\ProductLinks;
 use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.17';
+    public const VERSION = '0.0.18';
 
     protected $autoloadLanguage = true;
 
@@ -48,6 +53,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             'onAfterInitialise'   => ['onAfterInitialise', Priority::HIGH],
             'onAfterRoute'        => 'onAfterRoute',
             'onAfterRender'       => 'onAfterRender',
+            // after System - Redirect, so a redirect set for a single address in Joomla still wins
+            'onError'             => ['onError', Priority::LOW],
             'onBeforeCompileHead' => 'onBeforeCompileHead',
             'onExtensionAfterSave' => 'onExtensionAfterSave',
         ];
@@ -103,6 +110,57 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             // Gridbox reads $input->get; anything that builds its own input from $_GET later sees them too
             $input->get->set($name, $value);
             $_GET[$name] = $value;
+        }
+    }
+
+    /**
+     * Page not found: redirect a missing page to the chosen target instead of showing the error page.
+     */
+    public function onError(ErrorEvent $event): void
+    {
+        $app = $event->getApplication();
+        if (!$app instanceof \Joomla\CMS\Application\CMSApplicationInterface || !$app->isClient('site')
+            || (int) $event->getError()->getCode() !== 404 || !(int) $this->params->get('notfound_redirect', 1)) {
+            return;
+        }
+        // pages only: no form posts, AJAX or JSON (a redirect to the home page makes no sense there)
+        $input = $app->getInput();
+        if (!\in_array(strtoupper((string) $input->getMethod()), ['GET', 'HEAD'], true)
+            || $input->getCmd('format', 'html') !== 'html' || $input->getCmd('option') === 'com_ajax'
+            || strtolower((string) $input->server->getString('HTTP_X_REQUESTED_WITH', '')) === 'xmlhttprequest') {
+            return;
+        }
+
+        $target = NotFound::absoluteTarget($this->notFoundTarget(), Uri::root());
+        $uri    = Uri::getInstance();
+        if ($target === null || !NotFound::shouldRedirect($uri->toString(['path', 'query']), $target, $uri->getHost(),
+            NotFound::excludes((string) $this->params->get('notfound_exclude', '')))) {
+            return;
+        }
+
+        $app->redirect($target, (int) $this->params->get('notfound_code', 301) === 302 ? 302 : 301);
+    }
+
+    /** The redirect target of missing pages from the settings: the home page, a menu item or an address. */
+    private function notFoundTarget(): string
+    {
+        switch ((string) $this->params->get('notfound_target', 'home')) {
+            case 'menu':
+                $id = (int) $this->params->get('notfound_menuitem', 0);
+                try {
+                    // the site menu holds published items only: a deleted or unpublished one gives the home page
+                    $item = $id > 0 ? $this->getApplication()->getMenu()->getItem($id) : null;
+                    if ($item) {
+                        return Route::link('site', 'index.php?Itemid=' . $id, false, Route::TLS_IGNORE, true);
+                    }
+                } catch (\Throwable $e) {
+                }
+
+                return Uri::root();
+            case 'url':
+                return (string) $this->params->get('notfound_url', '');
+            default:
+                return Uri::root();
         }
     }
 

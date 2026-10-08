@@ -2,6 +2,17 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.18 (Beta) — 2026-10-08
+
+### 🧭 New tool: Redirect missing pages (tab *404 pages*, on by default)
+
+- Instead of the 404 error page, the visitor is sent to a chosen page: the home page (default), a menu item, or any address (a path such as `/kontakt` or a full `https://` address).
+- It replaces the redirect added by hand to the template's `error.php`, which every Gridbox update overwrote. The setting stays through Gridbox and Joomla updates.
+- Permanent (301, default) or temporary (302) redirect.
+- Redirects set for single addresses in Joomla's *Redirects* component still take precedence; MerTools only takes the missing pages that have none.
+- Only pages are redirected. Form posts, AJAX and JSON requests get the normal 404, and so do addresses whose path starts with an excluded beginning (e.g. `/api/`).
+- If the chosen page is itself missing, the normal error page is shown, so there is never a redirect loop. A deleted or unpublished menu item falls back to the home page.
+
 ## 0.0.17 (Beta) — 2026-10-08
 
 ### 🛠 Fixed: links to a product option shown as radio buttons (tab *Shop*)

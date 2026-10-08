@@ -6,7 +6,7 @@
     <creationDate>2026-10-07</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>0.0.17</version>
+    <version>0.0.18</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -45,6 +45,36 @@
                     <option value="302">PLG_SYSTEM_MERTOOLS_URL_CODE_302</option>
                 </field>
                 <field name="url_cf_note" type="note" class="alert alert-warning" description="PLG_SYSTEM_MERTOOLS_URL_CF_NOTE" />
+            </fieldset>
+
+            <!-- ============================================================ Page not found (404) -->
+            <fieldset name="notfound" label="PLG_SYSTEM_MERTOOLS_FIELDSET_NOTFOUND">
+                <field name="notfound_redirect" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_NOTFOUND_REDIRECT_LABEL" description="PLG_SYSTEM_MERTOOLS_NOTFOUND_REDIRECT_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="notfound_target" type="list" default="home" showon="notfound_redirect:1"
+                    label="PLG_SYSTEM_MERTOOLS_NOTFOUND_TARGET_LABEL" description="PLG_SYSTEM_MERTOOLS_NOTFOUND_TARGET_DESC">
+                    <option value="home">PLG_SYSTEM_MERTOOLS_NOTFOUND_TARGET_HOME</option>
+                    <option value="menu">PLG_SYSTEM_MERTOOLS_NOTFOUND_TARGET_MENU</option>
+                    <option value="url">PLG_SYSTEM_MERTOOLS_NOTFOUND_TARGET_URL</option>
+                </field>
+                <field name="notfound_menuitem" type="menuitem" default="" showon="notfound_redirect:1[AND]notfound_target:menu"
+                    label="PLG_SYSTEM_MERTOOLS_NOTFOUND_MENUITEM_LABEL" description="PLG_SYSTEM_MERTOOLS_NOTFOUND_MENUITEM_DESC">
+                    <option value="">JSELECT</option>
+                </field>
+                <field name="notfound_url" type="text" default="" filter="string" showon="notfound_redirect:1[AND]notfound_target:url"
+                    hint="/kontakt"
+                    label="PLG_SYSTEM_MERTOOLS_NOTFOUND_URL_LABEL" description="PLG_SYSTEM_MERTOOLS_NOTFOUND_URL_DESC" />
+                <field name="notfound_code" type="list" default="301" showon="notfound_redirect:1"
+                    label="PLG_SYSTEM_MERTOOLS_NOTFOUND_CODE_LABEL" description="PLG_SYSTEM_MERTOOLS_NOTFOUND_CODE_DESC">
+                    <option value="301">PLG_SYSTEM_MERTOOLS_NOTFOUND_CODE_301</option>
+                    <option value="302">PLG_SYSTEM_MERTOOLS_NOTFOUND_CODE_302</option>
+                </field>
+                <field name="notfound_exclude" type="textarea" default="" rows="3" filter="string" showon="notfound_redirect:1"
+                    hint="/api/"
+                    label="PLG_SYSTEM_MERTOOLS_NOTFOUND_EXCLUDE_LABEL" description="PLG_SYSTEM_MERTOOLS_NOTFOUND_EXCLUDE_DESC" />
             </fieldset>
 
             <!-- ============================================================ Page layout -->
