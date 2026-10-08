@@ -46,6 +46,20 @@ $cases = [
     // control characters are refused
     ['Rozmiar+buta=4%002', []],
     ['Rozmi%0Aar+buta=42', []],
+    // HTML entities in the option value (GW Instek: "GPT-12002 &#128308;", a red dot): "&" is written
+    // as "&amp;", so Joomla's filter gives back the value of the link
+    ['Modele+GW+Instek+GPT-12000=GPT-12002+%26%23128308%3B',
+        ['Modele GW Instek GPT-12000' => 'GPT-12002 &amp;#128308;']],
+    ['Modele+GW+Instek+GPT-12000=GPT-12004+%26amp%3B+%22PRO%22+%26%23128308%3B',
+        ['Modele GW Instek GPT-12000' => 'GPT-12004 &amp;amp; "PRO" &amp;#128308;']],
+    // a name PHP keeps, value with an entity: the same value, written for the filter
+    ['Model=GPT-12002+%26%23128308%3B&utm_source=x', ['Model' => 'GPT-12002 &amp;#128308;']],
+    // a name PHP keeps, value with a plain "&"
+    ['q=A+%26+B', ['q' => 'A &amp; B']],
+    // "&" in the name only: the value stays as it is
+    ['Wersja+%26+zasilanie=Zasilacz', ['Wersja & zasilanie' => 'Zasilacz']],
+    // a PHP array is never replaced by a string
+    ['m%5Ba%5D=A+%26+B', ['m[a]' => 'A &amp; B']],
     // a real PHP array parameter (no space or dot, "[" only) comes back under its literal name
     // too; harmless, the array PHP made is still there
     ['filter%5Bx%5D=1', ['filter[x]' => '1']],
@@ -67,5 +81,23 @@ $ok   = restore($many) === [];
 $fail += $ok ? 0 : 1;
 printf("%s 51 pairs are ignored\n", $ok ? 'OK ' : 'FAIL');
 
-echo $fail === 0 ? "\nALL PASS (" . (count($cases) + 1) . ")\n" : "\n$fail FAILED\n";
+// with Joomla at hand (the test site): every value goes through Joomla's input filter, as Gridbox
+// reads it, and has to come back exactly as in the link
+$autoload = getenv('JOOMLA_AUTOLOAD') ?: '/var/www/html/libraries/vendor/autoload.php';
+$extra = 0;
+if (is_file($autoload)) {
+    require $autoload;
+    $filter = new Joomla\Filter\InputFilter();
+    foreach (['GPT-12002 &#128308;', 'GPT-12004 &amp; "PRO" &#128308;', 'A & B', 'A &amp;amp; B', 'MI 3155 EU 2,5kV IT + Program PC/Android + Cęgi'] as $raw) {
+        $q      = 'Modele+GW=' . urlencode($raw);
+        $stored = restore($q)['Modele GW'];
+        $back   = $filter->clean($stored, 'unknown');
+        $ok     = $back === $raw;
+        $fail  += $ok ? 0 : 1;
+        $extra++;
+        printf("%s filter round trip %-40s %s\n", $ok ? 'OK ' : 'FAIL', $raw, $ok ? '' : 'got=' . $back);
+    }
+}
+
+echo $fail === 0 ? "\nALL PASS (" . (count($cases) + 1 + $extra) . ")\n" : "\n$fail FAILED\n";
 exit($fail === 0 ? 0 : 1);

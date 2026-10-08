@@ -2,6 +2,14 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.16 (Beta) — 2026-10-08
+
+### 🛠 Fixed: links to a product option whose name has a symbol (tab *Shop*)
+
+- A link to an option whose name contains a symbol written as HTML code opened the product with its default option. Example: GW Instek GPT-12000, models saved as “GPT-12002 &#128308;” (a red dot 🔴). The link `?Modele+GW+Instek+GPT-12000=GPT-12002+%26%23128308%3B` showed GPT-12001.
+- The cause: Gridbox reads the address through Joomla's input filter, which turns `&#128308;` into 🔴. “GPT-12002 🔴” then never matched the saved “GPT-12002 &#128308;”.
+- MerTools now passes such a value written so that the filter gives back exactly the value of the link. This works for any `&` in an option value (`&amp;`, `&quot;`, emoji codes), also when the option group name has no space.
+
 ## 0.0.15 (Beta) — 2026-10-08
 
 ### 🛒 New tool: Links to a product option (tab *Shop*, on by default)

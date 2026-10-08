@@ -12,9 +12,14 @@
  * so Gridbox looks for "Zestawy Metrel MI 3155", finds nothing, and the product opens with no option
  * selected.
  *
+ * The option value has its own trap: Gridbox reads the address through Joomla's input filter, which
+ * turns HTML entities into characters. An option saved as "GPT-12002 &#128308;" (a red dot) arrives as
+ * "GPT-12002 🔴" and never matches either, so the product opens with its default option.
+ *
  * This reads the raw query string and gives back the parameters under their real names, so Gridbox's
- * own selection code finds them. Names PHP keeps unchanged are skipped, and nothing already in $_GET
- * is overwritten.
+ * own selection code finds them, with "&" in a value written as "&amp;" so that the filter gives back
+ * exactly the value of the link. A parameter PHP already has is only touched when its value has an
+ * "&" (the same value, written so that the filter keeps it); anything else is left as it is.
  */
 
 namespace Merserwis\Plugin\System\MerTools\Tool;
@@ -31,17 +36,18 @@ final class ProductLinks
     private const MAX_VALUE = 2000;
 
     /**
-     * The query-string parameters that PHP stored under a different name, with their real names.
+     * The query-string parameters to give Gridbox: those PHP stored under a different name (under
+     * their real names), and those whose value has an "&", each value written for Joomla's filter.
      *
      * @param string $query the raw query string ($_SERVER['QUERY_STRING'], without "?")
      * @param array  $get   what PHP made of it ($_GET)
      *
-     * @return array<string, string> real name => value, only for names missing from $get
+     * @return array<string, string> real name => value as it has to be stored in the input
      */
     public static function restoredParams(string $query, array $get): array
     {
-        // only a name with a space ("+" or %20), a dot or "[" is renamed by PHP
-        if ($query === '' || !preg_match('/[+.\[]|%20|%2E|%5B/i', $query)) {
+        // only a name with a space ("+" or %20), a dot or "[" is renamed by PHP; an "&" in a value is %26
+        if ($query === '' || !preg_match('/[+.\[]|%20|%2E|%5B|%26/i', $query)) {
             return [];
         }
 
@@ -60,12 +66,18 @@ final class ProductLinks
             $value = urldecode($value);
 
             if ($name === '' || \strlen($name) > self::MAX_NAME || \strlen($value) > self::MAX_VALUE
-                || !preg_match('/[ .\[]/', $name) || preg_match('/[\x00-\x1F\x7F]/', $name . $value)
-                || \array_key_exists($name, $get)) {
+                || preg_match('/[\x00-\x1F\x7F]/', $name . $value)) {
                 continue;
             }
-            // a repeated name: the last one wins, as in PHP
-            $restored[$name] = $value;
+            $renamed = preg_match('/[ .\[]/', $name) && !\array_key_exists($name, $get);
+            // a name PHP kept: only a plain value with an "&" (an array or another value is not ours)
+            $entity  = !$renamed && str_contains($value, '&') && \is_string($get[$name] ?? null);
+            if (!$renamed && !$entity) {
+                continue;
+            }
+            // Joomla's filter decodes HTML entities once: "&amp;#128308;" comes back as "&#128308;".
+            // A repeated name: the last one wins, as in PHP.
+            $restored[$name] = str_replace('&', '&amp;', $value);
         }
 
         return $restored;

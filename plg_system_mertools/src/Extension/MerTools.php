@@ -37,7 +37,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.15';
+    public const VERSION = '0.0.16';
 
     protected $autoloadLanguage = true;
 
