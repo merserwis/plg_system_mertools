@@ -6,7 +6,7 @@
     <creationDate>2026-10-07</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>0.0.20</version>
+    <version>0.0.21</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -59,6 +59,38 @@
                     <option value="3">3</option>
                     <option value="5">5</option>
                 </field>
+                <field name="speed_tools_note" type="note" class="alert alert-info" label="PLG_SYSTEM_MERTOOLS_SPEED_TOOLS_NOTE_LABEL"
+                    description="PLG_SYSTEM_MERTOOLS_SPEED_TOOLS_NOTE_DESC" />
+                <field name="speed_images" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_IMAGES_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_IMAGES_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="speed_mainphoto" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_MAINPHOTO_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_MAINPHOTO_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="speed_video" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="speed_video_delay" type="number" default="3" min="0" max="60" filter="integer" showon="speed_video:1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_DELAY_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_DELAY_DESC" />
+                <field name="speed_scripts" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="speed_scripts_list" type="textarea" rows="6" filter="raw" showon="speed_scripts:1"
+                    default="googletagmanager.com&#10;fbq(&#10;connect.facebook.net&#10;clarity.ms&#10;hotjar.com&#10;elfsightcdn.com&#10;cloudflareinsights.com"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_LIST_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_LIST_DESC" />
+                <field name="speed_scripts_keep" type="textarea" rows="2" filter="raw" showon="speed_scripts:1"
+                    default="cookieconsent&#10;cookie-consent"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_KEEP_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_KEEP_DESC" />
+                <field name="speed_scripts_timeout" type="number" default="0" min="0" max="120" filter="integer" showon="speed_scripts:1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_TIMEOUT_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_TIMEOUT_DESC" />
                 <field name="speed_panel" type="mtspeed" hiddenLabel="true"
                     label="PLG_SYSTEM_MERTOOLS_SPEED_PANEL_LABEL" />
             </fieldset>

@@ -2,6 +2,17 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.21 (Beta) — 2026-10-08
+
+### 🚀 New tools: faster pages (tab *Page speed*)
+
+Done on the finished page after Gridbox has made it; the Gridbox files are not changed. Each tool can be switched off, and the speed panel shows what it brought.
+
+- **Images without waiting or jumping** (on by default): Gridbox’s lazy loading gives every image a 100×100 placeholder and loads the real one by script — also the logo and the images at the top, so the page jumps as they arrive and the top waits for the script. Now the site’s images get their real address and their real size (read from the file, cached) at once; images further down use the browser’s own lazy loading, the first images of the header load at once, and the header backgrounds show at once. Tracking pixels and images of other sites are left alone.
+- **Main product photo at once** (on by default): the first picture of the product slideshow is shown at once (Gridbox hides it until its script runs) and fetched first — it is the element Google measures LCP by on product pages.
+- **YouTube background after the page has loaded** (on by default): a section background video still starts by itself, at the first mouse move, scroll or touch, or a set number of seconds (default 3) after loading — the page no longer waits for the YouTube player (about 1 MB of scripts and several MB of video on the merserwis.pl home page).
+- **Marketing scripts at the first interaction** (off by default): Tag Manager, Analytics, Google Ads, the Facebook pixel, Clarity, Elfsight, Cloudflare Insights and any other scripts listed start at the first mouse move, scroll, touch or key press. The cookie consent script is never delayed. Optionally also after a number of seconds.
+
 ## 0.0.20 (Beta) — 2026-10-08
 
 ### ⏱ New tool: Page speed panel (tab *Page speed*)

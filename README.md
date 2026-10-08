@@ -69,6 +69,8 @@ Phone numbers written as plain text (contact rows, footers, product pages) becom
 
 Tab *Page speed*: measure chosen pages with PageSpeed Insights (phone and desktop, median of 1–5 tests) and compare every result with a baseline taken before the changes — score and LCP, TBT, CLS, FCP, Speed Index and server time, with the change in green or red. The history keeps the MerTools version and the tools that were on, and the real-user figures of Chrome (CrUX) show how fast the site is for its visitors. Needs a free PageSpeed Insights API key.
 
+The same tab has the **faster pages** tools, done on the finished page (Gridbox files untouched): images with their real address and size at once and the browser’s own lazy loading (no layout jumps), the main product photo shown and fetched first, a YouTube section background started after the first interaction or a few seconds after loading, and — optionally — marketing scripts (Tag Manager, Facebook, Clarity…) started at the first interaction.
+
 ### 🧭 404 pages — redirect missing pages
 
 A missing page (404) sends the visitor to a chosen page instead of the error page: the home page (default), a menu item or any address, with a permanent (301) or temporary (302) redirect. No more editing the template's `error.php` after every Gridbox update. Redirects set for single addresses in Joomla's Redirects component take precedence; form posts, AJAX/JSON requests and excluded paths keep the normal 404, and a missing target never loops. On by default, tab *404 pages*.

@@ -22,6 +22,9 @@
  *    Watching in onAfterInitialise, the hourly job in onAfterRespond, the buttons in onAfterRoute.
  *  - Page speed panel: PageSpeed Insights measurements of chosen pages with a baseline, so every
  *    change can be compared with the state before it (Speed + MtspeedField + mertools-speed.js).
+ *  - Faster first view (Speedup): real images at once with their size, the main product photo first,
+ *    a YouTube background after the first interaction, marketing scripts at the first interaction.
+ *    In onAfterRender, after Gridbox has finished the page (lowest priority).
  *  - Links to a product option: a link with a chosen product option ("?Zestawy+Metrel+MI+3155=…")
  *    opens the product with that option selected. Runs in onAfterRoute, on Gridbox pages only.
  */
@@ -43,16 +46,21 @@ use Joomla\Event\Priority;
 use Joomla\Event\SubscriberInterface;
 use Merserwis\Plugin\System\MerTools\Tool\CartCleaner;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
+use Merserwis\Plugin\System\MerTools\Tool\ImageSize;
 use Merserwis\Plugin\System\MerTools\Tool\Layout;
 use Merserwis\Plugin\System\MerTools\Tool\NotFound;
 use Merserwis\Plugin\System\MerTools\Tool\Phones;
 use Merserwis\Plugin\System\MerTools\Tool\ProductLinks;
 use Merserwis\Plugin\System\MerTools\Tool\Speed;
+use Merserwis\Plugin\System\MerTools\Tool\Speedup;
 use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.20';
+    public const VERSION = '0.0.21';
+
+    /** marketing scripts delayed by default (address or code contains) */
+    public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
 
     protected $autoloadLanguage = true;
 
@@ -62,7 +70,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             // before routing, so the clean address is served before Gridbox or the SEF router act
             'onAfterInitialise'   => ['onAfterInitialise', Priority::HIGH],
             'onAfterRoute'        => 'onAfterRoute',
-            'onAfterRender'       => 'onAfterRender',
+            // after Gridbox has finished the page (its lazy loading and deferred loading)
+            'onAfterRender'       => ['onAfterRender', Priority::MIN],
             // after System - Redirect, so a redirect set for a single address in Joomla still wins
             'onError'             => ['onError', Priority::LOW],
             // after the response has gone to the visitor: the hourly job of the cart clean-up
@@ -255,7 +264,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                     $this->sendJson(['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_SPEED_BAD_RESULT')]);
                 }
                 $defaults = ['url_collapse_slashes' => 1, 'notfound_redirect' => 1, 'layout_clip_x' => 1, 'shop_option_links' => 1,
-                    'cart_enabled' => 1, 'tel_enabled' => 1, 'dark_enabled' => 0];
+                    'cart_enabled' => 1, 'tel_enabled' => 1, 'dark_enabled' => 0, 'speed_images' => 1, 'speed_mainphoto' => 1,
+                    'speed_video' => 1, 'speed_scripts' => 0];
                 $speed->save($m, self::VERSION, Speed::enabledTools($this->params->toArray(), $defaults), time());
             } elseif ($action === 'speed_baseline') {
                 $speed->setBaseline($input->post->getInt('id', 0));
@@ -339,22 +349,56 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     public function onAfterRender(): void
     {
         $app = $this->getApplication();
-        if (!$app->isClient('site') || !(int) $this->params->get('shop_option_links', 1)) {
-            return;
-        }
-        $input = $app->getInput();
-        if ($input->getCmd('option') !== 'com_gridbox' || $input->getCmd('view') !== 'page') {
+        if (!$app->isClient('site')) {
             return;
         }
         $document = $app->getDocument();
-        if (!$document || $document->getType() !== 'html') {
+        if (!$document || $document->getType() !== 'html' || $this->inBuilder()) {
             return;
         }
-        $body   = (string) $app->getBody();
-        $marked = ProductLinks::markChosenRadios($body);
-        if ($marked !== $body) {
-            $app->setBody($marked);
+        $input = $app->getInput();
+        $body  = (string) $app->getBody();
+        $new   = $body;
+        if ((int) $this->params->get('shop_option_links', 1) && $input->getCmd('option') === 'com_gridbox' && $input->getCmd('view') === 'page') {
+            $new = ProductLinks::markChosenRadios($new);
         }
+        $new = $this->speedup($new);
+        if ($new !== $body) {
+            $app->setBody($new);
+        }
+    }
+
+    /** The faster-first-view tools that are switched on, applied to the finished page. */
+    private function speedup(string $html): string
+    {
+        $p = $this->params;
+        try {
+            $site = Uri::getInstance()->toString(['scheme', 'host', 'port']);
+            if ((int) $p->get('speed_images', 1)) {
+                $sizes = new ImageSize(JPATH_ROOT, $site, Uri::root(true), self::cacheBase() . '/mertools-image-sizes.json');
+                $html  = Speedup::images($html, $site, fn (string $url) => $sizes->get($url));
+                $html  = Speedup::headerBackgrounds($html);
+                $sizes->save();
+            }
+            if ((int) $p->get('speed_mainphoto', 1)) {
+                [$html, $photo] = Speedup::mainPhoto($html);
+                if ($photo) {
+                    $html = Speedup::preloadImage($html, $photo);
+                }
+            }
+            if ((int) $p->get('speed_video', 1)) {
+                $html = Speedup::delayVideoBackground($html, (int) $p->get('speed_video_delay', 3));
+            }
+            if ((int) $p->get('speed_scripts', 0)) {
+                $lines = fn (string $s) => preg_split('/\R/', $s) ?: [];
+                $html  = Speedup::delayScripts($html, $lines((string) $p->get('speed_scripts_list', self::SCRIPT_PATTERNS)),
+                    $lines((string) $p->get('speed_scripts_keep', 'cookieconsent' . "\n" . 'cookie-consent')), (int) $p->get('speed_scripts_timeout', 0));
+            }
+        } catch (\Throwable $e) {
+            // a page is never broken by a speed-up: shown as Gridbox made it
+        }
+
+        return $html;
     }
 
     /**
