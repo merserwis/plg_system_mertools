@@ -63,7 +63,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.24';
+    public const VERSION = '0.0.25';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
@@ -529,7 +529,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                     $this->sendJson(['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_SPEED_BAD_RESULT')]);
                 }
                 $defaults = ['url_collapse_slashes' => 1, 'notfound_redirect' => 1, 'layout_clip_x' => 1, 'shop_option_links' => 1,
-                    'cart_enabled' => 1, 'tel_enabled' => 1, 'dark_enabled' => 0, 'speed_images' => 1, 'speed_mainphoto' => 1,
+                    'cart_enabled' => 1, 'tel_enabled' => 1, 'dark_enabled' => 0, 'speed_show' => 1, 'speed_images' => 1, 'speed_mainphoto' => 1,
                     'speed_video' => 1, 'speed_video_phone' => 'none', 'speed_scripts' => 0, 'speed_cache' => 0, 'speed_cache_data' => 1];
                 $speed->save($m, self::VERSION, Speed::enabledTools($this->params->toArray(), $defaults), time());
             } elseif ($action === 'speed_baseline') {
@@ -648,6 +648,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $p = $this->params;
         try {
             $site = Uri::getInstance()->toString(['scheme', 'host', 'port']);
+            if ((int) $p->get('speed_show', 1)) {
+                $html = Speedup::showAtOnce($html);
+            }
             if ((int) $p->get('speed_images', 1)) {
                 $sizes = new ImageSize(JPATH_ROOT, $site, Uri::root(true), self::cacheBase() . '/mertools-image-sizes.json');
                 $html  = Speedup::images($html, $site, fn (string $url) => $sizes->get($url));
@@ -710,7 +713,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
 
         // the theme has to be set before the first paint, so this inline script goes in the head first
-        $wa->addInlineScript(DarkMode::inlineScript($this->params), ['position' => 'before'], ['type' => 'text/javascript']);
+        // (exclude-deffer: Gridbox's deferred loading would otherwise move it to the end of the page)
+        $wa->addInlineScript(DarkMode::inlineScript($this->params), ['position' => 'before'], ['type' => 'text/javascript', 'class' => 'exclude-deffer']);
         $document->addStyleDeclaration(DarkMode::css($this->params));
 
         $document->addScriptOptions('plg_system_mertools', [

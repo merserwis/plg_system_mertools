@@ -65,6 +65,26 @@ $check('second slideshow left lazy', $has($o, '<div class="slideshow-content laz
 $check('preload after the title', $has(Speedup::preloadImage($o, $photo), '<title>T</title><link rel="preload" as="image" href="https://www.merserwis.pl/images/p.jpg" fetchpriority="high"></head>'), true);
 $check('no slideshow: nothing', Speedup::mainPhoto('<p>x</p>'), ['<p>x</p>', null]);
 
+// ---------------------------------------------------------------- page shown at once (Gridbox deferred loading)
+$dl = '<html><head><title>T</title><style type="text/css">.a{}</style><script class="exclude-deffer">x()</script></head>'
+    . '<body class="com_gridbox page " style="opacity: 0; overflow: hidden; margin: 0;"><div class="body">C</div>'
+    . '<link rel="preload" href="/f.woff" as="font" type="font/woff" crossorigin="anonymous">'
+    . '<link href="/a.css?1" rel="preload" nonce="N" as="style">' . "\n"
+    . '<link href="//fonts.googleapis.com/css?family=Roboto&amp;display=swap" rel="preload" as="style">'
+    . '<link rel="preload" as="image" href="/p.jpg"><script src="/g.js"></script></body></html>';
+$sa = Speedup::showAtOnce($dl);
+$check('show at once: style sheets back in the head, in order, after the inline styles',
+    $has($sa, '<script class="exclude-deffer">x()</script><link href="/a.css?1" rel="stylesheet" nonce="N"><link href="//fonts.googleapis.com/css?family=Roboto&amp;display=swap" rel="stylesheet"></head>'), true);
+$check('show at once: body visible, its class kept', $has($sa, '<body class="com_gridbox page "><div class="body">C</div>'), true);
+$check('show at once: font and image preloads stay', $has($sa, '<link rel="preload" href="/f.woff" as="font"') && $has($sa, '<link rel="preload" as="image" href="/p.jpg">'), true);
+$check('show at once: no style preload left in the body', preg_match('#<body.*as="style"#s', $sa), 0);
+$check('show at once: scripts stay at the end', $has($sa, '<script src="/g.js"></script></body>'), true);
+$check('show at once: idempotent', Speedup::showAtOnce($sa), $sa);
+$check('show at once: deferred loading off = nothing', Speedup::showAtOnce('<head></head><body class="x"><link href="/a.css" rel="preload" as="style"></body>'),
+    '<head></head><body class="x"><link href="/a.css" rel="preload" as="style"></body>');
+$check('show at once: other body styles kept', $has(Speedup::showAtOnce('<head></head><body style="color:red; opacity:0; overflow:hidden; margin:0"></body>'), '<body style="color:red;"></body>'), true);
+$check('show at once: compressed HTML (one line)', $has(Speedup::showAtOnce(str_replace("\n", '', $dl)), '<link href="/a.css?1" rel="stylesheet" nonce="N"><link href="//fonts'), true);
+
 // ---------------------------------------------------------------- video background
 $g = '<script src="/templates/gridbox/js/gridbox.js?2.20.4.0"></script><script src="/x.js"></script>';
 $v = Speedup::delayVideoBackground($g, 3);

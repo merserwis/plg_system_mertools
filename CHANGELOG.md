@@ -2,6 +2,15 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.25 (Beta) — 2026-10-09
+
+### ⚡ New: page shown at once (tab *Page speed*, on by default)
+
+- With Gridbox's **Deferred Loading** on (Gridbox → Settings → Performance), Gridbox moves all style sheets to the end of the page as preloads and hides the whole page (`<body style="opacity: 0">`) until DOMContentLoaded — that is until every script at the end has been fetched and run, Gridbox's own *getItems* request included. Nothing is painted before that, the main product photo neither: on a phone that is seconds of white screen and a low PageSpeed score (FCP, LCP).
+- MerTools now puts the style sheets back into the head as normal style sheets (same order, after the inline styles, so the result is the same as after Gridbox's script) and takes the hiding style off the page. The scripts still load at the end. Without Deferred Loading nothing changes; the tool can be switched off in *Page speed*.
+- Measured on a merserwis.pl product page (Lighthouse, phone): score 71 → 78 (simulated) and 78 → 85 (real throttling), LCP −1.5 s, blocking time 141 → 12 ms, no layout shift; computer 94 → 96. The page looks the same before and after Gridbox's scripts have run.
+- The dark mode script stays in the head with Deferred Loading too, so dark mode visitors see no light flash now that the page is not hidden any more.
+
 ## 0.0.24 (Beta) — 2026-10-08
 
 ### 🛠 Fixed: page cache with a relative cache folder

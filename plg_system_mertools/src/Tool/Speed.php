@@ -31,7 +31,7 @@ final class Speed
     /** the MerTools settings that switch a tool on: snapshot kept with every measurement */
     public const TOOLS = ['url_collapse_slashes' => 'url', 'notfound_redirect' => 'notfound', 'layout_clip_x' => 'layout',
         'shop_option_links' => 'optionlinks', 'cart_enabled' => 'carts', 'tel_enabled' => 'tel', 'dark_enabled' => 'dark',
-        'speed_images' => 'images', 'speed_mainphoto' => 'mainphoto', 'speed_video' => 'videodelay', 'speed_video_phone' => 'videophone',
+        'speed_show' => 'showatonce', 'speed_images' => 'images', 'speed_mainphoto' => 'mainphoto', 'speed_video' => 'videodelay', 'speed_video_phone' => 'videophone',
         'speed_scripts' => 'scriptdelay', 'speed_cache' => 'pagecache', 'speed_cache_data' => 'gridboxdata'];
 
     private const KEEP_PER_PAGE = 60;

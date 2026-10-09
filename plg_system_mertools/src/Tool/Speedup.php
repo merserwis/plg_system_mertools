@@ -143,6 +143,49 @@ final class Speedup
         return $pos === false ? $html : substr_replace($html, $link, $pos, 0);
     }
 
+    // ---------------------------------------------------------------- page shown at once
+
+    /** what Gridbox's deferred loading puts on <body>: the page stays invisible until its scripts have run */
+    private const HIDDEN_BODY = '#opacity:\s*0;\s*overflow:\s*hidden;\s*margin:\s*0;?#i';
+
+    /**
+     * Gridbox's deferred loading moves the style sheets to the end of the page as preloads and hides the
+     * whole page (body opacity 0) until DOMContentLoaded, that is until every script at the end has been
+     * fetched and run, Gridbox's getItems request included: nothing is painted before that, the main
+     * product photo neither. Here the page is shown at once: the style sheets go back into the head as
+     * normal style sheets (same order, after the inline styles, so the cascade is the one Gridbox's script
+     * made at DOMContentLoaded) and the hiding style is taken off <body>. The scripts stay at the end.
+     * Pages without that hiding style (deferred loading off) are left alone.
+     */
+    public static function showAtOnce(string $html): string
+    {
+        if (!preg_match('#<body\b[^>]*>#i', $html, $b, PREG_OFFSET_CAPTURE)
+            || !preg_match('#\sstyle="([^"]*)"#i', $b[0][0], $st) || !preg_match(self::HIDDEN_BODY, $st[1])) {
+            return $html;
+        }
+        [$bodyTag, $bodyPos] = $b[0];
+        $headEnd = strripos(substr($html, 0, $bodyPos), '</head>');
+        if ($headEnd === false) {
+            return $html;
+        }
+
+        $links = [];
+        $body  = (string) preg_replace_callback('#<link\b[^>]*>#i', function (array $m) use (&$links) {
+            $tag = $m[0];
+            if (!preg_match('#\srel="preload"#i', $tag) || !preg_match('#\sas="style"#i', $tag)) {
+                return $tag;
+            }
+            $links[] = preg_replace(['#\srel="preload"#i', '#\sas="style"#i'], [' rel="stylesheet"', ''], $tag, 1);
+
+            return '';
+        }, substr($html, $bodyPos + \strlen($bodyTag)));
+
+        $css     = trim((string) preg_replace(self::HIDDEN_BODY, '', $st[1]));
+        $bodyTag = str_replace($st[0], $css === '' ? '' : ' style="' . $css . '"', $bodyTag);
+
+        return substr($html, 0, $headEnd) . implode('', $links) . substr($html, $headEnd, $bodyPos - $headEnd) . $bodyTag . $body;
+    }
+
     // ---------------------------------------------------------------- YouTube background
 
     /**
