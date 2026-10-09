@@ -2,6 +2,15 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.27 (Beta) — 2026-10-09
+
+### 📱 New: tabs as expandable sections on phones (tab *Page layout*, on by default)
+
+- On a phone a Gridbox tab bar is wider than the screen (the product tabs on merserwis.pl: 751 px on a 340 px column): it has to be scrolled sideways and visitors do not see that there are more tabs.
+- Now, up to a chosen screen width (768 px by default), every tab becomes a row with its icon, its name and an arrow, one under the other, and its content opens right below it. The first section is open (can be switched off). Several sections can be open at once; opening one does not move the page.
+- Opening a section also selects Gridbox's own tab, so whatever Gridbox does when a tab is shown still happens. Computers keep the tabs; turning a tablet switches between the two on the fly.
+- Accessible: the rows are buttons with `aria-expanded`/`aria-controls`, the content a region labelled by its row. Colours come from the theme variables (also in dark mode).
+
 ## 0.0.26 (Beta) — 2026-10-09
 
 ### ⚡ New: indexes of Gridbox tables (tab *Database*, on by default)

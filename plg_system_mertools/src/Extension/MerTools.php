@@ -60,11 +60,12 @@ use Merserwis\Plugin\System\MerTools\Tool\Phones;
 use Merserwis\Plugin\System\MerTools\Tool\ProductLinks;
 use Merserwis\Plugin\System\MerTools\Tool\Speed;
 use Merserwis\Plugin\System\MerTools\Tool\Speedup;
+use Merserwis\Plugin\System\MerTools\Tool\Tabs;
 use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.26';
+    public const VERSION = '0.0.27';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
@@ -786,6 +787,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $wa = $document->getWebAssetManager();
         if ((int) $this->params->get('layout_clip_x', 1)) {
             $document->addStyleDeclaration(Layout::css());
+        }
+        if (Tabs::enabled($this->params)) {
+            $document->addStyleDeclaration(Tabs::css());
+            $document->addScriptOptions('plg_system_mertools', ['tabs' => Tabs::jsConfig($this->params)]);
+            $wa->registerAndUseScript('plg_system_mertools.tabs', 'plg_system_mertools/mertools-tabs.js', [], ['defer' => true]);
         }
         if (Phones::enabled($this->params)) {
             $document->addStyleDeclaration(Phones::css($this->params));

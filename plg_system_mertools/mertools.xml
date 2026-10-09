@@ -6,7 +6,7 @@
     <creationDate>2026-10-07</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>0.0.26</version>
+    <version>0.0.27</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -169,6 +169,19 @@
             <fieldset name="layout" label="PLG_SYSTEM_MERTOOLS_FIELDSET_LAYOUT">
                 <field name="layout_clip_x" type="radio" layout="joomla.form.field.radio.switcher" default="1"
                     label="PLG_SYSTEM_MERTOOLS_LAYOUT_CLIP_LABEL" description="PLG_SYSTEM_MERTOOLS_LAYOUT_CLIP_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="tabs_spacer" type="spacer" hr="true" />
+                <field name="tabs_accordion" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_TABS_ACC_LABEL" description="PLG_SYSTEM_MERTOOLS_TABS_ACC_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="tabs_accordion_width" type="number" default="768" min="320" max="1600" filter="integer" showon="tabs_accordion:1"
+                    label="PLG_SYSTEM_MERTOOLS_TABS_ACC_WIDTH_LABEL" description="PLG_SYSTEM_MERTOOLS_TABS_ACC_WIDTH_DESC" />
+                <field name="tabs_accordion_first" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="tabs_accordion:1"
+                    label="PLG_SYSTEM_MERTOOLS_TABS_ACC_FIRST_LABEL" description="PLG_SYSTEM_MERTOOLS_TABS_ACC_FIRST_DESC">
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
