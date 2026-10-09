@@ -51,6 +51,7 @@ use Joomla\Event\Priority;
 use Joomla\Event\SubscriberInterface;
 use Merserwis\Plugin\System\MerTools\Tool\CartCleaner;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
+use Merserwis\Plugin\System\MerTools\Tool\DbIndexes;
 use Merserwis\Plugin\System\MerTools\Tool\ImageSize;
 use Merserwis\Plugin\System\MerTools\Tool\Layout;
 use Merserwis\Plugin\System\MerTools\Tool\NotFound;
@@ -63,7 +64,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.25';
+    public const VERSION = '0.0.26';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
@@ -88,6 +89,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             'onAfterRespond'      => ['onAfterRespond', Priority::MIN],
             'onBeforeCompileHead' => 'onBeforeCompileHead',
             'onExtensionAfterSave' => 'onExtensionAfterSave',
+            // Gridbox installed or updated: its tables may have been created again, without our indexes
+            'onExtensionAfterInstall' => 'onExtensionAfterInstallOrUpdate',
+            'onExtensionAfterUpdate'  => 'onExtensionAfterInstallOrUpdate',
         ];
     }
 
@@ -386,6 +390,73 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
     }
 
+    // ---------------------------------------------------------------- indexes of Gridbox's tables
+
+    private function indexesOn(): bool
+    {
+        return (bool) (int) $this->params->get('db_indexes', 1);
+    }
+
+    private function dbIndexes(): DbIndexes
+    {
+        return new DbIndexes(Factory::getContainer()->get(DatabaseInterface::class));
+    }
+
+    /**
+     * Once a day: the indexes still there? (Gridbox updated, the database restored from a backup…)
+     * The check is a few SHOW INDEX; a missing index is created after the response has gone out.
+     */
+    private function dailyIndexCheck(): void
+    {
+        if (!$this->indexesOn()) {
+            return;
+        }
+        $gate = self::cacheBase() . '/mertools-dbindex-tick';
+        if (is_file($gate) && (int) @filemtime($gate) > time() - 86400) {
+            return;
+        }
+        if (!@touch($gate) && is_file($gate)) {
+            return;
+        }
+        try {
+            $indexes = $this->dbIndexes();
+            if (!\in_array('missing', array_column($indexes->status(), 'state'), true)) {
+                return;
+            }
+            if (\function_exists('fastcgi_finish_request')) {
+                @fastcgi_finish_request();
+            } elseif (\function_exists('litespeed_finish_request')) {
+                @litespeed_finish_request();
+            }
+            @ignore_user_abort(true);
+            $indexes->ensure();
+        } catch (\Throwable $e) {
+            // tried again the next day
+        }
+    }
+
+    /** Gridbox (its component or package) installed or updated: the missing indexes are created again at once. */
+    public function onExtensionAfterInstallOrUpdate(\Joomla\Event\EventInterface $event): void
+    {
+        if (!$this->indexesOn()) {
+            return;
+        }
+        try {
+            $eid = (int) (method_exists($event, 'getEid') ? $event->getEid() : $event->getArgument('eid'));
+            if ($eid <= 0) {
+                return;
+            }
+            $db      = Factory::getContainer()->get(DatabaseInterface::class);
+            $element = (string) $db->setQuery($db->getQuery(true)->select($db->quoteName('element'))->from($db->quoteName('#__extensions'))
+                ->where($db->quoteName('extension_id') . ' = ' . $eid))->loadResult();
+            if (DbIndexes::isGridbox($element)) {
+                $this->dbIndexes()->ensure();
+            }
+        } catch (\Throwable $e) {
+            // the daily check creates them
+        }
+    }
+
     // ---------------------------------------------------------------- old shop carts
 
     private function cartsOn(): bool
@@ -431,6 +502,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if ($this->pageCacheOn() || $this->dataCacheOn()) {
             $this->prunePageCache();
         }
+        $this->dailyIndexCheck();
         if (!$this->cartsOn()) {
             return;
         }
@@ -473,7 +545,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $input  = $app->getInput();
         $action = $input->getCmd('mertools_action', '');
         if (!\in_array($action, ['cart_stats', 'cart_check', 'cart_clean', 'speed_list', 'speed_save', 'speed_baseline', 'speed_delete',
-            'pcache_stats', 'pcache_clear'], true)) {
+            'pcache_stats', 'pcache_clear', 'dbidx_status', 'dbidx_fix'], true)) {
             return;
         }
         $this->loadLanguage();
@@ -484,6 +556,18 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
 
         if (str_starts_with($action, 'speed_')) {
             $this->handleSpeedAction($action);
+        }
+        if (str_starts_with($action, 'dbidx_')) {
+            try {
+                $indexes = $this->dbIndexes();
+                if ($action === 'dbidx_fix') {
+                    @set_time_limit(120);
+                    $this->sendJson(['success' => true] + $indexes->ensure());
+                }
+                $this->sendJson(['success' => true, 'status' => $indexes->status()]);
+            } catch (\Throwable $e) {
+                $this->sendJson(['success' => false, 'message' => $e->getMessage()]);
+            }
         }
         if (str_starts_with($action, 'pcache_')) {
             try {

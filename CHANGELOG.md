@@ -2,6 +2,16 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.26 (Beta) — 2026-10-09
+
+### ⚡ New: indexes of Gridbox tables (tab *Database*, on by default)
+
+- Gridbox creates its tables with a primary key only: every lookup of product data by product, of categories and tags by page and of cart products by cart reads the whole table. On merserwis.pl the indexing query of Better Search took 6 s on the server; with one index the same query took 0.07 s instead of 1.6 s in a test with the same amount of data (about 0.3 s expected on the server). Gridbox joins its product data by product in more than 50 places (product and list pages, cart, orders), so the shop gains too.
+- MerTools creates 8 plain indexes (named `idx_mt_…`) on Gridbox's product data, product variations, cart products, category and tag maps and page fields. No data is changed.
+- They are kept: checked after Gridbox or MerTools is installed or updated, and once a day (after the page has gone to the visitor); missing ones are created again. An index Gridbox may add one day on the same column counts as present — no second one is made. Only `SHOW TABLES` / `SHOW INDEX` are used: many hosting accounts cannot read `information_schema`.
+- The *Database* tab shows the state of every index and has a **Check and create missing** button.
+- Uninstalling MerTools leaves the indexes in place (they only speed Gridbox up).
+
 ## 0.0.25 (Beta) — 2026-10-09
 
 ### ⚡ New: page shown at once (tab *Page speed*, on by default)

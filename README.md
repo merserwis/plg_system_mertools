@@ -61,6 +61,10 @@ A link to a chosen product option or set (Gridbox adds it to the address, e.g. `
 
 Gridbox never removes a cart, so its cart tables only grow. **Clean and optimise** (tab *Shop*) removes the carts nobody can open any more — empty carts at once, carts with products unused for N days (default 30, at least 8, since Gridbox's cart cookie lives 7 days) — and rebuilds the tables so the database shrinks; **Check** shows what would go. Orders and their data, carts with attached files and carts in use are never touched. Can also run automatically once a day or above a cart limit (default: by hand only).
 
+### 🗄 Database — indexes of Gridbox tables
+
+Gridbox creates its tables with a primary key only, so each lookup of product data, categories, tags or cart products reads the whole table (on merserwis.pl a query of the search index took 6 s). MerTools creates 8 plain indexes (`idx_mt_…`) and keeps them: checked after Gridbox or MerTools is installed or updated and once a day, missing ones are created again; an index Gridbox adds on the same column counts as present. The tab shows the state of each index and has a **Check and create missing** button. No data is changed; uninstalling MerTools leaves the indexes in place.
+
 ### 📞 Phone numbers — click to call
 
 Phone numbers written as plain text (contact rows, footers, product pages) become `tel:` links, so a tap on a phone dials them — no need to add links by hand in Gridbox. Polish numbers in the usual forms (`22 531 00 94`, `(22) 531-00-94`, `533 394 222`, with or without +48) and international numbers starting with `+` are found; links, buttons, forms, code and numbers that are not phones (NIP, REGON, KRS, bank accounts, serial numbers, prices, standards, fax numbers) are left alone. The links look like the text around them (or like the site's links), the country code is added for dialling from abroad (default +48), and areas can be excluded with a CSS selector. A small script does it in the browser when it is idle; the page content is not changed. On by default, tab *Phone numbers*.

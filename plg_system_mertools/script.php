@@ -77,6 +77,15 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
             } catch (\Throwable $e) {
                 // created later, at the first use
             }
+            // the indexes of Gridbox's tables (also checked daily and after Gridbox updates)
+            try {
+                if (!class_exists(\Merserwis\Plugin\System\MerTools\Tool\DbIndexes::class) && is_file(__DIR__ . '/src/Tool/DbIndexes.php')) {
+                    require_once __DIR__ . '/src/Tool/DbIndexes.php';
+                }
+                (new \Merserwis\Plugin\System\MerTools\Tool\DbIndexes(Factory::getContainer()->get(DatabaseInterface::class)))->ensure();
+            } catch (\Throwable $e) {
+                // done by the daily check
+            }
         }
         // pages kept by Joomla's page cache still point to the previous script version and settings
         if ($type === 'install' || $type === 'update' || $type === 'discover_install') {
