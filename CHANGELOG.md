@@ -2,6 +2,14 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.28 (Beta) — 2026-10-09
+
+### 🛠 Tabs as sections on phones: fixes
+
+- **Sliders and carousels in a section** (e.g. *Bestsellers* and *New products* on the home page) stayed empty after opening: Gridbox measures them while the content is hidden (height 0) and builds them again a moment after a tab is shown. Now the content is visible before Gridbox's tab is selected, an already active tab gets its "shown" too, and for a few seconds after opening every carousel that gets a height of 0 is measured again with Gridbox's own function.
+- **All sections closed by default** (the first one can still be opened at start: *First section open*).
+- **More space** above and below a row: taller rows, a gap between an open row and its content and before the next row.
+
 ## 0.0.27 (Beta) — 2026-10-09
 
 ### 📱 New: tabs as expandable sections on phones (tab *Page layout*, on by default)

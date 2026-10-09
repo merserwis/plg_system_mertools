@@ -15,10 +15,10 @@ $check = function (string $label, $got, $exp) use (&$fail) {
 };
 $check('on by default', Tabs::enabled(new Registry()), true);
 $check('switched off', Tabs::enabled(new Registry(['tabs_accordion' => '0'])), false);
-$check('defaults', Tabs::jsConfig(new Registry()), ['width' => 768, 'first' => true]);
+$check('defaults: all closed', Tabs::jsConfig(new Registry()), ['width' => 768, 'first' => false]);
 $check('width clamped low', Tabs::jsConfig(new Registry(['tabs_accordion_width' => '100']))['width'], 320);
 $check('width clamped high', Tabs::jsConfig(new Registry(['tabs_accordion_width' => '9999']))['width'], 1600);
-$check('first closed', Tabs::jsConfig(new Registry(['tabs_accordion_first' => '0']))['first'], false);
+$check('first open when chosen', Tabs::jsConfig(new Registry(['tabs_accordion_first' => '1']))['first'], true);
 $css = Tabs::css();
 $check('rows hidden outside phone mode', str_starts_with($css, '.mt-tabacc-head{display:none}'), true);
 $check('theme colours used', str_contains($css, 'var(--primary') && str_contains($css, 'var(--title'), true);

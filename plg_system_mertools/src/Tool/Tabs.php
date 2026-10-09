@@ -29,7 +29,7 @@ final class Tabs
     {
         return [
             'width' => max(320, min(1600, (int) $params->get('tabs_accordion_width', 768))),
-            'first' => (bool) (int) $params->get('tabs_accordion_first', 1),
+            'first' => (bool) (int) $params->get('tabs_accordion_first', 0),
         ];
     }
 
@@ -41,7 +41,7 @@ final class Tabs
     {
         return '.mt-tabacc-head{display:none}'
             . '.mt-tabacc .mt-tabacc-head{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:.75rem;width:100%;'
-            . 'padding:1rem .25rem;border-bottom:1px solid var(--border,rgba(0,0,0,.12));font-size:.75rem;font-weight:700;'
+            . 'padding:1.25rem .25rem;border-bottom:1px solid var(--border,rgba(0,0,0,.12));font-size:.75rem;font-weight:700;'
             . 'letter-spacing:.08rem;line-height:1.3;text-transform:uppercase;color:var(--title,#343434);cursor:pointer;scroll-margin-top:90px;'
             . '-webkit-tap-highlight-color:transparent}'
             . '.mt-tabacc .mt-tabacc-head:focus-visible{outline:2px solid var(--primary,#f2a705);outline-offset:2px}'
@@ -49,7 +49,8 @@ final class Tabs
             . '.mt-tabacc .mt-tabacc-head span{flex:1;min-width:0}'
             . '.mt-tabacc .mt-tabacc-head::after{content:"";flex:none;width:.5rem;height:.5rem;margin:0 .35rem .25rem;'
             . 'border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .2s}'
-            . '.mt-tabacc .mt-tabacc-head[aria-expanded="true"]{color:var(--primary,#f2a705);border-bottom-color:var(--primary,#f2a705)}'
+            . '.mt-tabacc .mt-tabacc-head[aria-expanded="true"]{color:var(--primary,#f2a705);border-bottom-color:var(--primary,#f2a705);margin-bottom:1.5rem}'
+            . '.mt-tabacc .mt-tabacc-head.mt-after-open{margin-top:1.5rem}'
             . '.mt-tabacc .mt-tabacc-head[aria-expanded="true"]::after{transform:rotate(-135deg);margin-bottom:-.25rem}'
             . '@media (prefers-reduced-motion:reduce){.mt-tabacc .mt-tabacc-head::after{transition:none}}';
     }

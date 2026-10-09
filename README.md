@@ -85,7 +85,7 @@ A Gridbox element that sticks out to the right (a row with a slide-in animation 
 
 ### 📱 Page layout — tabs as expandable sections on phones
 
-On narrow screens a Gridbox tab bar has to be scrolled sideways and nobody sees the other tabs. Up to a chosen width (768 px by default) every tab becomes a row with its icon, name and an arrow, with its content opening below it; the first one open. Gridbox's own tab is still selected, computers keep the tabs, and a turned tablet switches on the fly.
+On narrow screens a Gridbox tab bar has to be scrolled sideways and nobody sees the other tabs. Up to a chosen width (768 px by default) every tab becomes a row with its icon, name and an arrow, with its content opening below it; all closed at first (or the first one open). Sliders and carousels inside are measured again when a section opens. Gridbox's own tab is still selected, computers keep the tabs, and a turned tablet switches on the fly.
 
 ### 🌙 Dark mode
 
