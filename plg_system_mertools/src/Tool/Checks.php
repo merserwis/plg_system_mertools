@@ -26,7 +26,7 @@ final class Checks
 
     /**
      * @param array|null $gb     the row of #__gridbox_website (null: Gridbox missing)
-     * @param array      $joomla ['platform_prefix' => bool, 'page_cache_plugin' => bool]
+     * @param array      $joomla ['platform_prefix' => bool, 'page_cache_plugin' => bool, 'caching' => 0|1|2 (System Cache)]
      * @param array      $mt     MerTools parameters
      * @param array      $server ['php' => '8.5.11', 'webp' => bool, 'opcache' => ['enabled' => bool, 'status' => ?array, 'ini' => array]]
      *
@@ -53,7 +53,12 @@ final class Checks
 
         $both = !empty($joomla['page_cache_plugin']) && $mtOn('speed_cache', 0);
         $add('JM_PAGECACHE', 'joomla', $both ? self::BAD : self::OK, [!empty($joomla['page_cache_plugin']) ? 'ON' : 'OFF']);
-        $add('JM_PLATFORM', 'joomla', !empty($joomla['platform_prefix']) ? self::BAD : self::OK, [!empty($joomla['platform_prefix']) ? 'ON' : 'OFF']);
+        // the option is shown (and used) only while Joomla's System Cache is on
+        if (isset($joomla['caching']) && (int) $joomla['caching'] === 0) {
+            $add('JM_PLATFORM', 'joomla', self::OK, ['NOTUSED']);
+        } else {
+            $add('JM_PLATFORM', 'joomla', !empty($joomla['platform_prefix']) ? self::BAD : self::OK, [!empty($joomla['platform_prefix']) ? 'ON' : 'OFF']);
+        }
 
         $php = (string) ($server['php'] ?? PHP_VERSION);
         $add('SRV_PHP', 'server', version_compare($php, '8.2', '>=') ? self::OK : self::BAD, ['TEXT', $php]);

@@ -2,6 +2,13 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.33 (Beta) — 2026-10-12
+
+### 🐞 Recommended settings: Platform Specific Caching
+
+- Joomla shows *Platform Specific Caching* (and uses it) only while *System Cache* is Conservative or Progressive. With the System Cache off the check no longer asks to change an option that cannot be seen: it is marked as recommended with “not used (System Cache off)”.
+- The *where* of the check now says that the option appears only with the System Cache on: *System → Global Configuration → System → Cache → Platform Specific Caching*.
+
 ## 0.0.32 (Beta) — 2026-10-12
 
 ### ✅ New: recommended settings (top of the *Page speed* tab)

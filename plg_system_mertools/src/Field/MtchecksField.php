@@ -45,6 +45,7 @@ final class MtchecksField extends FormField
         }
         $checks = Checks::evaluate($gb, [
             'platform_prefix'   => (bool) (int) $app->get('cache_platformprefix', 0),
+            'caching'           => (int) $app->get('caching', 0),
             'page_cache_plugin' => PluginHelper::isEnabled('system', 'cache'),
         ], $params->toArray(), ['php' => PHP_VERSION, 'webp' => ImageOptimizer::supported(), 'opcache' => $opc]);
 

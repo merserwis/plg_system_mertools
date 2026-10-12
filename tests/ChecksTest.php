@@ -32,6 +32,8 @@ $check('Gridbox images on, WebP off = ok', $state(Checks::evaluate(['adaptive_im
 $check('no Gridbox: no Gridbox rows', count(array_filter(Checks::evaluate(null, [], [], $srv), fn ($c) => $c['group'] === 'gridbox')), 0);
 $check('both page caches = bad', $state(Checks::evaluate($good, ['page_cache_plugin' => true], ['speed_cache' => 1], $srv), 'JM_PAGECACHE'), 'bad');
 $check('Joomla page cache alone = ok', $state(Checks::evaluate($good, ['page_cache_plugin' => true], ['speed_cache' => 0], $srv), 'JM_PAGECACHE'), 'ok');
+$check('platform caching set but System Cache off = ok, not used', array_values(array_filter(Checks::evaluate($good, ['platform_prefix' => true, 'caching' => 0], [], $srv), fn ($c) => $c['id'] === 'JM_PLATFORM'))[0]['state'] . '|' . array_values(array_filter(Checks::evaluate($good, ['platform_prefix' => true, 'caching' => 0], [], $srv), fn ($c) => $c['id'] === 'JM_PLATFORM'))[0]['value'][0], 'ok|NOTUSED');
+$check('platform caching with System Cache on = bad', $state(Checks::evaluate($good, ['platform_prefix' => true, 'caching' => 1], [], $srv), 'JM_PLATFORM'), 'bad');
 $check('platform specific caching = bad', $state(Checks::evaluate($good, ['platform_prefix' => true], [], $srv), 'JM_PLATFORM'), 'bad');
 $check('old PHP = bad', $state(Checks::evaluate($good, [], [], ['php' => '8.1.2'] + $srv), 'SRV_PHP'), 'bad');
 $check('no WebP = warn', $state(Checks::evaluate($good, [], [], ['webp' => false] + $srv), 'SRV_WEBP'), 'warn');
