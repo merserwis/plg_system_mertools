@@ -8,7 +8,7 @@ All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** 
 
 - Gridbox shows the posts of a slider — *Recent posts slider*, *Related posts slider*, *Recently viewed products* — in one row only, with no setting for more. Now a slider can have 2, 3 or 4 rows: in Gridbox open the slider's settings and enter in **Class suffix** e.g. `mt-rows-2`. Different rows on smaller screens: `mt-rows-tablet-N` (up to 1024 px) and `mt-rows-phone-N` (up to 768 px), e.g. `mt-rows-3 mt-rows-tablet-2 mt-rows-phone-1`.
 - The posts fill the rows one after the other (first row 1 2 3, second row 4 5 6 with three visible columns) and the slider moves column by column as before; arrows, dots and autoplay work as set in Gridbox, and the posts keep their markup (add to cart and wishlist still work). Turning a tablet or resizing the window regroups the slider.
-- Sliders without such a class are not changed.
+- Sliders without such a class are not changed. The settings show the steps and the classes in a box under the option (*Page layout* tab).
 - Checked on the merserwis.pl home page: 2 rows of 3, sliding, 1 row on phones, regrouping on resize, images and cards as before, no script errors.
 
 ### ↩️ Closing the settings opens the Gridbox panel

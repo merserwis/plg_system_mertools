@@ -195,6 +195,8 @@
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
+                <field name="layout_post_rows_note" type="note" class="alert alert-info" showon="layout_post_rows:1"
+                    label="PLG_SYSTEM_MERTOOLS_LAYOUT_ROWS_NOTE_LABEL" description="PLG_SYSTEM_MERTOOLS_LAYOUT_ROWS_NOTE" />
                 <field name="layout_clip_x" type="radio" layout="joomla.form.field.radio.switcher" default="1"
                     label="PLG_SYSTEM_MERTOOLS_LAYOUT_CLIP_LABEL" description="PLG_SYSTEM_MERTOOLS_LAYOUT_CLIP_DESC">
                     <option value="0">JNO</option>
