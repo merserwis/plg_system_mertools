@@ -57,6 +57,7 @@ use Merserwis\Plugin\System\MerTools\Tool\ImageSize;
 use Merserwis\Plugin\System\MerTools\Tool\Layout;
 use Merserwis\Plugin\System\MerTools\Tool\NotFound;
 use Merserwis\Plugin\System\MerTools\Tool\PageCache;
+use Merserwis\Plugin\System\MerTools\Tool\PostRows;
 use Merserwis\Plugin\System\MerTools\Tool\Phones;
 use Merserwis\Plugin\System\MerTools\Tool\ProductLinks;
 use Merserwis\Plugin\System\MerTools\Tool\Speed;
@@ -66,7 +67,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.30';
+    public const VERSION = '0.0.31';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
@@ -700,7 +701,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                 }
                 $defaults = ['url_collapse_slashes' => 1, 'notfound_redirect' => 1, 'layout_clip_x' => 1, 'shop_option_links' => 1,
                     'cart_enabled' => 1, 'tel_enabled' => 1, 'dark_enabled' => 0, 'speed_show' => 1, 'speed_images' => 1, 'speed_mainphoto' => 1,
-                    'speed_video' => 1, 'speed_video_phone' => 'none', 'speed_scripts' => 0, 'speed_cache' => 0, 'speed_cache_data' => 1];
+                    'speed_video' => 1, 'speed_video_phone' => 'none', 'speed_scripts' => 0, 'speed_cache' => 0, 'speed_cache_data' => 1,
+                    'speed_icons' => 1, 'speed_webp' => 1, 'speed_gif' => 1, 'speed_popups' => 1];
                 $speed->save($m, self::VERSION, Speed::enabledTools($this->params->toArray(), $defaults), time());
             } elseif ($action === 'speed_baseline') {
                 $speed->setBaseline($input->post->getInt('id', 0));
@@ -798,6 +800,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $new = ProductLinks::markChosenRadios($new);
         }
         $new = $this->speedup($new);
+        if ((int) $this->params->get('layout_post_rows', 1)) {
+            $new = PostRows::apply($new);
+        }
         if ($new !== $body) {
             $app->setBody($new);
         }

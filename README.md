@@ -85,6 +85,8 @@ A missing page (404) sends the visitor to a chosen page instead of the error pag
 
 A Gridbox element that sticks out to the right (a row with a slide-in animation or a motion effect, an off-canvas menu) makes phones lay the page out wider than the screen. Gridbox hides that part on `<body>`, but the browser still widens the page, so everything fixed to the screen edges — the hamburger in a fixed header, the accessibility button, floating buttons — ends up off-screen. MerTools keeps the page as wide as the screen (`overflow-x: clip` on `html` and `body`; unlike `hidden` it creates no scroll container, so sticky elements and scrolling keep working). On by default, tab *Page layout*.
 
+
+**Post sliders in several rows:** a Gridbox posts or products slider gets 2–4 rows when its *Class suffix* contains `mt-rows-2` … `mt-rows-4` (`mt-rows-tablet-N` / `mt-rows-phone-N` for smaller screens); the slider still moves column by column.
 ### 📱 Page layout — tabs as expandable sections on phones
 
 On narrow screens a Gridbox tab bar has to be scrolled sideways and nobody sees the other tabs. Up to a chosen width (768 px by default) every tab becomes a row with its icon, name and an arrow, with its content opening below it; all closed at first (or the first one open). Sliders and carousels inside are measured again when a section opens. Gridbox's own tab is still selected, computers keep the tabs, and a turned tablet switches on the fly.

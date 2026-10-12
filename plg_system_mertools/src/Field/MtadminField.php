@@ -4,13 +4,15 @@ namespace Merserwis\Plugin\System\MerTools\Field;
 
 \defined('_JEXEC') or die;
 
+use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\FormField;
 use Joomla\CMS\Language\Text;
 
 /**
  * Nothing on screen: loads the help tooltips of the settings ("?" beside every option name, its
- * explanation on hover, keyboard focus or a click).
+ * explanation on hover, keyboard focus or a click), and sends "Close" and "Save & Close" back to the
+ * Gridbox panel (Joomla's form controller follows a "return" address posted with the form).
  */
 final class MtadminField extends FormField
 {
@@ -32,6 +34,11 @@ final class MtadminField extends FormField
         $wa->addInlineStyle(self::CSS);
         $wa->registerAndUseScript('plg_system_mertools.admin', 'plg_system_mertools/mertools-admin.js', [], ['defer' => true]);
         $doc->addScriptOptions('plg_system_mertools.admin', ['help' => Text::_('PLG_SYSTEM_MERTOOLS_HELP')]);
+
+        // closing the settings opens the Gridbox panel (when Gridbox is there)
+        if (ComponentHelper::isInstalled('com_gridbox') && ComponentHelper::isEnabled('com_gridbox')) {
+            return '<input type="hidden" name="return" value="' . base64_encode('index.php?option=com_gridbox') . '">';
+        }
 
         return '';
     }

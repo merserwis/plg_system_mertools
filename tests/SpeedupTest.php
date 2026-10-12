@@ -7,9 +7,11 @@
 define('_JEXEC', 1);
 require __DIR__ . '/../plg_system_mertools/src/Tool/Speedup.php';
 require __DIR__ . '/../plg_system_mertools/src/Tool/ImageSize.php';
+require __DIR__ . '/../plg_system_mertools/src/Tool/PostRows.php';
 
 use Merserwis\Plugin\System\MerTools\Tool\ImageSize;
 use Merserwis\Plugin\System\MerTools\Tool\Speedup;
+use Merserwis\Plugin\System\MerTools\Tool\PostRows;
 
 $fail = 0;
 $check = function (string $label, $got, $exp) use (&$fail) {
@@ -131,6 +133,18 @@ $check('popups: only time-delay, not cookies', str_contains($po2, 'it.type!=="co
 $check('popups: idempotent', Speedup::delayPopups($po2), $po2);
 $check('popups: page without popups unchanged', Speedup::delayPopups('<script src="/templates/gridbox/js/gridbox.js"></script>'), '<script src="/templates/gridbox/js/gridbox.js"></script>');
 $check('popups: without gridbox.js unchanged', Speedup::delayPopups('<div class="ba-lightbox-backdrop"></div>'), '<div class="ba-lightbox-backdrop"></div>');
+
+// ---------------------------------------------------------------- 0.0.31: post sliders in rows
+$sl = '<html><head></head><body><div class="ba-item-recent-posts-slider ba-item mt-rows-2 mt-rows-phone-1" id="item-1"></div><script src="/templates/gridbox/js/gridbox.js?2.20.4.0"></script></body></html>';
+$so = PostRows::apply($sl);
+$check('rows: script right after gridbox.js', str_contains($so, 'gridbox.js?2.20.4.0"></script><script>(function(w,d){var a=w.app;if(!a||a.mtRows)return;'), true);
+$check('rows: style in head', str_contains($so, '<style id="mertools-rows">.slideshow-content .mt-rows{'), true);
+$check('rows: idempotent', PostRows::apply($so), $so);
+$check('rows: slider without class unchanged', PostRows::apply(str_replace(' mt-rows-2 mt-rows-phone-1', '', $sl)), str_replace(' mt-rows-2 mt-rows-phone-1', '', $sl));
+$check('rows: only phone class counts', PostRows::wanted('<div class="ba-item-related-posts-slider ba-item mt-rows-phone-2">'), true);
+$check('rows: other element with the class ignored', PostRows::wanted('<div class="ba-item-text ba-item mt-rows-2">'), false);
+$check('rows: recently viewed products', PostRows::wanted('<div class="ba-item-recently-viewed-products ba-item mt-rows-3">'), true);
+$check('rows: no gridbox.js = unchanged', PostRows::apply('<div class="ba-item-recent-posts-slider mt-rows-2"></div>'), '<div class="ba-item-recent-posts-slider mt-rows-2"></div>');
 
 // ---------------------------------------------------------------- header backgrounds
 $h = '<div class="lazy-load-image x"></div><header class="header"><div class="ba-section row-fluid lazy-load-image" id="a"></div><div class="lazy-load-image"></div></header><div class="lazy-load-image"></div>';
