@@ -6,7 +6,7 @@
     <creationDate>2026-10-12</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>0.0.31</version>
+    <version>0.0.32</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -50,6 +50,8 @@
 
             <!-- ============================================================ Page speed -->
             <fieldset name="speed" label="PLG_SYSTEM_MERTOOLS_FIELDSET_SPEED">
+                <field name="speed_checks" type="mtchecks"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_CHECKS_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_CHECKS_DESC" />
                 <field name="speed_key" type="password" default="" filter="string" autocomplete="off"
                     label="PLG_SYSTEM_MERTOOLS_SPEED_KEY_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_KEY_DESC" />
                 <field name="speed_urls" type="textarea" default="/" rows="4" filter="string"

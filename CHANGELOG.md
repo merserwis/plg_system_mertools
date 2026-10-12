@@ -2,6 +2,16 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.32 (Beta) — 2026-10-12
+
+### ✅ New: recommended settings (top of the *Page speed* tab)
+
+- A table of the settings of Gridbox, Joomla, the server and Cloudflare that let MerTools work best — for each: the state on this site now (✔ as recommended, ✖ to change, ⚠ worth changing, ℹ for information), the recommended value, why, and where to change it. *Check again* reads the state anew after a change.
+- **Gridbox** (read from its own settings): Deferred Loading on together with MerTools' *Page shown at once*; Gridbox's page cache off (it keeps the first visitor's form token; use the MerTools page cache); Lazy load images on; Compress / Adaptive images not needed with the MerTools WebP copies; Compress CSS worth a try.
+- **Joomla:** the System - Page Cache plugin off while the MerTools page cache is on; Platform Specific Caching off (phones kept old settings and scripts on merserwis.pl).
+- **Server:** PHP 8.2 or newer; GD with WebP (for the image copies); OPcache on with enough room — its use, free memory, hit rate and cached files are shown when the hosting allows it (a full OPcache was the main cause of the slow server on merserwis.pl).
+- **Cloudflare:** Rocket Loader off — checked in the page a guest gets.
+
 ## 0.0.31 (Beta) — 2026-10-12
 
 ### 🧱 New: post sliders in several rows (tab *Page layout*, on by default)
