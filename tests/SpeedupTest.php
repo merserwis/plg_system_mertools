@@ -123,6 +123,15 @@ $check('bg: idempotent', Speedup::backgrounds($bo, $site, $bgCopies), $bo);
 $check('bg: nothing to do = same page', Speedup::backgrounds('<head></head><div style="color:red"></div>', $site, $bgCopies), '<head></head><div style="color:red"></div>');
 $check('bg: quoted url', str_contains(Speedup::backgrounds('<head></head><div style="background-image: url(\'/images/slide.png\')"></div>', $site, $bgCopies), "url('/m/s-1500.webp')"), true);
 
+// ---------------------------------------------------------------- 0.0.30: popups after the first interaction
+$pg = '<body><div class="ba-lightbox-backdrop" data-id="item-1"></div><script src="/templates/gridbox/js/gridbox.js?2.20.4.0" nonce="x"></script><script src="/other.js"></script></body>';
+$po2 = Speedup::delayPopups($pg);
+$check('popups: wrapper right after gridbox.js', str_contains($po2, 'gridbox.js?2.20.4.0" nonce="x"></script><script>(function(w){var o=w.initLightbox;'), true);
+$check('popups: only time-delay, not cookies', str_contains($po2, 'it.type!=="cookies"&&it.trigger&&it.trigger.type==="time-delay"'), true);
+$check('popups: idempotent', Speedup::delayPopups($po2), $po2);
+$check('popups: page without popups unchanged', Speedup::delayPopups('<script src="/templates/gridbox/js/gridbox.js"></script>'), '<script src="/templates/gridbox/js/gridbox.js"></script>');
+$check('popups: without gridbox.js unchanged', Speedup::delayPopups('<div class="ba-lightbox-backdrop"></div>'), '<div class="ba-lightbox-backdrop"></div>');
+
 // ---------------------------------------------------------------- header backgrounds
 $h = '<div class="lazy-load-image x"></div><header class="header"><div class="ba-section row-fluid lazy-load-image" id="a"></div><div class="lazy-load-image"></div></header><div class="lazy-load-image"></div>';
 $check('header backgrounds shown, others kept', Speedup::headerBackgrounds($h),

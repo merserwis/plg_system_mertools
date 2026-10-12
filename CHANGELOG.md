@@ -2,6 +2,15 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.30 (Beta) — 2026-10-12
+
+### ⚡ New: popups after the first interaction (tab *Page speed*, on by default)
+
+- A Gridbox popup (lightbox) set to open after a time — trigger *Time delay* — now opens at that time, but not before the visitor has first used the page: scrolled, touched the screen, moved the mouse or pressed a key. If the time has already passed, it opens right at that moment.
+- Why: a large popup that opens while the visitor is still only looking at the page becomes the largest element of the page, and Google measures the loading time of real visitors (LCP) by it — on akademia.merserwis.pl a popup with a banner opened 4 s after loading and moved LCP to about 4.6 s. On phones Google also counts a popup before any interaction as an intrusive interstitial. Interaction ends the LCP measurement, so a popup opened after it does not count.
+- Checked on akademia.merserwis.pl (popup set to 4 s): no interaction → no popup; mouse moved after 1 s → popup at 4.4 s; mouse moved after 7 s → popup at 7.0 s. No script errors.
+- Popups that open on scrolling or when leaving the page, and Gridbox’s own cookie notice, are not changed. Gridbox’s files are not changed either: its popup function is wrapped right after its script.
+
 ## 0.0.29 (Beta) — 2026-10-12
 
 ### ⚡ Faster pages on any Gridbox site (tab *Page speed*)

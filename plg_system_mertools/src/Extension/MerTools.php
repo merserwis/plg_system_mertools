@@ -66,7 +66,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.29';
+    public const VERSION = '0.0.30';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
@@ -864,6 +864,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                 }
                 $html = Speedup::delayVideoBackground($html, (int) $p->get('speed_video_delay', 3), (string) $p->get('speed_video_phone', 'none'),
                     (int) $p->get('speed_video_phone_width', 768), $image, (string) $p->get('speed_video_phone_color', '#1a1a1a'));
+            }
+            if ((int) $p->get('speed_popups', 1)) {
+                $html = Speedup::delayPopups($html);
             }
             if ((int) $p->get('speed_scripts', 0)) {
                 $lines = fn (string $s) => preg_split('/\R/', $s) ?: [];

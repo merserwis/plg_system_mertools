@@ -457,6 +457,35 @@ final class Speedup
     // ---------------------------------------------------------------- marketing scripts
 
     /**
+     * Gridbox popups (lightboxes) opened by a timer ("time delay") open at their time, but not before
+     * the visitor has first used the page (scroll, touch, mouse, key): a big popup opened while the
+     * page is still being looked at becomes the largest element of the page and Google measures the
+     * load time (LCP) by it, and a popup before any interaction is an intrusive interstitial on
+     * phones. Popups opened on scrolling or on leaving the page, and Gridbox's cookie notice, stay as
+     * they are. Wraps Gridbox's global initLightbox right after its script; the file is not changed.
+     */
+    public static function delayPopups(string $html): string
+    {
+        if (stripos($html, 'ba-lightbox-backdrop') === false
+            || !preg_match('#<script\b[^>]*\bsrc="[^"]*templates/gridbox/js/gridbox\.js[^"]*"[^>]*>\s*</script>#i', $html, $m, PREG_OFFSET_CAPTURE)) {
+            return $html;
+        }
+        if (str_contains($html, 'mtPopup')) {
+            return $html;
+        }
+        $js = '<script>(function(w){var o=w.initLightbox;if(typeof o!=="function"||o.mtPopup)return;var go=0,q=[];'
+            . 'function run(){if(go)return;go=1;q.splice(0).forEach(function(f){f()})}'
+            . self::EVENTS . '.forEach(function(e){w.addEventListener(e,run,{once:true,passive:true})});'
+            . 'var f=function(el){var a=w.app,it=a&&a.items&&el&&el.dataset?a.items[el.dataset.id]:null;'
+            . 'if(it&&it.type!=="cookies"&&it.trigger&&it.trigger.type==="time-delay"&&typeof w.showLightbox==="function"){'
+            . 'setTimeout(function(){go?w.showLightbox(el):q.push(function(){w.showLightbox(el)})},+it.trigger.time||0);return}'
+            . 'return o.apply(this,arguments)};f.mtPopup=1;w.initLightbox=f})(window);</script>';
+        $end = $m[0][1] + \strlen($m[0][0]);
+
+        return substr_replace($html, $js, $end, 0);
+    }
+
+    /**
      * Scripts whose address or code contains one of $patterns run at the first interaction
      * (and, if $seconds > 0, at the latest that long after loading). Their order is kept. Scripts
      * containing one of $keep (e.g. the cookie consent) are never delayed.
