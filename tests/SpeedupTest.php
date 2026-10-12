@@ -48,6 +48,81 @@ $check('header: first two at once', substr_count($ho, 'loading="eager"'), 2);
 $check('header: menu pictures left to Gridbox', $has($ho, '<img src="P" width="100" height="100" data-gridbox-lazyload-src="/menu-promo.jpg" class="lazy-load-image">'), true);
 $check('srcset carried over', $has(Speedup::images('<img src="' . $ph . '" data-gridbox-lazyload-src="/a.jpg" data-gridbox-lazyload-srcset="/a.jpg 1x, /a2.jpg 2x">', $site, $size), 'srcset="/a.jpg 1x, /a2.jpg 2x"'), true);
 
+// ---------------------------------------------------------------- 0.0.29: plain images, first section, copies, GIF
+$dimsOf = fn (string $u) => str_contains($u, 'hero') ? [770, 744] : (str_contains($u, 'logo') ? [240, 60] : (str_contains($u, 'photo') ? [1200, 705] : null));
+$copies = function (string $u) {
+    if (str_contains($u, 'hero.gif')) {
+        return ['frame' => '/media/mertools-img/ab/x-hero-f-480.webp 480w, /media/mertools-img/ab/x-hero-f-770.webp 770w', 'anim' => '/images/hero.webp'];
+    }
+    return str_contains($u, 'photo') ? ['srcset' => '/media/mertools-img/cd/y-photo-480.webp 480w, /media/mertools-img/cd/y-photo-1200.webp 1200w'] : null;
+};
+$page = '<html><head><link rel="stylesheet" href="/templates/gridbox/library/icons/fontawesome/fontawesome.css"><link rel="stylesheet" href="/templates/gridbox/css/gridbox.css"></head><body>'
+    . '<header class="header"><div class="ba-section row-fluid" id="h"><img src="https://www.merserwis.pl/images/logo.svg" alt="" width="100" height="100"></div></header>'
+    . '<div class="ba-section row-fluid" id="s1"><div class="ba-grid-column-wrapper ba-col-6 ba-sm-la-12"><img src="https://www.merserwis.pl/images/hero.gif" alt="" width="100" height="100"></div>'
+    . '<div class="ba-grid-column-wrapper ba-col-6"><img src="/images/photo-a.jpg" alt="" width="100" height="100"></div></div>'
+    . '<div class="ba-section row-fluid" id="s2"><div class="ba-grid-column-wrapper ba-col-12"><img src="/images/photo-b.jpg" alt="" width="100" height="100"><img src="https://cdn.example.com/x.jpg"></div></div>'
+    . '</body></html>';
+$po = Speedup::images($page, $site, $dimsOf, $copies, true, true);
+$check('plain: first section picture not lazy', (bool) preg_match('#<img[^>]*hero\.gif[^>]*>#', $po, $hm) && !str_contains($hm[0], 'loading="lazy"'), true);
+$check('plain: GIF at the top shows its first frame (srcset of frames)', str_contains($hm[0] ?? '', 'srcset="/media/mertools-img/ab/x-hero-f-480.webp 480w, /media/mertools-img/ab/x-hero-f-770.webp 770w"'), true);
+$check('plain: GIF animation address kept for later', str_contains($hm[0] ?? '', 'data-mt-anim="/images/hero.webp"'), true);
+$check('plain: GIF at the top fetched first', str_contains($hm[0] ?? '', 'fetchpriority="high"'), true);
+$check('plain: GIF proportions', str_contains($hm[0] ?? '', 'style="aspect-ratio:770/744"'), true);
+$check('plain: GIF sizes from its column (half of 1200 px)', str_contains($hm[0] ?? '', 'sizes="(max-width: 768px) 100vw, 600px"'), true);
+$check('plain: only one fetchpriority', substr_count($po, 'fetchpriority="high"'), 1);
+$check('plain: animation script added once', substr_count($po, 'img[data-mt-anim]'), 1);
+preg_match('#<img[^>]*photo-a\.jpg[^>]*>#', $po, $am);
+$check('plain: second picture of the first section not lazy, copies offered', !str_contains($am[0], 'loading=') && str_contains($am[0], 'srcset="/media/mertools-img/cd/y-photo-480.webp 480w'), true);
+$check('plain: eager sizes without auto', str_contains($am[0], 'sizes="(max-width: 768px) 100vw, 600px"'), true);
+preg_match('#<img[^>]*photo-b\.jpg[^>]*>#', $po, $bm);
+$check('plain: further down lazy + async', str_contains($bm[0], 'loading="lazy"') && str_contains($bm[0], 'decoding="async"'), true);
+$check('plain: lazy sizes auto, full column = whole screen', str_contains($bm[0], 'sizes="auto, (max-width: 768px) 100vw, 100vw"'), true);
+$check('plain: logo in header gets proportions, not lazy, no priority', str_contains($po, '<img style="aspect-ratio:240/60" src="https://www.merserwis.pl/images/logo.svg" alt="" width="100" height="100">'), true);
+$check('plain: other site untouched', str_contains($po, '<img src="https://cdn.example.com/x.jpg">'), true);
+$check('plain: idempotent', Speedup::images($po, $site, $dimsOf, $copies, true, true), $po);
+$check('plain off: plain images untouched', Speedup::images($page, $site, $dimsOf, $copies, false, true), $page);
+$noGif = Speedup::images($page, $site, $dimsOf, $copies, true, false);
+$check('gif off: no frame, no script', !str_contains($noGif, 'data-mt-anim') && !str_contains($noGif, 'img[data-mt-anim]'), true);
+$check('existing fetchpriority on the page: none added', substr_count(Speedup::images(str_replace('<head>', '<head><link rel="preload" as="image" href="/p.jpg" fetchpriority="high">', $page), $site, $dimsOf, $copies, true, true), 'fetchpriority="high"'), 1);
+$many = '<header></header><div class="ba-section" id="a">' . str_repeat('<img src="/images/photo-z.jpg" width="100" height="100">', 6) . '</div><div class="ba-section" id="b"></div>';
+$check('first section: at most ZONE_EAGER at once', substr_count(Speedup::images($many, $site, $dimsOf, null, true), 'loading="lazy"'), 2);
+$real = '<header></header><div class="ba-wrapper"><div class="ba-section row-fluid" id="a"><div class="ba-overlay"></div><div class="ba-section-items"><img src="/x.jpg"></div></div></div>'
+    . '<div class="ba-wrapper"><div class="ba-section row-fluid" id="b"><div class="ba-section-items"></div></div></div>';
+$check('first section: inner ba-section-items is not a section', Speedup::firstSectionEnd($real, 17), strpos($real, '<div class="ba-section row-fluid" id="b"'));
+$check('first section: class not first in the list', Speedup::firstSectionEnd('<header></header><div class="x ba-section"></div><div class="y ba-section"></div>', 17), 49);
+$check('no sections: nothing counts as first section', Speedup::firstSectionEnd('<header></header><div>x</div>', 17), 0);
+$check('one section: all of it', Speedup::firstSectionEnd('<header></header><div class="ba-section">x</div>', 17), 48);
+$check('sizes: picture of a blog/store list = a grid cell', Speedup::sizes('<div class="ba-grid-column-wrapper ba-col-12"><div class="ba-blog-post-image"><a href="/p">', 90, true), 'auto, (max-width: 768px) 100vw, 400px');
+$check('sizes: after a list picture, back to the column', Speedup::sizes('<div class="ba-col-12"><div class="ba-blog-post-image"><a href="/p"><img></a></div></div><div class="x">', 104, false), '(max-width: 768px) 100vw, 100vw');
+$check('srcset escaped', str_contains(Speedup::images('<header></header><div class="ba-section"></div><div class="ba-section"><img src="/images/photo-q.jpg"></div>', $site, $dimsOf,
+    fn ($u) => ['srcset' => '/a b.webp 480w"x'], true), 'srcset="/a b.webp 480w&quot;x"'), true);
+$ic = Speedup::iconStyles($page);
+$check('icons: icon style sheet loads alongside', str_contains($ic, '<link rel="stylesheet" href="/templates/gridbox/library/icons/fontawesome/fontawesome.css" media="print" onload="this.media=\'all\'"><noscript><link rel="stylesheet" href="/templates/gridbox/library/icons/fontawesome/fontawesome.css"></noscript>'), true);
+$check('icons: other style sheets unchanged', str_contains($ic, '<link rel="stylesheet" href="/templates/gridbox/css/gridbox.css">'), true);
+$check('icons: idempotent', Speedup::iconStyles($ic), $ic);
+$check('icons: body links untouched', Speedup::iconStyles('<body><link rel="stylesheet" href="/x/fontawesome.css"></body>'), '<body><link rel="stylesheet" href="/x/fontawesome.css"></body>');
+
+// ---------------------------------------------------------------- 0.0.29: background pictures
+$bgCopies = fn (string $u) => str_contains($u, 'slide') ? ['srcset' => '/m/s-480.webp 480w, /m/s-768.webp 768w, /m/s-1080.webp 1080w, /m/s-1500.webp 1500w'] : null;
+$bg = '<html><head></head><body><div class="ba-slideshow-img" data-src="https://www.merserwis.pl/images/slide.jpg" style="background-image: url(https://www.merserwis.pl/images/slide.jpg);"></div>'
+    . '<div class="x" style="background-image: url(&quot;/images/other.jpg&quot;)"></div><div style="background-image: url(https://cdn.example.com/slide.jpg)"></div></body></html>';
+$bo = Speedup::backgrounds($bg, $site, $bgCopies);
+$vars = [];
+$bo = Speedup::backgrounds($bg, $site, $bgCopies, $vars);
+$check('bg: style gets the full-width copy, marker at the end', str_contains($bo, '<div class="ba-slideshow-img" data-src="/m/s-1500.webp" style="background-image: url(/m/s-1500.webp);" data-mt-bg="1">'), true);
+$check('bg: variants for a preload', $vars, ['/m/s-1500.webp' => [768 => '/m/s-768.webp', 480 => '/m/s-480.webp']]);
+$pl = Speedup::preloadImage('<title>T</title>', '/m/s-1500.webp', $vars['/m/s-1500.webp']);
+$check('bg: preload per screen', $pl, '<title>T</title><link rel="preload" as="image" href="/m/s-1500.webp" media="(min-width:769px)" fetchpriority="high"><link rel="preload" as="image" href="/m/s-768.webp" media="(min-width:481px) and (max-width:768px)" fetchpriority="high"><link rel="preload" as="image" href="/m/s-480.webp" media="(max-width:480px)" fetchpriority="high">');
+$mp = '<title>T</title></head><body><div class="slideshow-content lazy-load-image"> <li class="item active"><div class="ba-slideshow-img" data-src="/images/slide.jpg" style="background-image: url(/images/slide.jpg);"></div></li>';
+[$mpo, $mph] = Speedup::mainPhoto(Speedup::backgrounds($mp, $site, $bgCopies));
+$check('bg + main photo: main photo still found, now the copy', $mph, '/m/s-1500.webp');
+$check('bg: phone rules', str_contains($bo, '<style id="mertools-bg">@media (max-width:768px){[data-mt-bg="1"]{background-image:url("/m/s-768.webp")!important}}@media (max-width:480px){[data-mt-bg="1"]{background-image:url("/m/s-480.webp")!important}}</style></head>'), true);
+$check('bg: without copies unchanged', str_contains($bo, '<div class="x" style="background-image: url(&quot;/images/other.jpg&quot;)"></div>'), true);
+$check('bg: other site unchanged', str_contains($bo, '<div style="background-image: url(https://cdn.example.com/slide.jpg)"></div>'), true);
+$check('bg: idempotent', Speedup::backgrounds($bo, $site, $bgCopies), $bo);
+$check('bg: nothing to do = same page', Speedup::backgrounds('<head></head><div style="color:red"></div>', $site, $bgCopies), '<head></head><div style="color:red"></div>');
+$check('bg: quoted url', str_contains(Speedup::backgrounds('<head></head><div style="background-image: url(\'/images/slide.png\')"></div>', $site, $bgCopies), "url('/m/s-1500.webp')"), true);
+
 // ---------------------------------------------------------------- header backgrounds
 $h = '<div class="lazy-load-image x"></div><header class="header"><div class="ba-section row-fluid lazy-load-image" id="a"></div><div class="lazy-load-image"></div></header><div class="lazy-load-image"></div>';
 $check('header backgrounds shown, others kept', Speedup::headerBackgrounds($h),

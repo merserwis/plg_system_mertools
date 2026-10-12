@@ -37,38 +37,67 @@ final class Speedup
     // ---------------------------------------------------------------- images
 
     /**
-     * Gridbox's script-loaded images of this site: real address and size now, the browser's own
-     * lazy loading below the header. Tracking pixels, hidden images and other sites are left alone.
+     * The images of this site: shown without waiting and without the page jumping.
      *
-     * @param string   $html
-     * @param string   $siteBase  "https://www.merserwis.pl" (scheme and host, no slash)
-     * @param callable $size      fn(string $url): ?array [width, height] of a local image
+     *  - Gridbox's script-loaded images (lazy loading on in Gridbox) get their real address at once;
+     *  - every image gets its real proportions (aspect-ratio; Gridbox's own width="100" height="100"
+     *    stay, its CSS sizes images by them), so nothing below moves when it arrives;
+     *  - the header (its first HEADER_EAGER images) and the first section of the page (its first
+     *    ZONE_EAGER images) load at once, the largest of them first (fetchpriority); every image
+     *    further down waits until the visitor scrolls near it (the browser's own lazy loading);
+     *  - with $copies: lighter copies in the size of the screen (srcset), and for a heavy animated
+     *    GIF at the top ($gif) its first frame at once, the animation after the page has loaded.
+     *
+     * Tracking pixels, hidden images and images of other sites are left alone.
+     *
+     * @param string        $html
+     * @param string        $siteBase "https://www.merserwis.pl" (scheme and host, no slash)
+     * @param callable      $size     fn(string $url): ?array [width, height] of a local image
+     * @param callable|null $copies   fn(string $url): ?array ImageOptimizer::lookup()
+     * @param bool          $plain    also images Gridbox does not load by script (lazy loading off in Gridbox)
+     * @param bool          $gif      a heavy animated GIF at the top: first frame first
      */
-    public static function images(string $html, string $siteBase, callable $size): string
+    public static function images(string $html, string $siteBase, callable $size, ?callable $copies = null, bool $plain = false, bool $gif = false): string
     {
         $headerStart = stripos($html, '<header');
         $headerEnd   = stripos($html, '</header>');
+        $header      = $headerStart !== false && $headerEnd !== false && $headerEnd > $headerStart;
+        $zoneEnd     = self::firstSectionEnd($html, $header ? $headerEnd : 0);
         $eagerLeft   = self::HEADER_EAGER;
+        $zoneLeft    = self::ZONE_EAGER;
+        $priority    = !preg_match('#\sfetchpriority="high"#i', $html);
+        $animated    = false;
 
-        return (string) preg_replace_callback('#<img\b[^>]*\bdata-gridbox-lazyload-src="([^"]+)"[^>]*>#i',
-            function (array $m) use ($siteBase, $size, $headerStart, $headerEnd, &$eagerLeft) {
-                [$tag, $src] = [$m[0][0], html_entity_decode($m[1][0], ENT_QUOTES)];
-                $offset = $m[0][1];
-                if (preg_match('#display\s*:\s*none|\bwidth="1"|\bheight="1"#i', $tag) || !self::isLocal($src, $siteBase)) {
+        $html = (string) preg_replace_callback('#<img\b[^>]*>#i',
+            function (array $m) use ($siteBase, $size, $copies, $plain, $gif, $header, $headerStart, $headerEnd, $zoneEnd, &$eagerLeft, &$zoneLeft, &$priority, &$animated, &$html) {
+                [$tag, $offset] = $m[0];
+                $lazySrc = preg_match('#\sdata-gridbox-lazyload-src="([^"]+)"#i', $tag, $ls) ? $ls[1] : null;
+                if ($lazySrc === null && (!$plain || !preg_match('#\ssrc="([^"]+)"#i', $tag, $ps))) {
                     return $tag;
                 }
-                $inHeader = $headerStart !== false && $headerEnd !== false && $offset > $headerStart && $offset < $headerEnd;
-                // the header: its first pictures (logo, badges) at once; the rest are mostly menu pictures,
-                // hidden until the menu opens, which Gridbox loads at the right moment: left to Gridbox
-                if ($inHeader && $eagerLeft-- <= 0) {
+                $raw = $lazySrc ?? $ps[1];
+                $src = html_entity_decode($raw, ENT_QUOTES);
+                if (str_starts_with($src, 'data:') || preg_match('#display\s*:\s*none|\bwidth="1"|\bheight="1"#i', $tag) || !self::isLocal($src, $siteBase)) {
                     return $tag;
                 }
-                $eager = $inHeader;
+                $inHeader = $header && $offset > $headerStart && $offset < $headerEnd;
+                if ($inHeader) {
+                    // the header: its first pictures (logo, badges) at once; the rest are mostly menu pictures,
+                    // hidden until the menu opens, which Gridbox loads at the right moment: left to Gridbox
+                    if ($eagerLeft-- <= 0) {
+                        return $tag;
+                    }
+                    $eager = true;
+                } else {
+                    $eager = $zoneEnd > 0 && $offset < $zoneEnd && $zoneLeft-- > 0;
+                }
 
-                $tag = preg_replace('#\ssrc="[^"]*"#i', ' src="' . $m[1][0] . '"', $tag, 1);
-                $tag = preg_replace('#\sdata-gridbox-lazyload-src="[^"]*"#i', '', $tag);
-                $tag = preg_replace('#\sdata-gridbox-lazyload-srcset="([^"]*)"#i', ' srcset="$1"', $tag);
-                $tag = self::removeClass($tag, 'lazy-load-image');
+                if ($lazySrc !== null) {
+                    $tag = preg_replace('#\ssrc="[^"]*"#i', ' src="' . $raw . '"', $tag, 1);
+                    $tag = preg_replace('#\sdata-gridbox-lazyload-src="[^"]*"#i', '', $tag);
+                    $tag = preg_replace('#\sdata-gridbox-lazyload-srcset="([^"]*)"#i', ' srcset="$1"', $tag);
+                    $tag = self::removeClass($tag, 'lazy-load-image');
+                }
 
                 // Gridbox's width="100" height="100" stay: its CSS (img[width="100"][height="100"] {height: auto;
                 // width: auto}) sizes the picture by them, other sizes would stretch it. The real proportions
@@ -84,15 +113,194 @@ final class Speedup
                         $tag = preg_replace('#^<img\b#i', '<img style="' . $ratio . '"', $tag);
                     }
                 }
-                if (!preg_match('#\sloading=#i', $tag)) {
-                    $tag = preg_replace('#^<img\b#i', '<img loading="' . ($eager ? 'eager' : 'lazy') . '"', $tag);
+                if ($lazySrc !== null) {
+                    if (!preg_match('#\sloading=#i', $tag)) {
+                        $tag = preg_replace('#^<img\b#i', '<img loading="' . ($eager ? 'eager' : 'lazy') . '"', $tag);
+                    }
+                    if (!preg_match('#\sdecoding=#i', $tag)) {
+                        $tag = preg_replace('#^<img\b#i', '<img decoding="async"', $tag);
+                    }
+                } elseif (!$eager && !preg_match('#\sloading=#i', $tag)) {
+                    $tag = self::addAttr($tag, 'loading', 'lazy');
+                    if (!preg_match('#\sdecoding=#i', $tag)) {
+                        $tag = self::addAttr($tag, 'decoding', 'async');
+                    }
                 }
-                if (!preg_match('#\sdecoding=#i', $tag)) {
-                    $tag = preg_replace('#^<img\b#i', '<img decoding="async"', $tag);
+
+                // lighter copies; the first frame of a heavy animated GIF at the top
+                $info = $copies ? $copies($src) : null;
+                if ($info && !preg_match('#\ssrcset=#i', $tag)) {
+                    if ($gif && $eager && !$inHeader && isset($info['frame'], $info['anim'])) {
+                        $tag      = self::addAttr($tag, 'srcset', $info['frame']);
+                        $tag      = self::addAttr($tag, 'sizes', self::sizes($html, $offset, false));
+                        $tag      = self::addAttr($tag, 'data-mt-anim', $info['anim']);
+                        $animated = true;
+                    } elseif (isset($info['srcset'])) {
+                        $tag = self::addAttr($tag, 'srcset', $info['srcset']);
+                        $tag = self::addAttr($tag, 'sizes', self::sizes($html, $offset, !$eager));
+                    }
+                }
+                // the largest picture at the top is usually what the visitor waits for: fetched first
+                if ($eager && !$inHeader && $priority && $dims && $dims[0] * $dims[1] >= 40000 && !preg_match('#\sfetchpriority=#i', $tag)) {
+                    $tag      = self::addAttr($tag, 'fetchpriority', 'high');
+                    $priority = false;
                 }
 
                 return $tag;
             }, $html, -1, $count, PREG_OFFSET_CAPTURE);
+
+        if ($animated) {
+            $html = self::beforeBodyEnd($html, self::ANIMATION_SCRIPT);
+        }
+
+        return $html;
+    }
+
+    /** the first section of the page: so many of its images load at once */
+    public const ZONE_EAGER = 4;
+
+    /** a heavy GIF shows its first frame first; its animation is loaded when the page has loaded and the browser is idle */
+    private const ANIMATION_SCRIPT = '<script data-cfasync="false">(function(w,d){function go(){d.querySelectorAll("img[data-mt-anim]").forEach(function(i){'
+        . 'var u=i.getAttribute("data-mt-anim"),n=new Image();i.removeAttribute("data-mt-anim");'
+        . 'n.onload=function(){i.removeAttribute("srcset");i.removeAttribute("sizes");i.src=u};n.src=u})}'
+        . 'function later(){w.requestIdleCallback?w.requestIdleCallback(go,{timeout:2000}):setTimeout(go,200)}'
+        . 'd.readyState==="complete"?later():w.addEventListener("load",later)})(window,document);</script>';
+
+    /**
+     * Where the first section of the page content ends (the start of the second Gridbox section
+     * after $from, the end of the header); 0 when the page has no Gridbox sections there. A page
+     * with a single section counts as one long first section (ZONE_EAGER still limits it).
+     */
+    public static function firstSectionEnd(string $html, int $from): int
+    {
+        // "ba-section" as a whole class (not ba-section-items, the inner wrapper of every section)
+        if (!preg_match_all('#<div\b[^>]*\bclass="(?:[^"]*\s)?ba-section(?=[\s"])#i', $html, $sec, PREG_OFFSET_CAPTURE, $from)) {
+            return 0;
+        }
+
+        return isset($sec[0][1]) ? (int) $sec[0][1][1] : \strlen($html);
+    }
+
+    /**
+     * The sizes attribute of a picture: the whole screen width on phones, else the share of its
+     * Gridbox column (ba-col-N of 12, at least a third of the usual 1200 px content width; a full
+     * column: the whole screen). Lazy images let the browser measure them ("auto").
+     */
+    public static function sizes(string $html, int $offset, bool $lazy): string
+    {
+        $before = substr($html, max(0, $offset - 8000), min($offset, 8000));
+        $span   = preg_match_all('#\bba-col-(\d{1,2})\b#', $before, $c) ? (int) end($c[1]) : 12;
+        $wide   = $span >= 12 || $span < 1 ? '100vw' : (int) round(max($span, 4) / 12 * 1200) . 'px';
+        // a picture of a blog or store list (a grid of posts or products: its columns are set in CSS)
+        if (preg_match('#class="ba-blog-post-image\b[^"]*"[^>]*>(?:(?!</div>).){0,400}$#s', $before)) {
+            $wide = '400px';
+        }
+
+        return ($lazy ? 'auto, ' : '') . '(max-width: 768px) 100vw, ' . $wide;
+    }
+
+    /**
+     * Background pictures given in the page (style="background-image: url(…)", e.g. the slides of a
+     * Gridbox slideshow): a background has no srcset, so the style gets the lighter WebP copy at the
+     * picture's own width, and phones (screens up to 768 / 480 px) get a smaller copy through a
+     * media rule (data-mt-bg="n"). The same address in data-src (Gridbox loads slides from it) is
+     * replaced too. Pictures without copies (yet) and of other sites stay as they are.
+     *
+     * @param callable $copies   fn(string $url): ?array ImageOptimizer::lookup()
+     * @param array    $variants filled: full-width copy => [768 => copy, 480 => copy] (for a preload of the same picture)
+     */
+    public static function backgrounds(string $html, string $siteBase, callable $copies, array &$variants = []): string
+    {
+        $rules = [];
+        $n     = 0;
+        $html  = (string) preg_replace_callback('#<[a-z][a-z0-9-]*\b[^>]*\sstyle="[^"]*background-image:\s*url\(([^)]+)\)[^"]*"[^>]*>#i',
+            function (array $m) use ($siteBase, $copies, &$rules, &$n, &$variants) {
+                $tag = $m[0];
+                if (str_contains($tag, 'data-mt-bg=')) {
+                    return $tag;
+                }
+                $raw = trim($m[1], " \t'\"");
+                $raw = (string) preg_replace('#^(&quot;|&\#0?39;)|(&quot;|&\#0?39;)$#', '', $raw);
+                $src = html_entity_decode($raw, ENT_QUOTES);
+                if (!self::isLocal($src, $siteBase) || !preg_match('#\.(jpe?g|png)(?:[?\#]|$)#i', $src)) {
+                    return $tag;
+                }
+                $info = $copies($src);
+                if (!$info || empty($info['srcset']) || !preg_match_all('#(\S+) (\d+)w#', $info['srcset'], $c, PREG_SET_ORDER)) {
+                    return $tag;
+                }
+                $byWidth = [];
+                foreach ($c as $x) {
+                    $byWidth[(int) $x[2]] = $x[1];
+                }
+                ksort($byWidth);
+                $pick = function (int $min) use ($byWidth): string {
+                    foreach ($byWidth as $w => $u) {
+                        if ($w >= $min) {
+                            return $u;
+                        }
+                    }
+
+                    return end($byWidth);
+                };
+                $full = end($byWidth);
+                $id   = (string) ++$n;
+                $tag  = str_replace('url(' . $m[1] . ')', 'url(' . str_replace($raw, $full, $m[1]) . ')', $tag);
+                $tag  = preg_replace('#\sdata-src="' . preg_quote($raw, '#') . '"#', ' data-src="' . $full . '"', $tag);
+                // at the end of the tag: Gridbox's own markup stays as other tools expect it
+                $tag = self::addAttr($tag, 'data-mt-bg', $id);
+                foreach ([768 => 768, 480 => 480] as $screen => $min) {
+                    $u                       = $pick($min);
+                    $variants[$full][$screen] = $u;
+                    if ($u !== $full) {
+                        $rules[$screen][] = '[data-mt-bg="' . $id . '"]{background-image:url("' . str_replace('"', '%22', $u) . '")!important}';
+                    }
+                }
+
+                return $tag;
+            }, $html);
+        if (!$rules) {
+            return $html;
+        }
+        $css = '';
+        foreach ([768, 480] as $screen) {
+            if (!empty($rules[$screen])) {
+                $css .= '@media (max-width:' . $screen . 'px){' . implode('', $rules[$screen]) . '}';
+            }
+        }
+        $pos = stripos($html, '</head>');
+
+        return $pos === false ? $html : substr_replace($html, '<style id="mertools-bg">' . $css . '</style>', $pos, 0);
+    }
+
+    /**
+     * Style sheets of icon fonts (Font Awesome, Material Icons, Gridbox's icon libraries…) do not
+     * hold back the first paint: they load alongside and apply when they arrive (the icons appear a
+     * moment later); a <noscript> copy keeps them for browsers without JavaScript.
+     */
+    public static function iconStyles(string $html): string
+    {
+        $head = stripos($html, '</head>');
+        if ($head === false) {
+            return $html;
+        }
+        $head = substr($html, 0, $head);
+        $part = (string) preg_replace_callback('#<link\b[^>]*>#i', function (array $m) use ($head) {
+            [$tag, $at] = $m[0];
+            // the <noscript> copy of an earlier pass stays as it is
+            if (str_ends_with(substr($head, max(0, $at - 10), min($at, 10)), '<noscript>')) {
+                return $tag;
+            }
+            if (!preg_match('#\srel="stylesheet"#i', $tag) || preg_match('#\smedia=|\sonload=#i', $tag)
+                || !preg_match('#\shref="([^"]*(?:/icons?/|font-?awesome|material-?(?:icons|design)?|icomoon|line-?awesome|bootstrap-icons)[^"]*)"#i', $tag)) {
+                return $tag;
+            }
+            $async = preg_replace('#\s*/?>$#', '', $tag) . ' media="print" onload="this.media=\'all\'">';
+
+            return $async . '<noscript>' . $tag . '</noscript>';
+        }, $head, -1, $count, PREG_OFFSET_CAPTURE);
+
+        return $part . substr($html, \strlen($head));
     }
 
     /**
@@ -130,10 +338,20 @@ final class Speedup
         return [substr_replace($html, $fixed, $m[0][1], \strlen($whole)), html_entity_decode($m[2][0], ENT_QUOTES)];
     }
 
-    /** A preload of the main picture, right after <title> (or at the end of the head). */
-    public static function preloadImage(string $html, string $url): string
+    /**
+     * A preload of the main picture, right after <title> (or at the end of the head). With $phone
+     * ([768 => copy, 480 => copy], see backgrounds()) each screen preloads the copy it will show.
+     */
+    public static function preloadImage(string $html, string $url, array $phone = []): string
     {
-        $link = '<link rel="preload" as="image" href="' . htmlspecialchars($url, ENT_QUOTES) . '" fetchpriority="high">';
+        $esc  = fn (string $u) => htmlspecialchars($u, ENT_QUOTES);
+        if (isset($phone[768], $phone[480])) {
+            $link = '<link rel="preload" as="image" href="' . $esc($url) . '" media="(min-width:769px)" fetchpriority="high">'
+                . '<link rel="preload" as="image" href="' . $esc($phone[768]) . '" media="(min-width:481px) and (max-width:768px)" fetchpriority="high">'
+                . '<link rel="preload" as="image" href="' . $esc($phone[480]) . '" media="(max-width:480px)" fetchpriority="high">';
+        } else {
+            $link = '<link rel="preload" as="image" href="' . $esc($url) . '" fetchpriority="high">';
+        }
         $pos  = stripos($html, '</title>');
         if ($pos !== false) {
             return substr_replace($html, $link, $pos + 8, 0);
@@ -307,6 +525,21 @@ final class Speedup
         }
 
         return stripos($url, rtrim($siteBase, '/') . '/') === 0;
+    }
+
+    /** An attribute added at the end of a tag (the value is HTML-escaped). */
+    private static function addAttr(string $tag, string $name, string $value): string
+    {
+        $attr = ' ' . $name . '="' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8', false) . '"';
+
+        return (string) preg_replace('#\s*(/?)>$#', $attr . '$1>', $tag, 1);
+    }
+
+    private static function beforeBodyEnd(string $html, string $code): string
+    {
+        $pos = strripos($html, '</body>');
+
+        return $pos === false ? $html . $code : substr_replace($html, $code, $pos, 0);
     }
 
     private static function removeClass(string $tag, string $class): string

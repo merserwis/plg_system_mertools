@@ -52,6 +52,7 @@ use Joomla\Event\SubscriberInterface;
 use Merserwis\Plugin\System\MerTools\Tool\CartCleaner;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\DbIndexes;
+use Merserwis\Plugin\System\MerTools\Tool\ImageOptimizer;
 use Merserwis\Plugin\System\MerTools\Tool\ImageSize;
 use Merserwis\Plugin\System\MerTools\Tool\Layout;
 use Merserwis\Plugin\System\MerTools\Tool\NotFound;
@@ -65,7 +66,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.28';
+    public const VERSION = '0.0.29';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
@@ -173,6 +174,72 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     private function dataCacheOn(): bool
     {
         return (bool) (int) $this->params->get('speed_cache_data', 1);
+    }
+
+    private function imageOptimizer(): ImageOptimizer
+    {
+        return new ImageOptimizer(JPATH_ROOT, Uri::getInstance()->toString(['scheme', 'host', 'port']), Uri::root(true), self::cacheBase());
+    }
+
+    /**
+     * After the response: the copies of pictures that pages have queued, a few seconds of work, at
+     * most every 15 s. Kept pages are emptied once new copies exist, so pages offer them (at most
+     * every 10 minutes while the queue is long, and when it is done).
+     */
+    private function imageWork(): void
+    {
+        $p = $this->params;
+        if (!(int) $p->get('speed_images', 1) || (!(int) $p->get('speed_webp', 1) && !(int) $p->get('speed_gif', 1)) || !ImageOptimizer::supported()) {
+            return;
+        }
+        $base  = self::cacheBase();
+        $queue = $base . '/mertools-images-queue.json';
+        if (!is_file($queue) || (int) @filesize($queue) < 5) {
+            return;
+        }
+        $gate = $base . '/mertools-img-tick';
+        if (is_file($gate) && (int) @filemtime($gate) > time() - 15) {
+            return;
+        }
+        @touch($gate);
+        $finished = $this->finishResponse();
+        try {
+            $images = $this->imageOptimizer();
+            if ($images->work($finished ? 8.0 : 1.5) > 0) {
+                $stamp = $base . '/mertools-img-purged';
+                if ($images->pending() === 0 || !is_file($stamp) || (int) @filemtime($stamp) < time() - 600) {
+                    @touch($stamp);
+                    $this->purgeKeptPages();
+                }
+            }
+        } catch (\Throwable $e) {
+            // tried again with the next page
+        }
+    }
+
+    /** The visitor gets the page now; the work after it goes on without them waiting (where PHP allows it). */
+    private function finishResponse(): bool
+    {
+        static $finished = null;
+        if ($finished === null) {
+            $finished = false;
+            if (\function_exists('fastcgi_finish_request')) {
+                $finished = (bool) @fastcgi_finish_request();
+            } elseif (\function_exists('litespeed_finish_request')) {
+                $finished = (bool) @litespeed_finish_request();
+            }
+        }
+
+        return $finished;
+    }
+
+    /** Pages kept by MerTools and by Joomla's page cache are emptied (they would offer old pictures). */
+    private function purgeKeptPages(): void
+    {
+        if ($this->pageCacheOn() || $this->dataCacheOn()) {
+            $this->pageCache()->purge();
+        }
+        self::cleanPageCache();
     }
 
     private function pageCache(): PageCache
@@ -504,6 +571,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $this->prunePageCache();
         }
         $this->dailyIndexCheck();
+        $this->imageWork();
         if (!$this->cartsOn()) {
             return;
         }
@@ -517,12 +585,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
 
         // the visitor has the page already; the work goes on without them waiting where PHP allows it
-        $finished = false;
-        if (\function_exists('fastcgi_finish_request')) {
-            $finished = @fastcgi_finish_request();
-        } elseif (\function_exists('litespeed_finish_request')) {
-            $finished = @litespeed_finish_request();
-        }
+        $finished = $this->finishResponse();
         try {
             $cleaner = $this->cartCleaner();
             if (!$cleaner->supported()) {
@@ -546,7 +609,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $input  = $app->getInput();
         $action = $input->getCmd('mertools_action', '');
         if (!\in_array($action, ['cart_stats', 'cart_check', 'cart_clean', 'speed_list', 'speed_save', 'speed_baseline', 'speed_delete',
-            'pcache_stats', 'pcache_clear', 'dbidx_status', 'dbidx_fix'], true)) {
+            'pcache_stats', 'pcache_clear', 'dbidx_status', 'dbidx_fix', 'img_stats', 'img_run', 'img_clear'], true)) {
             return;
         }
         $this->loadLanguage();
@@ -566,6 +629,28 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                     $this->sendJson(['success' => true] + $indexes->ensure());
                 }
                 $this->sendJson(['success' => true, 'status' => $indexes->status()]);
+            } catch (\Throwable $e) {
+                $this->sendJson(['success' => false, 'message' => $e->getMessage()]);
+            }
+        }
+        if (str_starts_with($action, 'img_')) {
+            try {
+                $images = $this->imageOptimizer();
+                if ($action === 'img_run') {
+                    if (!ImageOptimizer::supported()) {
+                        $this->sendJson(['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_IMG_UI_NO_GD')]);
+                    }
+                    @set_time_limit(60);
+                    if ($images->work(20.0) > 0) {
+                        $this->purgeKeptPages();
+                    }
+                } elseif ($action === 'img_clear') {
+                    $images->clear();
+                    // kept pages point at the removed copies
+                    $this->purgeKeptPages();
+                    $images = $this->imageOptimizer();
+                }
+                $this->sendJson(['success' => true, 'stats' => $images->stats() + ['supported' => ImageOptimizer::supported()]]);
             } catch (\Throwable $e) {
                 $this->sendJson(['success' => false, 'message' => $e->getMessage()]);
             }
@@ -730,22 +815,45 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     /** The faster-first-view tools that are switched on, applied to the finished page. */
     private function speedup(string $html): string
     {
-        $p = $this->params;
+        $p          = $this->params;
+        $bgVariants = [];
         try {
             $site = Uri::getInstance()->toString(['scheme', 'host', 'port']);
             if ((int) $p->get('speed_show', 1)) {
                 $html = Speedup::showAtOnce($html);
             }
+            if ((int) $p->get('speed_icons', 1)) {
+                $html = Speedup::iconStyles($html);
+            }
             if ((int) $p->get('speed_images', 1)) {
-                $sizes = new ImageSize(JPATH_ROOT, $site, Uri::root(true), self::cacheBase() . '/mertools-image-sizes.json');
-                $html  = Speedup::images($html, $site, fn (string $url) => $sizes->get($url));
-                $html  = Speedup::headerBackgrounds($html);
+                $sizes  = new ImageSize(JPATH_ROOT, $site, Uri::root(true), self::cacheBase() . '/mertools-image-sizes.json');
+                $webp   = (int) $p->get('speed_webp', 1) === 1;
+                $gif    = (int) $p->get('speed_gif', 1) === 1;
+                $copies = null;
+                $images = ($webp || $gif) && ImageOptimizer::supported() ? $this->imageOptimizer() : null;
+                if ($images) {
+                    // only what is switched on is looked up (and queued)
+                    $copies = function (string $url) use ($images, $webp, $gif): ?array {
+                        $isGif = (bool) preg_match('#\.gif(?:[?\#]|$)#i', $url);
+                        if ($isGif ? !$gif : !$webp) {
+                            return null;
+                        }
+
+                        return $images->lookup($url);
+                    };
+                }
+                $html = Speedup::images($html, $site, fn (string $url) => $sizes->get($url), $copies, true, $gif);
+                $html = Speedup::headerBackgrounds($html);
+                if ($copies && $webp) {
+                    $html = Speedup::backgrounds($html, $site, $copies, $bgVariants);
+                }
                 $sizes->save();
+                $images?->save();
             }
             if ((int) $p->get('speed_mainphoto', 1)) {
                 [$html, $photo] = Speedup::mainPhoto($html);
                 if ($photo) {
-                    $html = Speedup::preloadImage($html, $photo);
+                    $html = Speedup::preloadImage($html, $photo, $bgVariants[$photo] ?? []);
                 }
             }
             if ((int) $p->get('speed_video', 1)) {

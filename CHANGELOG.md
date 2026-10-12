@@ -2,6 +2,28 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.29 (Beta) — 2026-10-12
+
+### ⚡ Faster pages on any Gridbox site (tab *Page speed*)
+
+Measured on the home page of merdroid.pl (Lighthouse, phone, median of 3): **score 69 → 86, LCP 15.5 s → 3.7 s, FCP 3.0 s → 2.6 s**. The page had no Gridbox lazy loading, so MerTools did nothing to its images until now; it downloaded all six of them (3.4 MB, one of them a 1.4 MB animated GIF at the top) at once, and the picture the visitor waits for arrived last.
+
+- **Images without waiting and without jumping — now for every image.** Until now only images of Gridbox's own lazy loading were handled. Now every image of the site gets its proportions from the file (no layout shift when it arrives), the header and the first section of the page (up to 4 images) load at once with the largest of them first (`fetchpriority="high"`), and every image further down waits until the visitor scrolls near it (`loading="lazy"`). Sites with Gridbox's lazy loading on now also load the images of the first section at once instead of lazily.
+- **New: images in the size of the screen (WebP)**, on by default. MerTools makes lighter WebP copies of every JPEG and PNG of the site in a few widths (480 – 1920 px, never wider than the original) and the page offers them (`srcset`/`sizes`, from the Gridbox column the picture is in); each browser takes the one that fits its screen — on merdroid.pl the photos went from 300–400 KB to 25–60 KB on a phone. The copies are made by PHP's GD after the page has gone to the visitor, a few at a time, so nobody waits; they live in `media/mertools-img`, the originals are never changed, and a changed original gets new copies under a new name. Small pictures (under 300 px or 20 KB) are left as they are.
+- **Background pictures too:** pictures given as a background in the page (the slides of Gridbox slideshows and post sliders) get the lighter copy, and phones a smaller one through a media rule. The main product photo is preloaded in the size each screen will show.
+- **New: heavy GIF animations — first frame at once**, on by default. An animated GIF at the top of a page (over 150 KB) shows its first frame at once as a small WebP image (13 KB instead of 1.4 MB on merdroid.pl) and the animation is loaded when the page has loaded. A GIF converted to animated WebP and put next to it under the same name (`animation.webp` beside `animation.gif`) is used for the animation instead.
+- **New: icon styles without holding up the page**, on by default. The style sheets of icon fonts (Font Awesome, Material Icons, Gridbox's icon libraries) load alongside the page: text and pictures appear sooner, the icons a moment later.
+- **Image copies panel:** pictures with copies, waiting ones, the space the copies take, *Make copies now* and *Remove all copies*. Removing the copies or making new ones empties the kept pages, so no page points at a missing file. Uninstalling MerTools removes the copies.
+- Updating MerTools now empties the pages kept by MerTools as well, so the new version applies at once.
+
+### ❓ Help tooltips in the settings
+
+- Every option has a **?** beside its name: hover it, focus it with the keyboard or click it to read what the option does. The explanation moves into the tooltip, so the settings are shorter. Options that had no explanation (the panels, the colours of a custom dark palette) got one.
+
+### 🐞 Fixes
+
+- No PHP 8.5 deprecation notices from the image tools (`imagedestroy()` is not used).
+
 ## 0.0.28 (Beta) — 2026-10-09
 
 ### 🛠 Tabs as sections on phones: fixes

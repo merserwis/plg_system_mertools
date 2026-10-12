@@ -53,6 +53,15 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
             }
         } catch (\Throwable $e) {
         }
+        // the lighter copies of the site's pictures (media/mertools-img) and their list
+        $dir = JPATH_ROOT . '/media/mertools-img';
+        if (is_dir($dir)) {
+            foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::CHILD_FIRST) as $f) {
+                $f->isDir() ? @rmdir($f->getPathname()) : @unlink($f->getPathname());
+            }
+            @rmdir($dir);
+        }
 
         return true;
     }
@@ -94,6 +103,17 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
                     ->createCacheController('callback', ['defaultgroup' => 'page',
                         'cachebase' => ((string) Factory::getApplication()->get('cache_path', '')) ?: (\defined('JPATH_CACHE') ? JPATH_CACHE : JPATH_ADMINISTRATOR . '/cache')])
                     ->clean('page');
+            } catch (\Throwable $e) {
+            }
+            // and the pages kept by MerTools itself: the new version may change the pages it serves
+            try {
+                $path = (string) Factory::getApplication()->get('cache_path', '');
+                $base = $path === '' ? (\defined('JPATH_CACHE') ? JPATH_CACHE : JPATH_ADMINISTRATOR . '/cache')
+                    : (preg_match('#^(/|[A-Za-z]:[\\\\/])#', $path) ? $path : JPATH_ROOT . '/' . $path);
+                $dir  = rtrim($base, '/\\') . '/mertools_page';
+                if (is_dir($dir)) {
+                    @file_put_contents($dir . '/purged', sprintf('%.6F', microtime(true)), LOCK_EX);
+                }
             } catch (\Throwable $e) {
             }
         }
