@@ -110,6 +110,16 @@ $pages->clear();
 $check('clear: folder gone', is_dir($root . '/media/mertools-img') && (new FilesystemIterator($root . '/media/mertools-img'))->valid(), false);
 $check('clear: nothing ready', (new ImageOptimizer($root, $site, '', $cache, 1000))->lookup('/images/sub/alpha.png'), null);
 
+$check('allowed: images folder', ImageOptimizer::allowed('images/a/b.jpg'), true);
+$check('allowed: media folder', ImageOptimizer::allowed('media/x.png'), true);
+$check('allowed: administrator refused', ImageOptimizer::allowed('administrator/x.jpg'), false);
+$check('allowed: cache refused', ImageOptimizer::allowed('cache/x.jpg'), false);
+$check('allowed: root file refused', ImageOptimizer::allowed('x.jpg'), false);
+$check('allowed: hidden folder refused', ImageOptimizer::allowed('images/.private/x.jpg'), false);
+$check('allowed: hidden file refused', ImageOptimizer::allowed('images/.x.jpg'), false);
+$check('relative: protected folder gives null', (new ImageOptimizer($root, $site, '', $cache))->relative('/administrator/x.jpg'), null);
+$check('relative: public folder', (new ImageOptimizer($root, $site, '', $cache))->relative('/images/sub/alpha.png'), 'images/sub/alpha.png');
+
 exec('rm -rf ' . escapeshellarg($root));
 echo $fail ? "\n$fail FAILED\n" : "\nALL PASS\n";
 exit($fail ? 1 : 0);

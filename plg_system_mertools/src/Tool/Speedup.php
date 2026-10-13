@@ -93,7 +93,8 @@ final class Speedup
                 }
 
                 if ($lazySrc !== null) {
-                    $tag = preg_replace('#\ssrc="[^"]*"#i', ' src="' . $raw . '"', $tag, 1);
+                    // the address comes from the page: "$1" or "\\" in it would be read as a back-reference
+                    $tag = preg_replace('#\ssrc="[^"]*"#i', ' src="' . strtr($raw, ['\\' => '\\\\', '$' => '\\$']) . '"', $tag, 1);
                     $tag = preg_replace('#\sdata-gridbox-lazyload-src="[^"]*"#i', '', $tag);
                     $tag = preg_replace('#\sdata-gridbox-lazyload-srcset="([^"]*)"#i', ' srcset="$1"', $tag);
                     $tag = self::removeClass($tag, 'lazy-load-image');
@@ -292,7 +293,7 @@ final class Speedup
                 return $tag;
             }
             if (!preg_match('#\srel="stylesheet"#i', $tag) || preg_match('#\smedia=|\sonload=#i', $tag)
-                || !preg_match('#\shref="([^"]*(?:/icons?/|font-?awesome|material-?(?:icons|design)?|icomoon|line-?awesome|bootstrap-icons)[^"]*)"#i', $tag)) {
+                || !preg_match('#\shref="([^"]*(?:/icons?/|font-?awesome|material-?(?:icons|design-?icons)|icomoon|line-?awesome|bootstrap-icons)[^"]*)"#i', $tag)) {
                 return $tag;
             }
             $async = preg_replace('#\s*/?>$#', '', $tag) . ' media="print" onload="this.media=\'all\'">';

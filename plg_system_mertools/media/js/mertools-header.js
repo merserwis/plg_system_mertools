@@ -28,7 +28,9 @@
     busy = true;
     var icons = document.querySelectorAll('[data-mertools-clear-cache] .header-item-icon span');
     icons.forEach(function (i) { i.className = 'icon-spinner icon-spin'; });
-    fetch(cfg.url, { method: 'POST', credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+    var body = new FormData();
+    if (cfg.token) { body.append(cfg.token, '1'); }
+    fetch(cfg.url, { method: 'POST', body: body, credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
       .then(function (r) { return r.json(); })
       .then(function (r) {
         if (!r || !r.success) { throw new Error((r && r.message) || cfg.error); }

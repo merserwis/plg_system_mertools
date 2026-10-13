@@ -67,12 +67,13 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.34';
+    public const VERSION = '0.0.35';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
 
-    protected $autoloadLanguage = true;
+    /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
+    protected $autoloadLanguage = false;
 
     /** a page of this request that may be kept: key, address, start time; 'ok' once the page qualified */
     private ?array $pageToStore = null;
@@ -159,7 +160,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             return;
         }
 
-        $restored = ProductLinks::restoredParams((string) $input->server->getRaw('QUERY_STRING', ''), $input->get->getArray());
+        $restored = ProductLinks::restoredParams((string) $input->server->getRaw('QUERY_STRING', ''), $_GET);
         foreach ($restored as $name => $value) {
             // Gridbox reads $input->get; anything that builds its own input from $_GET later sees them too
             $input->get->set($name, $value);
@@ -208,7 +209,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $finished = $this->finishResponse();
         try {
             $images = $this->imageOptimizer();
-            if ($images->work($finished ? 8.0 : 1.5) > 0) {
+            // while a visitor still waits (no fastcgi_finish_request): half a second and small pictures only
+            if ($images->work($finished ? 8.0 : 0.5, $finished ? ImageOptimizer::MAX_PIXELS : 4000000) > 0) {
                 $stamp = $base . '/mertools-img-purged';
                 if ($images->pending() === 0 || !is_file($stamp) || (int) @filemtime($stamp) < time() - 600) {
                     @touch($stamp);
@@ -265,16 +267,34 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if (!$this->pageCacheOn() && !$this->dataCacheOn()) {
             return;
         }
-        $app   = $this->getApplication();
-        $input = $app->getInput();
-        $user  = $app->getIdentity();
-        if (!PageCache::changes((string) $input->getMethod(), !$user || $user->guest, (string) $input->getCmd('option', ''), (string) $input->getString('task', ''))) {
+        $app    = $this->getApplication();
+        $input  = $app->getInput();
+        $user   = $app->getIdentity();
+        $guest  = !$user || $user->guest;
+        $method = strtoupper((string) $input->getMethod());
+        if (!PageCache::changes($method, $guest, (string) $input->getCmd('option', ''), (string) $input->getString('task', ''))) {
             return;
         }
-        $cache = $this->pageCache();
-        register_shutdown_function(static function () use ($cache): void {
+        $cache  = $this->pageCache();
+        $finish = fn () => $this->finishResponse();
+        register_shutdown_function(static function () use ($cache, $guest, $method, $finish): void {
             try {
-                $cache->purge();
+                // anybody can send the address of an order or payment step: for a guest it counts only
+                // when Gridbox answered as it does to a real one (a POST answered 2xx/3xx, or a 302/303
+                // redirect on — a 301 is the SEF plugin's, a 404 nothing done), and not more often than
+                // every 20 s: a loop of such requests must not keep the cache cold
+                if ($guest) {
+                    $code = (int) http_response_code();
+                    $real = $method === 'POST' ? ($code >= 200 && $code < 400) : ($code === 302 || $code === 303);
+                    if (!$real || $cache->purgedAt() > microtime(true) - 20) {
+                        return;
+                    }
+                }
+                // the time first (nothing older is served from now on); the files after the visitor has
+                // the answer
+                $cache->purge(false);
+                $finish();
+                $cache->removePurged();
             } catch (\Throwable $e) {
             }
         });
@@ -287,6 +307,12 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $input = $app->getInput();
         $user  = $app->getIdentity();
         if (($user && !$user->guest) || (!$this->pageCacheOn() && !$this->dataCacheOn())) {
+            return;
+        }
+        // a visitor with a cart, a wishlist, an own currency…: their pages and Gridbox's answers (prices in
+        // that currency) are their own, never kept and never served from what others got
+        $lines = fn (string $s) => array_filter(array_map('trim', preg_split('/\R/', $s) ?: []));
+        if (PageCache::hasCookie($_COOKIE, array_merge(PageCache::SKIP_COOKIES, $lines((string) $this->params->get('speed_cache_cookies', ''))))) {
             return;
         }
         $method = strtoupper((string) $input->getMethod());
@@ -307,10 +333,6 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $server = $input->server;
         if (stripos((string) $server->getString('HTTP_ACCEPT', ''), 'text/markdown') !== false || $input->get('output', '', 'cmd') !== ''
             || $input->get('markdown', '', 'cmd') !== '' || PageCache::cleanQuery((string) $server->getRaw('QUERY_STRING', '')) !== '') {
-            return;
-        }
-        $lines = fn (string $s) => array_filter(array_map('trim', preg_split('/\R/', $s) ?: []));
-        if (PageCache::hasCookie($_COOKIE, array_merge(PageCache::SKIP_COOKIES, $lines((string) $this->params->get('speed_cache_cookies', ''))))) {
             return;
         }
         $uri  = Uri::getInstance();
@@ -405,13 +427,20 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
 
         $started = (float) $server->getFloat('REQUEST_TIME_FLOAT', microtime(true));
+        $session = (string) $app->getSession()->getName();
+        $ttl     = $this->cacheTtl();
+        $max     = max(100, min(100000, (int) $this->params->get('speed_cache_max', 5000)));
         $buffer  = '';
-        ob_start(static function (string $chunk, int $phase) use (&$buffer, $cache, $key, $kind, $started): string {
+        ob_start(static function (string $chunk, int $phase) use (&$buffer, $cache, $key, $kind, $started, $session, $ttl, $max): string {
             $buffer .= $chunk;
             if ($phase & PHP_OUTPUT_HANDLER_FINAL) {
                 try {
-                    if (http_response_code() === 200 && PageCache::validData($kind, $buffer)) {
-                        $cache->write($key, ['kind' => 'data', 'time' => microtime(true)], $buffer, $started);
+                    // an answer that set a cookie (other than the session) may belong to this visitor
+                    if (http_response_code() === 200 && PageCache::validData($kind, $buffer) && PageCache::cookieCheck(headers_list(), $session) === 0
+                        && $cache->write($key, ['kind' => 'data', 'time' => microtime(true)], $buffer, $started) && random_int(1, 32) === 1) {
+                        // the address of these answers carries a free part (the time of the last change): a
+                        // flood of made-up addresses must not fill the disk before the hourly tidy-up
+                        $cache->prune($ttl, $max, microtime(true));
                     }
                 } catch (\Throwable $e) {
                 }
@@ -421,18 +450,22 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         });
     }
 
-    /** After the page has been sent: keep it, if it qualified and nothing in the answer speaks against it. */
-    private function storePage(): void
+    /**
+     * After the page has been sent: keep it, if it qualified and nothing in the answer speaks against it.
+     *
+     * @param int      $code    the response code, as sent
+     * @param string[] $headers headers_list(), as sent
+     */
+    private function storePage(int $code, array $headers): void
     {
         $store             = $this->pageToStore;
         $this->pageToStore = null;
-        if (!$store || empty($store['ok']) || http_response_code() !== 200) {
+        if (!$store || empty($store['ok']) || $code !== 200) {
             return;
         }
-        $app     = $this->getApplication();
-        $headers = headers_list();
-        $viewed  = PageCache::cookieCheck($headers, (string) $app->getSession()->getName());
-        $body    = (string) $app->getBody();
+        $app    = $this->getApplication();
+        $viewed = PageCache::cookieCheck($headers, (string) $app->getSession()->getName());
+        $body   = (string) ($store['body'] ?? '');
         if ($viewed === null || !PageCache::storable($body)) {
             return;
         }
@@ -486,7 +519,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if (is_file($gate) && (int) @filemtime($gate) > time() - 86400) {
             return;
         }
-        if (!@touch($gate) && is_file($gate)) {
+        if (!@touch($gate)) {
             return;
         }
         try {
@@ -494,12 +527,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             if (!\in_array('missing', array_column($indexes->status(), 'state'), true)) {
                 return;
             }
-            if (\function_exists('fastcgi_finish_request')) {
-                @fastcgi_finish_request();
-            } elseif (\function_exists('litespeed_finish_request')) {
-                @litespeed_finish_request();
-            }
+            $this->finishResponse();
             @ignore_user_abort(true);
+            @set_time_limit(300);
             $indexes->ensure();
         } catch (\Throwable $e) {
             // tried again the next day
@@ -567,8 +597,16 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if (!$app->isClient('site')) {
             return;
         }
+        // the visitor has the page: everything from here on (keeping the page, tidying up, pictures,
+        // carts) goes on after the response has been closed, where PHP allows it
+        $code    = (int) http_response_code();
+        $headers = headers_list();
+        if ($this->pageToStore || $this->pageCacheOn() || $this->dataCacheOn() || $this->indexesOn() || $this->cartsOn()
+            || (int) $this->params->get('speed_images', 1)) {
+            $this->finishResponse();
+        }
         if ($this->pageToStore) {
-            $this->storePage();
+            $this->storePage($code, $headers);
         }
         if ($this->pageCacheOn() || $this->dataCacheOn()) {
             $this->prunePageCache();
@@ -583,7 +621,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if (is_file($gate) && (int) @filemtime($gate) > $now - 3600) {
             return;
         }
-        if (!@touch($gate) && is_file($gate)) {
+        if (!@touch($gate)) {
+            // the cache folder cannot be written: no hourly work at all rather than on every request
             return;
         }
 
@@ -757,7 +796,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $this->loadLanguage();
         try {
             $document->addScriptOptions('plg_system_mertools.header', [
-                'url'   => Uri::base(true) . '/index.php?mertools_action=cache_clear_all&' . Session::getFormToken() . '=1',
+                'url'   => Uri::base(true) . '/index.php?mertools_action=cache_clear_all',
+                'token' => Session::getFormToken(),
                 'error' => Text::_('PLG_SYSTEM_MERTOOLS_HEADER_ERROR'),
             ]);
             $document->getWebAssetManager()->registerAndUseScript('plg_system_mertools.header', 'plg_system_mertools/mertools-header.js', [], ['defer' => true]);
@@ -807,7 +847,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                 $defaults = ['url_collapse_slashes' => 1, 'notfound_redirect' => 1, 'layout_clip_x' => 1, 'shop_option_links' => 1,
                     'cart_enabled' => 1, 'tel_enabled' => 1, 'dark_enabled' => 0, 'speed_show' => 1, 'speed_images' => 1, 'speed_mainphoto' => 1,
                     'speed_video' => 1, 'speed_video_phone' => 'none', 'speed_scripts' => 0, 'speed_cache' => 0, 'speed_cache_data' => 1,
-                    'speed_icons' => 1, 'speed_webp' => 1, 'speed_gif' => 1, 'speed_popups' => 1];
+                    'speed_icons' => 1, 'speed_webp' => 1, 'speed_gif' => 1, 'speed_popups' => 1, 'layout_post_rows' => 1, 'tabs_accordion' => 1, 'db_indexes' => 1];
                 $speed->save($m, self::VERSION, Speed::enabledTools($this->params->toArray(), $defaults), time());
             } elseif ($action === 'speed_baseline') {
                 $speed->setBaseline($input->post->getInt('id', 0));
@@ -912,10 +952,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $app->setBody($new);
         }
         if ($this->pageToStore) {
-            if (PageCache::storable($new)) {
-                // the page is kept as sent: Joomla would otherwise compress it before onAfterRespond
-                $this->pageToStore['ok'] = true;
-                $app->set('gzip', false);
+            // a message that came up while rendering is this visitor's; the page is kept as it is here,
+            // uncompressed (Joomla compresses the response afterwards; this listener is the last one)
+            if (PageCache::storable($new) && !$app->getMessageQueue()) {
+                $this->pageToStore['ok']   = true;
+                $this->pageToStore['body'] = $new;
             } else {
                 $this->pageToStore = null;
             }
@@ -1010,8 +1051,13 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $document->addStyleDeclaration(Layout::css());
         }
         if (Tabs::enabled($this->params)) {
+            $this->loadLanguage();
+            $texts = [];
+            foreach (Tabs::TEXTS as $key => $suffix) {
+                $texts[$key] = $this->translate('PLG_SYSTEM_MERTOOLS_' . $suffix);
+            }
             $document->addStyleDeclaration(Tabs::css());
-            $document->addScriptOptions('plg_system_mertools', ['tabs' => Tabs::jsConfig($this->params)]);
+            $document->addScriptOptions('plg_system_mertools', ['tabs' => Tabs::jsConfig($this->params, $texts)]);
             $wa->registerAndUseScript('plg_system_mertools.tabs', 'plg_system_mertools/mertools-tabs.js', [], ['defer' => true]);
         }
         if (Phones::enabled($this->params)) {
@@ -1022,6 +1068,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if (!(int) $this->params->get('dark_enabled', 0)) {
             return;
         }
+        $this->loadLanguage();
 
         // the theme has to be set before the first paint, so this inline script goes in the head first
         // (exclude-deffer: Gridbox's deferred loading would otherwise move it to the end of the page)
@@ -1061,13 +1108,17 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
      */
     public static function cacheBase(): string
     {
+        static $base = null;
+        if ($base !== null) {
+            return $base;
+        }
         try {
             $path = (string) Factory::getApplication()->get('cache_path', '');
         } catch (\Throwable $e) {
             $path = '';
         }
 
-        return PageCache::absolutePath($path, JPATH_ROOT, \defined('JPATH_CACHE') ? JPATH_CACHE : JPATH_ADMINISTRATOR . '/cache');
+        return $base = PageCache::absolutePath($path, JPATH_ROOT, \defined('JPATH_CACHE') ? JPATH_CACHE : JPATH_ADMINISTRATOR . '/cache');
     }
 
     /** Empties Joomla's page cache of the site (System - Page Cache), also when called from the administrator. */

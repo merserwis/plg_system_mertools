@@ -233,5 +233,14 @@ $check('path: no traversal', ImageSize::pathOf('/images/../configuration.php', '
 $check('path: picture types only', ImageSize::pathOf('/images/a.svg', '/var/www/html', $site, ''), null);
 $check('path: other host', ImageSize::pathOf('https://evil.com/a.jpg', '/var/www/html', $site, ''), null);
 
+// an address with "$1" or a backslash (from the page) is put in as it is, not as a back-reference
+$check('images: $ in the address kept', $has(Speedup::images('<img src="' . $ph . '" data-gridbox-lazyload-src="/images/a$1b.jpg">', $site, $size), 'src="/images/a$1b.jpg"'), true);
+$check('images: backslash in the address kept', $has(Speedup::images('<img src="' . $ph . '" data-gridbox-lazyload-src="/images/a\\b.jpg">', $site, $size), 'src="/images/a\\b.jpg"'), true);
+$icons = '<html><head><link rel="stylesheet" href="/media/font-awesome/css/all.css"><link rel="stylesheet" href="/media/materialize.min.css"><link rel="stylesheet" href="/media/material-icons.css"></head><body></body></html>';
+$iconsOut = Speedup::iconStyles($icons);
+$check('icons: font awesome async', $has($iconsOut, 'href="/media/font-awesome/css/all.css" media="print"'), true);
+$check('icons: material icons async', $has($iconsOut, 'href="/media/material-icons.css" media="print"'), true);
+$check('icons: materialize (a framework) untouched', $has($iconsOut, '<link rel="stylesheet" href="/media/materialize.min.css">'), true);
+
 echo $fail === 0 ? "\nALL PASS\n" : "\n$fail FAILED\n";
 exit($fail === 0 ? 0 : 1);

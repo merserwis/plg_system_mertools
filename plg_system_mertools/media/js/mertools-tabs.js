@@ -80,9 +80,14 @@
       }
       prev.addEventListener('click', function () { go('prev'); });
       next.addEventListener('click', function () { go('next'); });
-      // swipes and autoplay change the active posts: the number follows
+      // swipes and autoplay change the active posts: the number follows (once per frame)
       if (window.MutationObserver) {
-        new MutationObserver(function () { update(); }).observe(ul, { attributes: true, attributeFilter: ['class'], subtree: true });
+        var queued = false;
+        new MutationObserver(function () {
+          if (queued) { return; }
+          queued = true;
+          requestAnimationFrame(function () { queued = false; update(); });
+        }).observe(ul, { attributes: true, attributeFilter: ['class'], subtree: true });
       }
       ul.mtSlUpdate = update;
       update();
@@ -95,7 +100,8 @@
     var rows = [];
     [].forEach.call(bar.querySelectorAll(':scope > li > a[href^="#"]'), function (link, i) {
       var pane = null;
-      try { pane = box.querySelector(link.getAttribute('href')); } catch (e) { pane = null; }
+      pane = document.getElementById(link.getAttribute('href').slice(1));
+      if (pane && !box.contains(pane)) { pane = null; }
       if (!pane) { return; }
       var head = document.createElement('button');
       head.type = 'button';
@@ -120,6 +126,7 @@
     if (!rows.length) { return; }
     rows.forEach(function (r) { sliders(r.pane); });
     var item = { box: box, bar: bar, rows: rows, on: false };
+    rows.forEach(function (r) { r.item = item; });
     box.mtTabacc = item;
     items.push(item);
   }
@@ -175,7 +182,7 @@
   }
 
   function toggle(row) {
-    var item = row.head.closest('.mt-tabacc').mtTabacc;
+    var item = row.item;
     var open = row.head.getAttribute('aria-expanded') !== 'true';
     if (open) {
       // visible first: Gridbox measures its sliders and carousels when the tab is shown

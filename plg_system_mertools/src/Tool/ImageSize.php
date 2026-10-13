@@ -70,7 +70,8 @@ final class ImageSize
         $w    = \is_array($info) ? (int) $info[0] : 0;
         $h    = \is_array($info) ? (int) $info[1] : 0;
         if (\count($this->cache) >= self::MAX_ENTRIES) {
-            $this->cache = [];
+            // the oldest half goes, not everything (every picture would be read again otherwise)
+            $this->cache = \array_slice($this->cache, (int) (self::MAX_ENTRIES / 2), null, true);
         }
         $this->cache[$path] = [$w, $h, $mtime];
         $this->dirty        = true;

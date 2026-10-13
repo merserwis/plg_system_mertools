@@ -49,6 +49,10 @@ var t;w.addEventListener(\'resize\',function(){clearTimeout(t);t=setTimeout(func
     /** A slider of the page asks for rows (mt-rows-N, mt-rows-tablet-N or mt-rows-phone-N in its classes). */
     public static function wanted(string $html): bool
     {
+        if (!str_contains($html, 'mt-rows-')) {
+            return false;
+        }
+
         return (bool) preg_match('#\sclass="[^"]*\b' . self::SLIDERS . '\b[^"]*\bmt-rows-(?:tablet-|phone-)?[1-4]\b#i', $html);
     }
 

@@ -241,9 +241,23 @@ final class DarkMode
     /** The logo images to replace: a CSS selector list (characters that could leave the rule are removed). */
     public static function logoSelector(Registry $params): string
     {
-        $sel = trim(str_replace(['{', '}', '<', '>', ';', '\\'], '', (string) $params->get('dark_logo_selector', self::LOGO_SELECTOR)));
+        return self::cssSelector((string) $params->get('dark_logo_selector', self::LOGO_SELECTOR), self::LOGO_SELECTOR);
+    }
 
-        return $sel !== '' ? $sel : self::LOGO_SELECTOR;
+    /**
+     * A selector list for a style rule: only the characters a selector needs, no newlines, and quotes
+     * and brackets in pairs (an open quote or comment would swallow the rules after it); else $default.
+     */
+    public static function cssSelector(string $value, string $default): string
+    {
+        $sel = trim(preg_replace('/\s+/', ' ', $value) ?? '');
+        if ($sel === '' || !preg_match('/^[A-Za-z0-9 _\-.#:\[\]=*>+~,"\'()^$|]+$/', $sel) || str_contains($sel, '/*')
+            || substr_count($sel, '"') % 2 || substr_count($sel, "'") % 2 || substr_count($sel, '[') !== substr_count($sel, ']')
+            || substr_count($sel, '(') !== substr_count($sel, ')')) {
+            return $default;
+        }
+
+        return $sel;
     }
 
     /** The CSS: the dark palette as the Gridbox variables, plus the toggle button and a soft transition. */
@@ -300,7 +314,7 @@ final class DarkMode
         $logo = self::logoUrl($params);
         if ($logo !== null) {
             $rules = array_map(fn ($s) => 'html[data-mertools-theme="dark"] ' . trim($s), array_filter(explode(',', self::logoSelector($params)), 'trim'));
-            $css  .= implode(',', $rules) . '{content:url("' . str_replace(['"', "\n", "\r"], ['%22', '', ''], $logo) . '")}';
+            $css  .= implode(',', $rules) . '{content:url("' . str_replace(['"', '\\', ')', "\n", "\r"], ['%22', '%5C', '%29', '', ''], $logo) . '")}';
         }
         // slightly calm very bright images in dark mode (optional)
         if ((int) $params->get('dark_dim_media', 0)) {

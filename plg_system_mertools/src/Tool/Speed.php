@@ -32,7 +32,9 @@ final class Speed
     public const TOOLS = ['url_collapse_slashes' => 'url', 'notfound_redirect' => 'notfound', 'layout_clip_x' => 'layout',
         'shop_option_links' => 'optionlinks', 'cart_enabled' => 'carts', 'tel_enabled' => 'tel', 'dark_enabled' => 'dark',
         'speed_show' => 'showatonce', 'speed_images' => 'images', 'speed_mainphoto' => 'mainphoto', 'speed_video' => 'videodelay', 'speed_video_phone' => 'videophone',
-        'speed_scripts' => 'scriptdelay', 'speed_cache' => 'pagecache', 'speed_cache_data' => 'gridboxdata'];
+        'speed_scripts' => 'scriptdelay', 'speed_cache' => 'pagecache', 'speed_cache_data' => 'gridboxdata', 'speed_icons' => 'icons',
+        'speed_webp' => 'webp', 'speed_gif' => 'gif', 'speed_popups' => 'popups', 'layout_post_rows' => 'postrows', 'tabs_accordion' => 'tabs',
+        'db_indexes' => 'dbindexes'];
 
     private const KEEP_PER_PAGE = 60;
 

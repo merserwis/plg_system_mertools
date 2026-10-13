@@ -15,7 +15,6 @@ namespace Merserwis\Plugin\System\MerTools\Tool;
 
 \defined('_JEXEC') or die;
 
-use Joomla\CMS\Language\Text;
 use Joomla\Registry\Registry;
 
 final class Tabs
@@ -25,8 +24,15 @@ final class Tabs
         return (bool) (int) $params->get('tabs_accordion', 1);
     }
 
-    /** @return array{width: int, first: bool, sliders: string, texts: array} */
-    public static function jsConfig(Registry $params): array
+    /** the texts of the slider bar: config key => language key suffix */
+    public const TEXTS = ['prev' => 'TABS_SLIDER_PREV', 'next' => 'TABS_SLIDER_NEXT', 'hint' => 'TABS_SLIDER_HINT'];
+
+    /**
+     * @param array<string, string> $texts the translated texts of the slider bar (keys of TEXTS)
+     *
+     * @return array{width: int, first: bool, sliders: string, texts: array}
+     */
+    public static function jsConfig(Registry $params, array $texts = []): array
     {
         $sliders = (string) $params->get('tabs_sliders', 'nav');
 
@@ -34,8 +40,7 @@ final class Tabs
             'width'   => max(320, min(1600, (int) $params->get('tabs_accordion_width', 768))),
             'first'   => (bool) (int) $params->get('tabs_accordion_first', 0),
             'sliders' => \in_array($sliders, ['nav', 'stack', 'off'], true) ? $sliders : 'nav',
-            'texts'   => ['prev' => Text::_('PLG_SYSTEM_MERTOOLS_TABS_SLIDER_PREV'), 'next' => Text::_('PLG_SYSTEM_MERTOOLS_TABS_SLIDER_NEXT'),
-                'hint' => Text::_('PLG_SYSTEM_MERTOOLS_TABS_SLIDER_HINT')],
+            'texts'   => array_intersect_key($texts, self::TEXTS),
         ];
     }
 

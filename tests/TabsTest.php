@@ -15,7 +15,10 @@ $check = function (string $label, $got, $exp) use (&$fail) {
 };
 $check('on by default', Tabs::enabled(new Registry()), true);
 $check('switched off', Tabs::enabled(new Registry(['tabs_accordion' => '0'])), false);
-$check('defaults: all closed', Tabs::jsConfig(new Registry()), ['width' => 768, 'first' => false]);
+$check('defaults: all closed, slider bar, no texts', Tabs::jsConfig(new Registry()), ['width' => 768, 'first' => false, 'sliders' => 'nav', 'texts' => []]);
+$check('texts: known keys only', Tabs::jsConfig(new Registry(), ['prev' => 'P', 'next' => 'N', 'hint' => 'H', 'x' => 'y'])['texts'], ['prev' => 'P', 'next' => 'N', 'hint' => 'H']);
+$check('sliders: stack', Tabs::jsConfig(new Registry(['tabs_sliders' => 'stack']))['sliders'], 'stack');
+$check('sliders: unknown value = bar', Tabs::jsConfig(new Registry(['tabs_sliders' => 'foo']))['sliders'], 'nav');
 $check('width clamped low', Tabs::jsConfig(new Registry(['tabs_accordion_width' => '100']))['width'], 320);
 $check('width clamped high', Tabs::jsConfig(new Registry(['tabs_accordion_width' => '9999']))['width'], 1600);
 $check('first open when chosen', Tabs::jsConfig(new Registry(['tabs_accordion_first' => '1']))['first'], true);

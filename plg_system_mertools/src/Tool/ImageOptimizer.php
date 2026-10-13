@@ -59,6 +59,12 @@ final class ImageOptimizer
 
     private bool $dirtyQueue = false;
 
+    /** @var array<string, true> paths this request queued (merged with the file on save, see save()) */
+    private array $added = [];
+
+    /** inside work(): the queue in memory is the truth (removals), not the file */
+    private bool $working = false;
+
     /**
      * @param string $root     site root (JPATH_ROOT)
      * @param string $siteBase "https://www.example.com" (scheme and host, no slash)
@@ -103,6 +109,7 @@ final class ImageOptimizer
         if (!$entry || $entry['m'] !== (int) $stat['mtime'] || $entry['s'] !== (int) $stat['size']) {
             if (!isset($this->queue[$rel]) && \count($this->queue) < self::MAX_QUEUE) {
                 $this->queue[$rel] = true;
+                $this->added[$rel] = true;
                 $this->dirtyQueue  = true;
             }
 
@@ -131,10 +138,24 @@ final class ImageOptimizer
         return \count($this->queue);
     }
 
+    /**
+     * A page adds its new pictures to the queue file as it is now (the worker of another request
+     * may have taken pictures out meanwhile; writing the page's older copy would put them back and
+     * make them again); the worker itself writes the queue as it has it.
+     */
     public function save(): void
     {
         if ($this->dirtyQueue) {
-            self::writeJson($this->queueFile(), array_fill_keys(array_keys($this->queue), 1));
+            if ($this->working) {
+                $queue = $this->queue;
+            } else {
+                $queue = array_fill_keys(array_keys(self::readJson($this->queueFile())), true) + $this->added;
+                if (\count($queue) > self::MAX_QUEUE) {
+                    $queue = \array_slice($queue, 0, self::MAX_QUEUE, true);
+                }
+            }
+            self::writeJson($this->queueFile(), array_fill_keys(array_keys($queue), 1));
+            $this->added      = [];
             $this->dirtyQueue = false;
         }
         if ($this->dirtyManifest) {
@@ -153,7 +174,7 @@ final class ImageOptimizer
      *
      * @return int pictures that got new copies
      */
-    public function work(float $seconds): int
+    public function work(float $seconds, int $maxPixels = self::MAX_PIXELS): int
     {
         if (!$this->queue || !self::supported()) {
             return 0;
@@ -165,6 +186,8 @@ final class ImageOptimizer
         // another request may have finished some of them meanwhile
         $this->manifest = self::readJson($this->manifestFile());
         $this->queue    = array_fill_keys(array_keys(self::readJson($this->queueFile())), true) + $this->queue;
+        $this->added    = [];
+        $this->working  = true;
         $start          = microtime(true);
         $made           = 0;
         try {
@@ -172,9 +195,12 @@ final class ImageOptimizer
                 if (microtime(true) - $start > $seconds) {
                     break;
                 }
+                // taken out of the queue before the work: a picture that makes PHP die (memory) must
+                // not come first again with every page, blocking the rest of the queue
                 unset($this->queue[$rel]);
                 $this->dirtyQueue = true;
-                $entry            = $this->make((string) $rel);
+                $this->save();
+                $entry = $this->make((string) $rel, $maxPixels);
                 if ($entry !== null) {
                     $this->manifest[$rel] = $entry;
                     $this->dirtyManifest  = true;
@@ -183,6 +209,7 @@ final class ImageOptimizer
                 $this->save();
             }
         } finally {
+            $this->working = false;
             flock($lock, LOCK_UN);
             fclose($lock);
         }
@@ -191,7 +218,7 @@ final class ImageOptimizer
     }
 
     /** The copies of one picture: the manifest entry, or null when the file is gone. */
-    public function make(string $rel): ?array
+    public function make(string $rel, int $maxPixels = self::MAX_PIXELS): ?array
     {
         $path = $this->root . '/' . $rel;
         $stat = @stat($path);
@@ -203,7 +230,19 @@ final class ImageOptimizer
         if (!\is_array($info) || $info[0] < 1 || $info[1] < 1 || $info[0] * $info[1] > self::MAX_PIXELS) {
             return $entry;
         }
+        if ($info[0] * $info[1] > $maxPixels) {
+            // too large for this moment (a visitor waits): left in the queue for a later, free moment
+            $this->queue[$rel] = true;
+            $this->dirtyQueue  = true;
+
+            return null;
+        }
         [$w, $h, $type] = [(int) $info[0], (int) $info[1], (int) $info[2]];
+        // memory: about 5 bytes a pixel for the picture and as much for the largest copy; a limit that
+        // cannot be raised enough makes the picture a skip instead of a fatal error
+        if (!self::raiseMemory($w * $h * 10 + 32 * 1024 * 1024)) {
+            return $entry;
+        }
         $hash = substr(md5($rel . '|' . $entry['m'] . '|' . $entry['s']), 0, 10);
         $name = substr((string) preg_replace('#[^a-z0-9]+#', '-', strtolower(pathinfo($rel, PATHINFO_FILENAME))), 0, 40);
         $dir  = self::DIR . '/' . substr($hash, 0, 2);
@@ -227,8 +266,6 @@ final class ImageOptimizer
         if (($type !== IMAGETYPE_JPEG && $type !== IMAGETYPE_PNG) || $w < self::MIN_WIDTH || $entry['s'] < self::MIN_BYTES) {
             return $entry;
         }
-        // memory: about 5 bytes a pixel for the picture and as much for the largest copy
-        self::raiseMemory($w * $h * 10 + 32 * 1024 * 1024);
         $img = $type === IMAGETYPE_JPEG ? @imagecreatefromjpeg($path) : @imagecreatefrompng($path);
         if (!$img) {
             $entry['x'] = 'fail';
@@ -348,12 +385,38 @@ final class ImageOptimizer
         return $frames > 1;
     }
 
-    /** The path of a local picture relative to the site root, or null. */
+    /** the folders whose pictures get public copies (a copy would make a protected folder's picture public) */
+    public const FOLDERS = ['images', 'media', 'templates', 'modules', 'components', 'plugins', 'uploads', 'upload', 'files'];
+
+    /**
+     * The path of a local picture relative to the site root, or null: only pictures of the public
+     * asset folders (FOLDERS), in no folder or file whose name starts with a dot.
+     */
     public function relative(string $url): ?string
     {
         $path = ImageSize::pathOf(html_entity_decode($url, ENT_QUOTES), $this->root, $this->siteBase, $this->sitePath);
+        if ($path === null) {
+            return null;
+        }
+        $rel = ltrim(substr($path, \strlen($this->root)), '/');
 
-        return $path === null ? null : ltrim(substr($path, \strlen($this->root)), '/');
+        return self::allowed($rel) ? $rel : null;
+    }
+
+    /** Is this relative path in one of the public asset folders, with no hidden part? */
+    public static function allowed(string $rel): bool
+    {
+        $parts = explode('/', str_replace('\\', '/', $rel));
+        if (\count($parts) < 2 || !\in_array(strtolower($parts[0]), self::FOLDERS, true)) {
+            return false;
+        }
+        foreach ($parts as $part) {
+            if ($part === '' || $part[0] === '.') {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function url(string $rel): string
@@ -399,18 +462,28 @@ final class ImageOptimizer
         return $true;
     }
 
-    private static function raiseMemory(int $bytes): void
+    /** Enough memory for $bytes more: raised when needed; false when the limit cannot be raised that far. */
+    private static function raiseMemory(int $bytes): bool
     {
-        $limit = (string) ini_get('memory_limit');
-        if ($limit === '-1') {
-            return;
+        $need = memory_get_usage(true) + $bytes;
+        if (self::limitBytes() < 0 || self::limitBytes() >= $need) {
+            return true;
+        }
+        @ini_set('memory_limit', (string) (int) ceil($need / 1048576) . 'M');
+
+        return self::limitBytes() < 0 || self::limitBytes() >= $need;
+    }
+
+    /** memory_limit in bytes (-1: no limit). */
+    private static function limitBytes(): int
+    {
+        $limit = trim((string) ini_get('memory_limit'));
+        if ($limit === '-1' || $limit === '') {
+            return -1;
         }
         $units = ['g' => 1073741824, 'm' => 1048576, 'k' => 1024];
-        $value = (int) $limit * ($units[strtolower(substr(trim($limit), -1))] ?? 1);
-        $need  = memory_get_usage(true) + $bytes;
-        if ($value > 0 && $value < $need) {
-            @ini_set('memory_limit', (string) (int) ceil($need / 1048576) . 'M');
-        }
+
+        return (int) $limit * ($units[strtolower(substr($limit, -1))] ?? 1);
     }
 
     private function manifestFile(): string

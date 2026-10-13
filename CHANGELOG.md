@@ -2,6 +2,38 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.35 (Beta) — 2026-10-13
+
+### 🔍 Code audit: security, bugs and speed
+
+A full review of the plugin's code (three independent passes: security, correctness, performance), with every finding checked in the code and fixed:
+
+**Security**
+- **Gridbox data answers kept for everyone.** The kept answers of Gridbox's page data requests (prices, formatting) were served to all guests, also when the visitor who first fetched them had their own currency, cart or wishlist cookie — Gridbox builds prices for the currency of the cookie, so a visitor could make every other guest see prices in another currency for up to 4 hours. Now the cookie checks of the page cache (cart, wishlist, order, currency, comments, and the cookies listed in the settings) apply to the data answers as well, and an answer that sets a cookie is not kept.
+- **Anybody could empty the cache.** A guest's GET of a Gridbox order or payment address (`task=store.…Callback`) emptied the whole page cache, even when Gridbox did nothing with it; a loop of such requests kept the cache cold. For a guest the emptying now counts only when Gridbox answered as it does to a real order or payment (a POST, or a redirect) and at most every 20 seconds; the emptying also no longer makes that visitor wait for the deleting of the files.
+- **Copies of protected pictures.** A picture address in a page could point into any folder of the site, and the WebP copy made of it was public. Copies are made only of pictures in the public asset folders (`images`, `media`, `templates`, `modules`, `components`, `plugins`, `uploads`, `files`), never of hidden files or folders.
+- The **Clear cache** button sends its form token in the request body instead of the address (no token in web-server logs); the dark-mode selectors and logo address from the settings are checked more strictly before they go into a style rule (an open quote or comment could swallow the rules after it).
+- A message that comes up while a page is rendered (Joomla's message queue) stops the page from being kept.
+- A flood of made-up addresses of Gridbox data requests cannot fill the disk between the hourly tidy-ups: the tidy-up also runs after about every 32nd kept answer.
+
+**Bugs**
+- A picture that made PHP run out of memory while its copies were made came first again with every page and blocked the rest of the queue for ever; also animated GIFs were decoded without the memory check. The queue is now written before a picture is worked on, the memory limit is checked after it was raised (a picture that does not fit is skipped), and while a visitor still waits (servers without `fastcgi_finish_request`) only pictures up to 4 megapixels are made, for half a second.
+- A page adding new pictures to the queue could put back pictures a parallel request had just finished, which made them again and emptied the page cache for nothing. The queue is merged with the file now.
+- A Gridbox data answer could be kept after the cache had been emptied (the time of the emptying was read once, at the start of the request).
+- An image address with `$1` or a backslash in it (`data-gridbox-lazyload-src`) was changed when put into `src`.
+- The async loading of icon stylesheets also caught `materialize.css` (a whole CSS framework, unstyled first paint).
+- The daily index check finished the response on its own and so left the image and cart work with the short budgets; the hourly and daily work ran on every request when the cache folder could not be written; the page speed history did not record whether icon styles, WebP copies, GIF frames, popups, slider rows, tabs and DB indexes were on.
+- The image size cache dropped everything when full (every picture read again); now the older half goes.
+- Uninstalling leaves no kept pages, picture lists or time stamps in Joomla's cache folder.
+- The `Tabs` helper no longer depends on Joomla's `Text` (its test crashed since 0.0.34); the tab rows no longer look up their item through the DOM, and a tab whose id starts with a digit is found too.
+
+**Speed**
+- The first visitor of every page got it **uncompressed** (gzip was switched off to keep the page as sent — 400 KB instead of 80 KB). The page is now kept from its uncompressed copy and the response stays compressed.
+- Everything after the response — keeping the page, the hourly tidy-up, the daily index check, pictures, carts — now runs after the response has been **closed** (`fastcgi_finish_request`), not before: 10–20 ms less for every page not yet kept, up to a few hundred ms less once an hour.
+- The language file (60 KB) is loaded only where a text is needed, not on every page view.
+- Dark mode: the three observers start with the first dark view (nothing to watch while the page is light); an icon-font stylesheet arriving late (MerTools loads them async) no longer makes the whole page be adapted again; the slides of Gridbox's sliders moving (class changes every few seconds) no longer trigger work, nor does anything while the tab is hidden.
+- The slider bar in the tab sections updates its number once per frame; the "mt-rows" check skips pages without such a class; the cache folder path is worked out once per request.
+
 ## 0.0.34 (Beta) — 2026-10-13
 
 ### 🧹 New: *Clear cache* button in the administrator's top bar

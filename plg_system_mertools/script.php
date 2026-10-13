@@ -53,17 +53,47 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
             }
         } catch (\Throwable $e) {
         }
-        // the lighter copies of the site's pictures (media/mertools-img) and their list
-        $dir = JPATH_ROOT . '/media/mertools-img';
-        if (is_dir($dir)) {
+        // the lighter copies of the site's pictures (media/mertools-img), the kept pages and the
+        // plugin's lists and time stamps in Joomla's cache folder
+        $dirs = [JPATH_ROOT . '/media/mertools-img'];
+        try {
+            $dirs[] = self::cacheBase() . '/mertools_page';
+        } catch (\Throwable $e) {
+        }
+        foreach ($dirs as $dir) {
+            if (!is_dir($dir)) {
+                continue;
+            }
             foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
                 \RecursiveIteratorIterator::CHILD_FIRST) as $f) {
                 $f->isDir() ? @rmdir($f->getPathname()) : @unlink($f->getPathname());
             }
             @rmdir($dir);
         }
+        try {
+            foreach (glob(self::cacheBase() . '/mertools-*') ?: [] as $file) {
+                if (is_file($file)) {
+                    @unlink($file);
+                }
+            }
+        } catch (\Throwable $e) {
+        }
 
         return true;
+    }
+
+    /** Joomla's cache folder as an absolute path (as the plugin's PageCache::absolutePath works it out). */
+    private static function cacheBase(): string
+    {
+        $path = (string) Factory::getApplication()->get('cache_path', '');
+        if ($path === '') {
+            $path = \defined('JPATH_CACHE') ? JPATH_CACHE : JPATH_ADMINISTRATOR . '/cache';
+        }
+        if (!preg_match('#^(/|\\\\|[A-Za-z]:[\\\\/])#', $path)) {
+            $path = rtrim(JPATH_ROOT, '/\\') . '/' . ltrim(preg_replace('#^\./#', '', $path), '/\\');
+        }
+
+        return rtrim($path, '/\\');
     }
 
     public function postflight(string $type, InstallerAdapter $adapter): bool
@@ -107,10 +137,7 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
             }
             // and the pages kept by MerTools itself: the new version may change the pages it serves
             try {
-                $path = (string) Factory::getApplication()->get('cache_path', '');
-                $base = $path === '' ? (\defined('JPATH_CACHE') ? JPATH_CACHE : JPATH_ADMINISTRATOR . '/cache')
-                    : (preg_match('#^(/|[A-Za-z]:[\\\\/])#', $path) ? $path : JPATH_ROOT . '/' . $path);
-                $dir  = rtrim($base, '/\\') . '/mertools_page';
+                $dir = self::cacheBase() . '/mertools_page';
                 if (is_dir($dir)) {
                     @file_put_contents($dir . '/purged', sprintf('%.6F', microtime(true)), LOCK_EX);
                 }

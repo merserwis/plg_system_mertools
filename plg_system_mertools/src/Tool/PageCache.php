@@ -307,9 +307,14 @@ final class PageCache
         return $body === false ? null : ['meta' => $meta, 'body' => $body];
     }
 
-    /** Keep an entry; not when the cache was emptied after the request began ($started). */
+    /**
+     * Keep an entry; not when the cache was emptied after the request began ($started). The time of
+     * the last emptying is read anew: this instance may be older than the request (the output buffer
+     * of a Gridbox data request runs at its exit).
+     */
     public function write(string $key, array $meta, string $body, float $started): bool
     {
+        $this->purged = null;
         if ($this->purgedAt() >= $started || !$this->ensureDir(\dirname($this->path($key)))) {
             return false;
         }
@@ -332,8 +337,12 @@ final class PageCache
         return true;
     }
 
-    /** Empty the cache: the time first (no older entry is served from now on), then the files. */
-    public function purge(): void
+    /**
+     * Empty the cache: the time first (no older entry is served from now on), then the files —
+     * or the time only ($files false: a request a visitor waits for; the files go with the next
+     * prune(), which removes everything older than the time).
+     */
+    public function purge(bool $files = true): void
     {
         if (!$this->ensureDir($this->dir)) {
             return;
@@ -341,19 +350,37 @@ final class PageCache
         $now = microtime(true);
         @file_put_contents($this->dir . '/purged', sprintf('%.6F', $now), LOCK_EX);
         $this->purged = $now;
+        if (!$files) {
+            return;
+        }
         foreach ($this->files() as $file) {
             @unlink($file);
         }
     }
 
-    /** Remove entries older than $ttl, and the oldest beyond $max. */
+    /** Remove the files of an emptying that kept its files (purge(false)). */
+    public function removePurged(): int
+    {
+        $removed = 0;
+        $stamp   = (int) floor($this->purgedAt());
+        foreach ($this->files() as $file) {
+            if ((int) @filemtime($file) < $stamp) {
+                $removed += @unlink($file) ? 1 : 0;
+            }
+        }
+
+        return $removed;
+    }
+
+    /** Remove entries older than $ttl or than the last emptying, and the oldest beyond $max. */
     public function prune(int $ttl, int $max, float $now): int
     {
         $left    = [];
         $removed = 0;
+        $stamp   = (int) floor($this->purgedAt());
         foreach ($this->files() as $file) {
             $time = (int) @filemtime($file);
-            if ($time < $now - $ttl || (str_ends_with($file, '.tmp') && $time < $now - 600)) {
+            if ($time < $now - $ttl || $time < $stamp || (str_ends_with($file, '.tmp') && $time < $now - 600)) {
                 $removed += @unlink($file) ? 1 : 0;
             } elseif (str_ends_with($file, '.bin')) {
                 $left[$file] = $time;

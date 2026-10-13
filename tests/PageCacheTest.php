@@ -126,6 +126,25 @@ foreach (range(1, 5) as $i) {
 $fresh->prune(600, 3, microtime(true));
 $check('prune keeps the newest up to the limit', count(glob($dir . '/*/*.bin')), 3);
 $check('prune drops expired', $fresh->prune(10, 100, microtime(true) + 1000) >= 3, true);
+$stamp = new PageCache($dir);
+$stamp->write($stamp->key('page', 's1'), ['kind' => 'page'], 's1', microtime(true));
+$before = count(glob($dir . '/*/*.bin'));
+usleep(1100000);
+$stamp->purge(false);
+$check('purge(false): files stay', count(glob($dir . '/*/*.bin')), $before);
+$check('purge(false): nothing served', $stamp->read($stamp->key('page', 's1'), 600, microtime(true)), null);
+$other = new PageCache($dir);
+$other->read($other->key('page', 'zz'), 600, microtime(true)); // the stamp is now remembered by this instance
+usleep(1100000);
+$cache->purge(false);                                           // another request empties the cache
+$check('write re-reads the stamp: older request stores nothing', $other->write($other->key('page', 's2'), ['kind' => 'page'], 's2', microtime(true) - 0.5), false);
+$check('write after the emptying', $other->write($other->key('page', 's3'), ['kind' => 'page'], 's3', microtime(true)), true);
+$check('removePurged: files from before the stamp go', $other->removePurged() >= $before, true);
+$check('removePurged: the new one stays', $other->read($other->key('page', 's3'), 600, microtime(true))['body'], 's3');
+usleep(1100000);
+$other->purge(false);
+$check('prune removes files from before the stamp', $other->prune(600, 100, microtime(true)) >= 1, true);
+
 $check('no web listing', is_file($dir . '/index.html'), true);
 exec('rm -rf ' . escapeshellarg($dir));
 

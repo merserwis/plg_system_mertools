@@ -599,6 +599,7 @@
     sheets = document.styleSheets.length;
     // on before the pass: the text check has to see the backgrounds already fixed
     if (cfg.adaptive !== false) root.setAttribute('data-mt-on', '');
+    watch();
     adapt(document.body);
   }
 
@@ -630,8 +631,18 @@
     fade.t = setTimeout(function () { root.classList.remove('mt-switching'); }, 450);
   }
 
+  /** An icon-font stylesheet (loaded late by MerTools' own speed-up): it brings glyphs, not colours. */
+  var ICON_SHEET = /\/icons?\/|font-?awesome|material-?(?:icons|design-?icons)|icomoon|line-?awesome|bootstrap-icons|flaticon|glyphicons/i;
+  function iconSheet(el) {
+    return el.nodeName === 'LINK' && ICON_SHEET.test(el.getAttribute('href') || '');
+  }
+
+  var watching = false;
+
+  /** The observers go on with the first dark view (nothing to watch while the page is light). */
   function watch() {
-    if (cfg.adaptive === false || !window.MutationObserver) return;
+    if (watching || cfg.adaptive === false || !window.MutationObserver) return;
+    watching = true;
     new MutationObserver(function (records) {
       if (!done || current() === 'light') return;
       records.forEach(function (r) {
@@ -655,12 +666,14 @@
       }).forEach(readapt);
     }
     new MutationObserver(function (records) {
-      if (!done || current() === 'light') return;
+      if (!done || current() === 'light' || document.hidden) return;
       var was = changed.length;
       records.forEach(function (r) {
         var t = r.target;
-        // sliders (Swiper) write the same class again and again: only a real change counts
+        // sliders (Swiper) write the same class again and again: only a real change counts; the
+        // slides of Gridbox's sliders move (active or not), their colours stay — adapted once already
         if (r.oldValue === t.getAttribute('class')) return;
+        if (t.closest && t.closest('.slideshow-content, .ba-slideset, .ba-slideshow, .swiper-wrapper')) return;
         if (t.nodeType === 1 && t !== root && t !== document.body && !(box && box.contains(t)) && changed.indexOf(t) < 0) changed.push(t);
       });
       if (!was && changed.length) setTimeout(function () { idle(flush, { timeout: 400 }); }, 120);
@@ -669,13 +682,13 @@
     new MutationObserver(function (records) {
       records.forEach(function (r) {
         r.addedNodes.forEach(function (n) {
-          if (n.nodeName === 'STYLE' || (n.nodeName === 'LINK' && /stylesheet/i.test(n.rel || ''))) refreshSoon();
+          if (n.nodeName === 'STYLE' || (n.nodeName === 'LINK' && /stylesheet/i.test(n.rel || '') && !iconSheet(n))) refreshSoon();
         });
       });
     }).observe(document.head, { childList: true });
     document.addEventListener('load', function (e) {
       var t = e.target;
-      if (t && t.nodeName === 'LINK' && /stylesheet/i.test(t.rel || '')) refreshSoon();
+      if (t && t.nodeName === 'LINK' && /stylesheet/i.test(t.rel || '') && !iconSheet(t)) refreshSoon();
     }, true);
   }
 
@@ -1108,7 +1121,6 @@
     logos();
     adaptAll();
     update();
-    watch();
     // stylesheets that arrived after the first pass (lazy-loaded CSS) — only then everything once more
     window.addEventListener('load', function () {
       setTimeout(function () { if (done && document.styleSheets.length !== sheets) refreshSoon(0); }, 400);
