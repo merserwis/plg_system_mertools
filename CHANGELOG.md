@@ -1,8 +1,12 @@
 # Changelog
 
-All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
+All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
-## 0.0.35 (Beta) — 2026-10-13
+## 1.0.0 — 2026-10-13
+
+### 🎉 First stable release
+
+After 34 beta versions and the code audit below, MerTools leaves beta: the “(Beta)” mark is gone from the extension name, the settings and the package.
 
 ### 🔍 Code audit: security, bugs and speed
 

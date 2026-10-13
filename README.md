@@ -1,6 +1,6 @@
-# MerTools for Gridbox (Beta)
+# MerTools for Gridbox
 
-> **Beta version.** MerTools is still in beta: test each tool on your site before relying on it, and report problems in the [issues](https://github.com/merserwis/plg_system_mertools/issues).
+> Version 1.0.0 is the first stable release, after a full code audit (security, correctness, speed). Report problems in the [issues](https://github.com/merserwis/plg_system_mertools/issues).
 
 A Joomla system plugin with fixes and optimisations for **Balbooa Gridbox** that cannot be done from Gridbox's own settings. Each fix is a separate tool that can be turned on or off. **The Gridbox core files are never changed**, so Gridbox updates install cleanly.
 

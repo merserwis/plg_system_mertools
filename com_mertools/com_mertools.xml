@@ -6,8 +6,8 @@
     <creationDate>2026-10-12</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>0.0.35</version>
-    <description>MerTools for Gridbox (Beta) — administrator menu entry that opens the plugin settings.</description>
+    <version>1.0.0</version>
+    <description>MerTools for Gridbox — administrator menu entry that opens the plugin settings.</description>
     <namespace path="src">Merserwis\Component\MerTools</namespace>
     <administration>
         <menu img="class:tools">MerTools for Gridbox</menu>
