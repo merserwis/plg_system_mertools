@@ -325,6 +325,39 @@
     return true;
   }
 
+  var SEARCH_RE = /search|szuk|query|^q$/i;
+
+  /** A text field for searching: type search, or a name, placeholder or class (also of the
+   *  enclosing element) that says so. */
+  function isSearchField(i, upTo) {
+    if (i.type === 'search') return true;
+    if (i.type && i.type !== 'text') return false;
+    if (SEARCH_RE.test(i.name || '') || SEARCH_RE.test(i.placeholder || '') || SEARCH_RE.test(i.getAttribute('aria-label') || '')) return true;
+    for (var e = i; e && e !== upTo.parentElement; e = e.parentElement) {
+      if (SEARCH_RE.test(typeof e.className === 'string' ? e.className : '')) return true;
+    }
+    return false;
+  }
+
+  /** The search field (with cfg.buttons not 'off'): the frame of the field — the field itself or a
+   *  small box around it with a border on all four sides — gets an outline in the accent colour. */
+  function decideSearch(el, cs, out) {
+    if ((cfg.buttons || 'accent') === 'off') return false;
+    var a = palette().accent;
+    if (!a || a[3] < 0.5) return false;
+    var framed = SIDES.every(function (s) {
+      var bc = parse(cs['border' + s + 'Color']);
+      return (parseFloat(cs['border' + s + 'Width']) || 0) >= 1 && cs['border' + s + 'Style'] !== 'none' && bc && bc[3] > 0.2;
+    });
+    if (!framed) return false;
+    var field = el.tagName === 'INPUT' ? el : el.querySelector('input[type=search],input[type=text],input:not([type])');
+    if (!field || !isSearchField(field, el)) return false;
+    var r = el.getBoundingClientRect();
+    if (!r.height || r.height > 90 || r.width > 900) return false;
+    out.push([el, { '--mt-btn-bd': rgb([a[0], a[1], a[2], 1]) }, ['data-mt-btnb']]);
+    return true;
+  }
+
   /** Background decisions: bright buttons, light backgrounds, light colours of gradients. */
   function decideBackground(el, cs, out) {
     var bi = cs.backgroundImage;
@@ -462,6 +495,7 @@
       if (skip(el)) continue;
       var cs = css(el);
       if (decideButton(el, cs, out)) continue;
+      if (decideSearch(el, cs, out)) { decideBackground(el, cs, out); continue; }
       decideBackground(el, cs, out);
       decideBorders(el, cs, out);
     }

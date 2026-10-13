@@ -10,9 +10,10 @@ All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** 
 - Shown only to users who may clear the cache in Joomla (*Access Administration Interface* of *Cache*); the request needs the form token. On narrow screens the button moves into the *more* (⋯) menu of the bar with the other items.
 - Can be turned off: *Clear cache button in the top bar* (tab *Page speed*, on by default).
 
-### 🌙 Dark mode: buttons in the accent colour
+### 🌙 Dark mode: buttons and the search field in the accent colour
 
 - In dark mode Gridbox's light and grey buttons (*Read more*, *Contact us*, header buttons) got the dark colours of the palette and blended into the page. Now a button with a background takes the **accent colour** — the dark-mode accent, or Gridbox's — with its text in the colour of the palette that reads best on it; a button drawn with an outline only gets an **outline in the accent colour**. Checked on the merserwis.pl home page: 11 buttons in orange with dark text, 10 outlined ones with an orange outline.
+- The **search field** gets an outline in the accent colour too (its frame — on Gridbox's store search the box around the field — instead of a faint grey line).
 - New option *Buttons in dark mode* (tab *Dark mode*): **Accent colour** (default), **Accent outline** (every button dark with an outline in the accent colour) or **As before** (then *Bright buttons in dark mode* applies as until now).
 
 ### 📱 Tabs as sections: sliders show that there are more
