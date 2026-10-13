@@ -67,7 +67,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '0.0.33';
+    public const VERSION = '0.0.34';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
@@ -91,6 +91,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             // after the response has gone to the visitor: the hourly job of the cart clean-up
             'onAfterRespond'      => ['onAfterRespond', Priority::MIN],
             'onBeforeCompileHead' => 'onBeforeCompileHead',
+            // the administrator: the clear-cache button in the top bar, next to the Joomla version
+            'onAfterModuleList'   => 'onAfterModuleList',
             'onExtensionAfterSave' => 'onExtensionAfterSave',
             // Gridbox installed or updated: its tables may have been created again, without our indexes
             'onExtensionAfterInstall' => 'onExtensionAfterInstallOrUpdate',
@@ -610,11 +612,22 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $input  = $app->getInput();
         $action = $input->getCmd('mertools_action', '');
         if (!\in_array($action, ['cart_stats', 'cart_check', 'cart_clean', 'speed_list', 'speed_save', 'speed_baseline', 'speed_delete',
-            'pcache_stats', 'pcache_clear', 'dbidx_status', 'dbidx_fix', 'img_stats', 'img_run', 'img_clear'], true)) {
+            'pcache_stats', 'pcache_clear', 'dbidx_status', 'dbidx_fix', 'img_stats', 'img_run', 'img_clear', 'cache_clear_all'], true)) {
             return;
         }
         $this->loadLanguage();
         $user = $app->getIdentity();
+        // the button of the top bar: whoever may clear the cache in Joomla (System → Clear Cache)
+        if ($action === 'cache_clear_all') {
+            if ($input->getMethod() !== 'POST' || !$user || !$user->authorise('core.manage', 'com_cache') || !Session::checkToken('request')) {
+                $this->sendJson(['success' => false, 'message' => Text::_('JERROR_ALERTNOAUTHOR')], 403);
+            }
+            try {
+                $this->sendJson(['success' => true] + $this->clearAllCaches());
+            } catch (\Throwable $e) {
+                $this->sendJson(['success' => false, 'message' => $e->getMessage()]);
+            }
+        }
         if ($input->getMethod() !== 'POST' || !$user || !$user->authorise('core.edit', 'com_plugins') || !Session::checkToken('request')) {
             $this->sendJson(['success' => false, 'message' => Text::_('JERROR_ALERTNOAUTHOR')], 403);
         }
@@ -685,6 +698,98 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         } catch (\Throwable $e) {
             $this->sendJson(['success' => false, 'message' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * The top-bar button: the pages kept by MerTools, then every group of Joomla's cache, as
+     * System → Clear Cache does it (Joomla's own model, so plugins that listen to onAfterPurge
+     * hear of it too). Returns the figures for the message.
+     */
+    private function clearAllCaches(): array
+    {
+        $pages = 0;
+        try {
+            $kept  = $this->pageCache();
+            $stats = $kept->stats(86400 * 366, microtime(true));
+            $pages = (int) $stats['pages'] + (int) $stats['data'];
+            $kept->purge();
+        } catch (\Throwable $e) {
+            // nothing kept yet
+        }
+        $model = $this->getApplication()->bootComponent('com_cache')->getMVCFactory()
+            ->createModel('Cache', 'Administrator', ['ignore_request' => true]);
+        $groups = [];
+        $size   = 0;
+        foreach ((array) $model->getCache()->getAll() as $item) {
+            $groups[] = (string) $item->group;
+            $size    += (int) ($item->size ?? 0);
+        }
+        $errors = $groups ? $model->cleanlist($groups) : [];
+        $done   = \count($groups) - \count($errors);
+        $text   = Text::sprintf('PLG_SYSTEM_MERTOOLS_HEADER_CLEARED', $done, HTMLHelper::_('number.bytes', $size));
+        if ($pages > 0) {
+            $text .= ' ' . Text::sprintf('PLG_SYSTEM_MERTOOLS_HEADER_CLEARED_PAGES', $pages);
+        }
+        if ($errors) {
+            $text .= ' ' . Text::sprintf('PLG_SYSTEM_MERTOOLS_HEADER_NOT_CLEARED', implode(', ', $errors));
+        }
+
+        return ['groups' => $done, 'size' => $size, 'pages' => $pages, 'errors' => $errors, 'message' => $text];
+    }
+
+    /**
+     * The clear-cache button in the top bar of the administrator: a module of the "status" position
+     * added to the list (its content ready, so no module is booted), first in the bar. Being a
+     * module, Atum also puts it in its "more" menu when the bar is too narrow.
+     */
+    public function onAfterModuleList($event): void
+    {
+        $app = $this->getApplication();
+        if (!$app->isClient('administrator') || !(int) $this->params->get('admin_cache_button', 1)
+            || $app->getInput()->getCmd('tmpl', '') === 'component') {
+            return;
+        }
+        $user = $app->getIdentity();
+        $document = $app->getDocument();
+        if (!$user || $user->guest || !$user->authorise('core.manage', 'com_cache') || !$document || $document->getType() !== 'html') {
+            return;
+        }
+        $this->loadLanguage();
+        try {
+            $document->addScriptOptions('plg_system_mertools.header', [
+                'url'   => Uri::base(true) . '/index.php?mertools_action=cache_clear_all&' . Session::getFormToken() . '=1',
+                'error' => Text::_('PLG_SYSTEM_MERTOOLS_HEADER_ERROR'),
+            ]);
+            $document->getWebAssetManager()->registerAndUseScript('plg_system_mertools.header', 'plg_system_mertools/mertools-header.js', [], ['defer' => true]);
+        } catch (\Throwable $e) {
+            return;
+        }
+        $title  = htmlspecialchars(Text::_('PLG_SYSTEM_MERTOOLS_HEADER_TITLE'), ENT_QUOTES, 'UTF-8');
+        $label  = htmlspecialchars(Text::_('PLG_SYSTEM_MERTOOLS_HEADER_LABEL'), ENT_QUOTES, 'UTF-8');
+        $module = (object) [
+            'id'              => -84101,
+            'title'           => 'MerTools',
+            'module'          => 'mod_mertools_header',
+            'position'        => 'status',
+            'content'         => '<button type="button" class="header-item-content" data-mertools-clear-cache title="' . $title . '">'
+                . '<div class="header-item-icon"><span class="icon-trash" aria-hidden="true"></span></div>'
+                . '<div class="header-item-text">' . $label . '</div></button>',
+            'contentRendered' => true,
+            'showtitle'       => 0,
+            'params'          => '{}',
+            'menuid'          => 0,
+        ];
+        $modules = $event->getArgument('modules', []);
+        $modules = \is_array($modules) ? array_values($modules) : [];
+        $at      = \count($modules);
+        foreach ($modules as $i => $existing) {
+            if (strtolower((string) ($existing->position ?? '')) === 'status') {
+                $at = $i;
+                break;
+            }
+        }
+        array_splice($modules, $at, 0, [$module]);
+        $event->setArgument('modules', $modules);
     }
 
     /** The page speed panel: list, keep a measurement (summary from the browser), baseline, delete. */

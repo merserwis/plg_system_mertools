@@ -2,6 +2,14 @@
 
 All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** every version so far is a beta version — test each tool on your site before relying on it. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 0.0.34 (Beta) — 2026-10-13
+
+### 🧹 New: *Clear cache* button in the administrator's top bar
+
+- The top bar of the administrator, next to the Joomla version, has a **Clear cache** button. One click empties the pages kept by MerTools and every group of the Joomla cache — the same as *System → Clear Cache* (Joomla's own code, so other extensions are told about it as usual) — without leaving the screen you are on. A Joomla message says how many cache groups were cleared, their size and how many kept pages were removed.
+- Shown only to users who may clear the cache in Joomla (*Access Administration Interface* of *Cache*); the request needs the form token. On narrow screens the button moves into the *more* (⋯) menu of the bar with the other items.
+- Can be turned off: *Clear cache button in the top bar* (tab *Page speed*, on by default).
+
 ## 0.0.33 (Beta) — 2026-10-12
 
 ### 🐞 Recommended settings: Platform Specific Caching

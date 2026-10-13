@@ -2,8 +2,8 @@
 <extension type="package" method="upgrade">
     <name>MerTools for Gridbox Package (Beta)</name>
     <packagename>mertools</packagename>
-    <version>0.0.33</version>
-    <creationDate>2026-10-12</creationDate>
+    <version>0.0.34</version>
+    <creationDate>2026-10-13</creationDate>
     <author>Merserwis</author>
     <authorUrl>https://github.com/merserwis/</authorUrl>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
