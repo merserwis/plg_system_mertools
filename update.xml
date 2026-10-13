@@ -11,7 +11,7 @@
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.34/pkg_mertools-0.0.34.zip</downloadurl>
         </downloads>
-        <sha256>f4fe1b7cd3a5c20abd145fe8e69141b3fa4a1614eed155912455d986dea9a092</sha256>
+        <sha256>23e891e593d72d2d9a852f09d82e041c9246614bd4dd910c61b50fa7083a9fe7</sha256>
         <tags>
             <tag>stable</tag>
         </tags>

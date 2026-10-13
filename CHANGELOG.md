@@ -10,6 +10,16 @@ All changes of **MerTools for Gridbox**, newest first. **MerTools is in beta:** 
 - Shown only to users who may clear the cache in Joomla (*Access Administration Interface* of *Cache*); the request needs the form token. On narrow screens the button moves into the *more* (⋯) menu of the bar with the other items.
 - Can be turned off: *Clear cache button in the top bar* (tab *Page speed*, on by default).
 
+### 🌙 Dark mode: buttons in the accent colour
+
+- In dark mode Gridbox's light and grey buttons (*Read more*, *Contact us*, header buttons) got the dark colours of the palette and blended into the page. Now a button with a background takes the **accent colour** — the dark-mode accent, or Gridbox's — with its text in the colour of the palette that reads best on it; a button drawn with an outline only gets an **outline in the accent colour**. Checked on the merserwis.pl home page: 11 buttons in orange with dark text, 10 outlined ones with an orange outline.
+- New option *Buttons in dark mode* (tab *Dark mode*): **Accent colour** (default), **Accent outline** (every button dark with an outline in the accent colour) or **As before** (then *Bright buttons in dark mode* applies as until now).
+
+### 📱 Tabs as sections: sliders show that there are more
+
+- A Gridbox posts or products slider inside a tab (on merserwis.pl *Promotions*, *Bestsellers*, *New products*) shows one post at a time on a phone, with no arrows or dots — nothing said that it can be swiped. Now a bar under it shows **previous**, the **position** (*2 / 12*) and **next** — Gridbox's own steps, the number follows swipes and autoplay too — with the hint *Swipe sideways or use the arrows to see more*.
+- New option *Sliders inside the sections* (tab *Page layout*): **Arrows and number** (default), **One under another** (all posts in a column instead of sliding) or **As Gridbox shows it**. Only while the tabs are sections; computers keep the slider unchanged.
+
 ## 0.0.33 (Beta) — 2026-10-12
 
 ### 🐞 Recommended settings: Platform Specific Caching

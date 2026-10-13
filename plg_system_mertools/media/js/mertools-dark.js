@@ -298,6 +298,33 @@
     }
   }
 
+  /** Buttons in dark mode (cfg.buttons): 'accent' — a filled button takes the accent colour as its
+   *  background (its text in the colour of the palette that reads best on it), an outlined one (a
+   *  border on all four sides, no background) an accent outline; 'outline' — every button an accent
+   *  outline, filled ones on the palette's surface; 'off' — as before (cfg.vivid). True when decided. */
+  function decideButton(el, cs, out) {
+    var mode = cfg.buttons || 'accent', p = palette(), a = p.accent;
+    if (mode === 'off' || !a || a[3] < 0.5) return false;
+    var bi = cs.backgroundImage;
+    if (bi !== 'none' && (/url\(/.test(bi) || !/gradient/.test(bi))) return false;
+    var c = parse(cs.backgroundColor), filled = (c && c[3] >= 0.35) || bi !== 'none';
+    var framed = !filled && SIDES.every(function (s) {
+      var bc = parse(cs['border' + s + 'Color']);
+      return (parseFloat(cs['border' + s + 'Width']) || 0) >= 1 && cs['border' + s + 'Style'] !== 'none' && bc && bc[3] > 0.2;
+    });
+    if (!filled && !framed) return false;
+    if (!isButton(el, el.getBoundingClientRect())) return false;
+    var acc = rgb([a[0], a[1], a[2], 1]);
+    if (mode === 'accent' && filled) {
+      out.push([el, { '--mt-btn-bg': acc, '--mt-btn-fg': rgb(contrast(p.lo, a) >= contrast(p.hi, a) ? p.lo : p.hi) }, ['data-mt-btn']]);
+    } else if (filled) {
+      out.push([el, { '--mt-bg': rgb(p.surface), '--mt-ring': acc }, ['data-mt-bg', 'data-mt-ring']]);
+    } else {
+      out.push([el, { '--mt-btn-bd': acc }, ['data-mt-btnb']]);
+    }
+    return true;
+  }
+
   /** Background decisions: bright buttons, light backgrounds, light colours of gradients. */
   function decideBackground(el, cs, out) {
     var bi = cs.backgroundImage;
@@ -424,7 +451,8 @@
     for (i = from; i < to; i++) {
       el = list[i];
       if (el.hasAttribute('data-mt-bg') || el.hasAttribute('data-mt-bgi') || el.hasAttribute('data-mt-fg')
-          || el.hasAttribute('data-mt-bd') || el.hasAttribute('data-mt-bdb') || el.hasAttribute('data-mt-bda')) marked.push(el);
+          || el.hasAttribute('data-mt-bd') || el.hasAttribute('data-mt-bdb') || el.hasAttribute('data-mt-bda')
+          || el.hasAttribute('data-mt-btn') || el.hasAttribute('data-mt-btnb')) marked.push(el);
     }
     var quiet = marked.length && !root.classList.contains('mertools-dt-calc');
     if (quiet) calc(true, true);
@@ -433,6 +461,7 @@
       el = list[i];
       if (skip(el)) continue;
       var cs = css(el);
+      if (decideButton(el, cs, out)) continue;
       decideBackground(el, cs, out);
       decideBorders(el, cs, out);
     }
@@ -441,7 +470,8 @@
     out = [];
     for (i = from; i < to; i++) {
       el = list[i];
-      if (skip(el) || !ownText(el)) continue;
+      // the text of an accent button has its colour from the button
+      if (skip(el) || !ownText(el) || el.closest('[data-mt-btn]')) continue;
       decideText(el, css(el), out);
     }
     write(out);
@@ -512,10 +542,10 @@
 
   var done = false, pending = [], timer = 0, refreshTimer = 0, sheets = 0;
 
-  var ATTRS = ['data-mt-bg', 'data-mt-bgi', 'data-mt-fg', 'data-mt-fgp', 'data-mt-bd', 'data-mt-bdb', 'data-mt-bda', 'data-mt-ring'];
-  var PROPS = ['--mt-bg', '--mt-bgi', '--mt-fg', '--mt-fg-h', '--mt-ring'];
+  var ATTRS = ['data-mt-bg', 'data-mt-bgi', 'data-mt-fg', 'data-mt-fgp', 'data-mt-bd', 'data-mt-bdb', 'data-mt-bda', 'data-mt-ring', 'data-mt-btn', 'data-mt-btnb'];
+  var PROPS = ['--mt-bg', '--mt-bgi', '--mt-fg', '--mt-fg-h', '--mt-ring', '--mt-btn-bg', '--mt-btn-fg', '--mt-btn-bd'];
   ['bd', 'bb', 'ba'].forEach(function (p) { SIDE_KEYS.forEach(function (k) { PROPS.push('--mt-' + p + k); }); });
-  var MARKED = '[data-mt-bg],[data-mt-bgi],[data-mt-fg],[data-mt-bd],[data-mt-bdb],[data-mt-bda]';
+  var MARKED = '[data-mt-bg],[data-mt-bgi],[data-mt-fg],[data-mt-bd],[data-mt-bdb],[data-mt-bda],[data-mt-btn],[data-mt-btnb]';
 
   function unmark(el) {
     ATTRS.forEach(function (a) { el.removeAttribute(a); });

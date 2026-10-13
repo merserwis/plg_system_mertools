@@ -287,6 +287,12 @@ final class DarkMode
                 . 'html[data-mt-on] [data-mt-bd]{' . $bd('bd') . '}'
                 . 'html[data-mt-on] [data-mt-bdb]::before{' . $bd('bb') . '}'
                 . 'html[data-mt-on] [data-mt-bda]::after{' . $bd('ba') . '}'
+                // buttons in the accent colour (after the rules above, so they win over them)
+                . 'html[data-mt-on] [data-mt-btn]{background-color:var(--mt-btn-bg)!important;background-image:none!important;'
+                . 'border-color:var(--mt-btn-bg)!important;color:var(--mt-btn-fg)!important}'
+                . 'html[data-mt-on] [data-mt-btn] *{color:var(--mt-btn-fg)!important}'
+                . 'html[data-mt-on] [data-mt-btnb]{border-color:var(--mt-btn-bd)!important;box-shadow:inset 0 0 0 1px var(--mt-btn-bd)!important}'
+                . 'html[data-mt-on] [data-mt-btn]:hover,html[data-mt-on] [data-mt-btnb]:hover{filter:brightness(1.12)}'
                 . 'html.mertools-dt-calc *,html.mertools-dt-calc *::before,html.mertools-dt-calc *::after{transition:none!important}';
         }
         // the logo for dark mode, shown from the first paint (the script also swaps the image address,
@@ -416,6 +422,7 @@ final class DarkMode
             'mins'     => in_array($i = (string) $params->get('dark_mobile_insert', 'append'), ['append', 'prepend', 'before', 'after'], true) ? $i : 'append',
             'fade'     => (bool) (int) $params->get('dark_transition', 1),
             'vivid'    => in_array($v = (string) $params->get('dark_vivid', 'outline'), ['outline', 'soft', 'keep'], true) ? $v : 'outline',
+            'buttons'  => in_array($b = (string) $params->get('dark_buttons', 'accent'), ['accent', 'outline', 'off'], true) ? $b : 'accent',
             'a11y'     => trim(str_replace(['{', '}', '<', '>', ';'], '', (string) $params->get('dark_a11y_selector', '._access-icon'))) ?: '._access-icon',
             'adaptive' => (bool) (int) $params->get('dark_adaptive', 1),
             'pal'      => self::palette($params),

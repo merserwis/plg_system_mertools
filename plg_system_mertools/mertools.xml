@@ -222,6 +222,12 @@
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
+                <field name="tabs_sliders" type="list" default="nav" showon="tabs_accordion:1"
+                    label="PLG_SYSTEM_MERTOOLS_TABS_SLIDERS_LABEL" description="PLG_SYSTEM_MERTOOLS_TABS_SLIDERS_DESC">
+                    <option value="nav">PLG_SYSTEM_MERTOOLS_TABS_SLIDERS_NAV</option>
+                    <option value="stack">PLG_SYSTEM_MERTOOLS_TABS_SLIDERS_STACK</option>
+                    <option value="off">PLG_SYSTEM_MERTOOLS_TABS_SLIDERS_OFF</option>
+                </field>
             </fieldset>
 
             <!-- ============================================================ Shop -->
@@ -419,7 +425,13 @@
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
-                <field name="dark_vivid" type="list" default="outline" showon="dark_enabled:1[AND]dark_adaptive:1"
+                <field name="dark_buttons" type="list" default="accent" showon="dark_enabled:1[AND]dark_adaptive:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_BUTTONS_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_BUTTONS_DESC">
+                    <option value="accent">PLG_SYSTEM_MERTOOLS_DARK_BUTTONS_ACCENT</option>
+                    <option value="outline">PLG_SYSTEM_MERTOOLS_DARK_BUTTONS_OUTLINE</option>
+                    <option value="off">PLG_SYSTEM_MERTOOLS_DARK_BUTTONS_OFF</option>
+                </field>
+                <field name="dark_vivid" type="list" default="outline" showon="dark_enabled:1[AND]dark_adaptive:1[AND]dark_buttons:off"
                     label="PLG_SYSTEM_MERTOOLS_DARK_VIVID_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_VIVID_DESC">
                     <option value="outline">PLG_SYSTEM_MERTOOLS_DARK_VIVID_OUTLINE</option>
                     <option value="soft">PLG_SYSTEM_MERTOOLS_DARK_VIVID_SOFT</option>
