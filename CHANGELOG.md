@@ -2,6 +2,15 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.0.2 — 2026-10-13
+
+### 🔗 A link to a tab
+
+- **Choosing a tab writes it in the address.** A click on a tab of a description — *Dane techniczne*, *Wyposażenie*… — puts its name in the page address without reloading the page: `?dane_techniczne` (the tab title in lower case, without accents, spaces as `_`). On phones, where the tabs are sections, opening a section does the same and closing it takes the name out. Other parameters of the address (e.g. a chosen product option) stay.
+- **The copied address opens that tab.** When the page has loaded, the tab named in the address is opened and the page scrolls to it, below a fixed header (measured, also when the header becomes fixed only while scrolling); on phones that section is opened. Scrolling stops trying as soon as the visitor scrolls on their own.
+- **Page cache:** a bare tab name in the address does not stop the MerTools page cache — the page is the same, the tab is chosen in the browser.
+- Option *Link to a tab in the address* in the *Page layout* tab (on). The tab script is now loaded when either this or *Tabs as expandable sections on phones* is on.
+
 ## 1.0.1 — 2026-10-13
 
 ### 🐛 Pictures shown too small

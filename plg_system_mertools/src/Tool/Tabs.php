@@ -9,6 +9,10 @@
  * becomes a row with its icon, name and an arrow, one under the other, and opens its content below
  * it; computers keep the tabs. Gridbox's own tab is still selected on opening, so its script does
  * what it does when a tab is shown.
+ *
+ * Links to a tab (1.0.2): choosing a tab writes its name in the address ("Dane techniczne" →
+ * ?dane_techniczne, without reloading the page); a copied address opens the page on that tab and
+ * scrolls to it, on computers and as an open row on phones.
  */
 
 namespace Merserwis\Plugin\System\MerTools\Tool;
@@ -21,7 +25,17 @@ final class Tabs
 {
     public static function enabled(Registry $params): bool
     {
+        return self::accordion($params) || self::links($params);
+    }
+
+    public static function accordion(Registry $params): bool
+    {
         return (bool) (int) $params->get('tabs_accordion', 1);
+    }
+
+    public static function links(Registry $params): bool
+    {
+        return (bool) (int) $params->get('tabs_links', 1);
     }
 
     /** the texts of the slider bar: config key => language key suffix */
@@ -30,13 +44,15 @@ final class Tabs
     /**
      * @param array<string, string> $texts the translated texts of the slider bar (keys of TEXTS)
      *
-     * @return array{width: int, first: bool, sliders: string, texts: array}
+     * @return array{accordion: bool, links: bool, width: int, first: bool, sliders: string, texts: array}
      */
     public static function jsConfig(Registry $params, array $texts = []): array
     {
         $sliders = (string) $params->get('tabs_sliders', 'nav');
 
         return [
+            'accordion' => self::accordion($params),
+            'links'     => self::links($params),
             'width'   => max(320, min(1600, (int) $params->get('tabs_accordion_width', 768))),
             'first'   => (bool) (int) $params->get('tabs_accordion_first', 0),
             'sliders' => \in_array($sliders, ['nav', 'stack', 'off'], true) ? $sliders : 'nav',

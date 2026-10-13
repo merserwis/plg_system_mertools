@@ -1,6 +1,6 @@
 # MerTools for Gridbox
 
-> Version 1.0.0 is the first stable release, after a full code audit (security, correctness, speed). Report problems in the [issues](https://github.com/merserwis/plg_system_mertools/issues).
+> Version 1.0.0 was the first stable release, after a full code audit (security, correctness, speed). Report problems in the [issues](https://github.com/merserwis/plg_system_mertools/issues).
 
 A Joomla system plugin with fixes and optimisations for **Balbooa Gridbox** that cannot be done from Gridbox's own settings. Each fix is a separate tool that can be turned on or off. **The Gridbox core files are never changed**, so Gridbox updates install cleanly.
 
@@ -96,6 +96,10 @@ A Gridbox element that sticks out to the right (a row with a slide-in animation 
 On narrow screens a Gridbox tab bar has to be scrolled sideways and nobody sees the other tabs. Up to a chosen width (768 px by default) every tab becomes a row with its icon, name and an arrow, with its content opening below it; all closed at first (or the first one open). Sliders and carousels inside are measured again when a section opens. Gridbox's own tab is still selected, computers keep the tabs, and a turned tablet switches on the fly.
 
 **Sliders inside the sections:** a Gridbox posts or products slider in a tab (e.g. *Promotions*, *Bestsellers*) shows one post at a time on a phone; a bar under it — previous, the position (*2 / 12*), next, and a hint that it can be swiped — shows that there are more. Or its posts one under another, or as Gridbox shows it.
+
+### 🔗 Page layout — a link to a tab
+
+Choosing a tab of a description writes its name in the address, without reloading the page: *Dane techniczne* → `…/product?dane_techniczne` (lower case, no accents, spaces as `_`). Whoever opens the copied address gets the page on that tab, scrolled to it below a fixed header — on phones with that section open. Closing the section on a phone takes the name out again; other parameters (e.g. a chosen product option) stay. The page cache of MerTools serves such an address as the plain page. On by default, tab *Page layout*, option *Link to a tab in the address*.
 
 ### 🌙 Dark mode
 

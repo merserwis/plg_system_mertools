@@ -67,7 +67,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.0.1';
+    public const VERSION = '1.0.2';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
@@ -1056,7 +1056,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             foreach (Tabs::TEXTS as $key => $suffix) {
                 $texts[$key] = $this->translate('PLG_SYSTEM_MERTOOLS_' . $suffix);
             }
-            $document->addStyleDeclaration(Tabs::css());
+            if (Tabs::accordion($this->params)) {
+                $document->addStyleDeclaration(Tabs::css());
+            }
             $document->addScriptOptions('plg_system_mertools', ['tabs' => Tabs::jsConfig($this->params, $texts)]);
             $wa->registerAndUseScript('plg_system_mertools.tabs', 'plg_system_mertools/mertools-tabs.js', [], ['defer' => true]);
         }

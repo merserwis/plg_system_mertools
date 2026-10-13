@@ -80,7 +80,7 @@ final class PageCache
         return rtrim($path, '/\\');
     }
 
-    /** The query string without campaign tags; '' when nothing else is left. */
+    /** The query string without campaign tags and tab names (?dane_techniczne); '' when nothing else is left. */
     public static function cleanQuery(string $query): string
     {
         $keep = [];
@@ -89,6 +89,10 @@ final class PageCache
                 continue;
             }
             $name = strtolower(urldecode(explode('=', $pair, 2)[0]));
+            // a bare word ("?dane_techniczne") names a tab to open: the page itself is the same
+            if (!str_contains($pair, '=') && preg_match('/^[a-z0-9_]{1,80}$/', $name)) {
+                continue;
+            }
             if (!\in_array($name, self::IGNORED_PARAMS, true) && !str_starts_with($name, 'utm_')) {
                 $keep[] = $pair;
             }

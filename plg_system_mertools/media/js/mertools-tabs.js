@@ -6,6 +6,10 @@
  * hidden. Gridbox rules set the bar and the panes with the item id, so they are overridden inline.
  * Opening a row also selects Gridbox's own tab (its script does what it does when a tab is shown).
  * Wider screens get the tabs back exactly as Gridbox left them; turning a tablet switches on the fly.
+ *
+ * Links to a tab (cfg.links): choosing a tab — or opening its row — writes its name in the address
+ * ("Dane techniczne" → ?dane_techniczne, history.replaceState, no reload); an address with such a
+ * name opens that tab when the page has loaded and scrolls to it, below a fixed header.
  */
 (function () {
   'use strict';
@@ -198,12 +202,14 @@
       // Gridbox's script hides the other panes: the rows that are open stay open
       still.concat([row]).forEach(function (r) { show(r, true); });
       refresh(row.pane);
+      mark(row.link);
       var top = row.head.getBoundingClientRect().top;
       if (top < 0 || top > window.innerHeight * 0.8) {
         row.head.scrollIntoView({ block: 'start', behavior: 'smooth' });
       }
     } else {
       show(row, false);
+      unmark(row.link);
     }
     gaps(item);
   }
@@ -231,11 +237,129 @@
     });
   }
 
+  // ---------------------------------------------------------------- links to a tab
+
+  var names = {};
+
+  /** "Dane techniczne" → "dane_techniczne": lower case, no accents (ł → l), anything else "_" */
+  function slug(text) {
+    var t = String(text).toLowerCase().replace(/ł/g, 'l');
+    if (t.normalize) { t = t.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+    return t.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80);
+  }
+
+  function decoded(p) {
+    try { return decodeURIComponent(p.replace(/\+/g, ' ')); } catch (e) { return ''; }
+  }
+
+  /** the address with this tab name instead of any other tab name (other parameters kept as they are) */
+  function address(name) {
+    var parts = location.search.replace(/^\?/, '').split('&').filter(function (p) {
+      return p !== '' && !(p.indexOf('=') < 0 && names[decoded(p)]);
+    });
+    if (name) { parts.push(name); }
+    return location.pathname + (parts.length ? '?' + parts.join('&') : '') + location.hash;
+  }
+
+  function mark(link) {
+    if (!cfg.links || !link || !link.mtTab) { return; }
+    var url = address(link.mtTab);
+    if (url !== location.pathname + location.search + location.hash) {
+      try { history.replaceState(history.state, '', url); } catch (e) { /* a sandboxed page */ }
+    }
+  }
+
+  function unmark(link) {
+    if (!cfg.links || !link || !link.mtTab || location.search.split(/[?&]/).indexOf(link.mtTab) < 0) { return; }
+    try { history.replaceState(history.state, '', address('')); } catch (e) { /* a sandboxed page */ }
+  }
+
+  /** the lowest edge of a fixed or sticky bar covering the top of the window (a sticky header), else 0 */
+  function covered() {
+    var low = 0;
+    var seen = [];
+    [0.25, 0.5, 0.75].forEach(function (x) {
+      var list = document.elementsFromPoint ? document.elementsFromPoint(window.innerWidth * x, 2) : [];
+      list.forEach(function (el) {
+        for (var e = el; e && e !== document.body && e !== document.documentElement; e = e.parentElement) {
+          if (seen.indexOf(e) >= 0) { break; }
+          seen.push(e);
+          var pos = getComputedStyle(e).position;
+          if (pos === 'fixed' || pos === 'sticky') {
+            var r = e.getBoundingClientRect();
+            if (r.top <= 2 && r.bottom < window.innerHeight * 0.5) { low = Math.max(low, r.bottom); }
+            break;
+          }
+        }
+      });
+    });
+    return low;
+  }
+
+  /** the tab bar (or the row on phones) at the top of the window, below a fixed header */
+  function scrollTo(el) {
+    var go = function (smooth) {
+      var y = el.getBoundingClientRect().top + window.pageYOffset - 12;
+      window.scrollTo({ top: Math.max(0, y), behavior: smooth ? 'smooth' : 'auto' });
+    };
+    go(false);
+    // a header that becomes fixed once the page scrolls, and pictures above that arrive late
+    var user = false;
+    var stop = function () { user = true; };
+    ['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach(function (ev) { window.addEventListener(ev, stop, { once: true, passive: true }); });
+    [150, 700, 1500].forEach(function (t) {
+      setTimeout(function () {
+        if (user) { return; }
+        var top = el.getBoundingClientRect().top;
+        var low = covered();
+        if (Math.abs(top - (low + 12)) > 4) { window.scrollBy({ top: top - low - 12, behavior: 'auto' }); }
+      }, t);
+    });
+  }
+
+  function openFromAddress() {
+    var wanted = location.search.replace(/^\?/, '').split('&').filter(function (p) { return p && p.indexOf('=') < 0; })
+      .map(function (p) { return decoded(p).toLowerCase(); });
+    var link = null;
+    wanted.some(function (w) { link = names[w] || null; return !!link; });
+    if (!link) { return; }
+    if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }
+    var box = link.closest('.ba-item-tabs');
+    var item = box && box.mtTabacc;
+    var row = item && item.on ? item.rows.filter(function (r) { return r.link === link; })[0] : null;
+    if (row) {
+      if (row.head.getAttribute('aria-expanded') !== 'true') { toggle(row); }
+      scrollTo(row.head);
+    } else {
+      if (!link.parentNode.classList.contains('active')) { link.click(); }
+      scrollTo(link.closest('ul.nav-tabs') || box || link);
+    }
+  }
+
+  function links() {
+    [].forEach.call(document.querySelectorAll('.ba-item-tabs ul.nav-tabs > li > a[href^="#"]'), function (link) {
+      var title = link.querySelector('.tabs-title');
+      var name = slug((title || link).textContent.trim());
+      if (!name) { return; }
+      link.mtTab = name;
+      if (!names[name]) { names[name] = link; }
+      link.addEventListener('click', function () { mark(link); });
+    });
+    if (!Object.keys(names).length) { return; }
+    // after Gridbox has set up its tabs and the pictures above have their place
+    var later = function () { setTimeout(openFromAddress, 60); };
+    if (document.readyState === 'complete') { later(); } else { window.addEventListener('load', later); }
+  }
+
   function start() {
-    [].forEach.call(document.querySelectorAll('.ba-item-tabs'), build);
-    if (!items.length) { return; }
-    mode();
-    if (mq.addEventListener) { mq.addEventListener('change', mode); } else if (mq.addListener) { mq.addListener(mode); }
+    if (cfg.accordion !== false) {
+      [].forEach.call(document.querySelectorAll('.ba-item-tabs'), build);
+      if (items.length) {
+        mode();
+        if (mq.addEventListener) { mq.addEventListener('change', mode); } else if (mq.addListener) { mq.addListener(mode); }
+      }
+    }
+    if (cfg.links) { links(); }
   }
 
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', start); } else { start(); }

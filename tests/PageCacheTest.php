@@ -25,6 +25,10 @@ $check('folder: Windows absolute kept', PageCache::absolutePath('C:\\www\\cache'
 
 // ---------------------------------------------------------------- addresses
 $check('query: campaign tags only', PageCache::cleanQuery('utm_source=fb&utm_medium=cpc&gclid=x&fbclid=y&srsltid=z'), '');
+$check('cleanQuery: a tab name is not a parameter', PageCache::cleanQuery('dane_techniczne'), '');
+$check('cleanQuery: tab name with campaign tags', PageCache::cleanQuery('utm_source=x&wyposazenie'), '');
+$check('cleanQuery: a product option stays', PageCache::cleanQuery('Zestawy+Metrel=MI+3155&dane_techniczne'), 'Zestawy+Metrel=MI+3155');
+$check('cleanQuery: a bare word with other characters stays', PageCache::cleanQuery('a%20b'), 'a%20b');
 $check('query: other utm_ tag', PageCache::cleanQuery('utm_whatever=1'), '');
 $check('query: real parameter stays', PageCache::cleanQuery('utm_source=a&page=2'), 'page=2');
 $check('query: search', PageCache::cleanQuery('query=miernik'), 'query=miernik');

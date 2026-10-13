@@ -14,8 +14,10 @@ $check = function (string $label, $got, $exp) use (&$fail) {
     printf("%s %-60s %s\n", $ok ? 'OK ' : 'FAIL', $label, $ok ? '' : "\n   got=" . var_export($got, true) . "\n   exp=" . var_export($exp, true));
 };
 $check('on by default', Tabs::enabled(new Registry()), true);
-$check('switched off', Tabs::enabled(new Registry(['tabs_accordion' => '0'])), false);
-$check('defaults: all closed, slider bar, no texts', Tabs::jsConfig(new Registry()), ['width' => 768, 'first' => false, 'sliders' => 'nav', 'texts' => []]);
+$check('accordion off, links on: script still loaded', Tabs::enabled(new Registry(['tabs_accordion' => '0'])), true);
+$check('both off', Tabs::enabled(new Registry(['tabs_accordion' => '0', 'tabs_links' => '0'])), false);
+$check('links off', Tabs::jsConfig(new Registry(['tabs_links' => '0']))['links'], false);
+$check('defaults: all closed, slider bar, no texts', Tabs::jsConfig(new Registry()), ['accordion' => true, 'links' => true, 'width' => 768, 'first' => false, 'sliders' => 'nav', 'texts' => []]);
 $check('texts: known keys only', Tabs::jsConfig(new Registry(), ['prev' => 'P', 'next' => 'N', 'hint' => 'H', 'x' => 'y'])['texts'], ['prev' => 'P', 'next' => 'N', 'hint' => 'H']);
 $check('sliders: stack', Tabs::jsConfig(new Registry(['tabs_sliders' => 'stack']))['sliders'], 'stack');
 $check('sliders: unknown value = bar', Tabs::jsConfig(new Registry(['tabs_sliders' => 'foo']))['sliders'], 'nav');
