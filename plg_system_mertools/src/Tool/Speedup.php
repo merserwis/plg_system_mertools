@@ -129,16 +129,17 @@ final class Speedup
                 }
 
                 // lighter copies; the first frame of a heavy animated GIF at the top
-                $info = $copies ? $copies($src) : null;
-                if ($info && !preg_match('#\ssrcset=#i', $tag)) {
+                $info  = $copies ? $copies($src) : null;
+                $sizes = $info ? self::sizes($html, $offset, $dims ? (int) $dims[0] : 0) : null;
+                if ($info && $sizes !== null && !preg_match('#\ssrcset=#i', $tag)) {
                     if ($gif && $eager && !$inHeader && isset($info['frame'], $info['anim'])) {
                         $tag      = self::addAttr($tag, 'srcset', $info['frame']);
-                        $tag      = self::addAttr($tag, 'sizes', self::sizes($html, $offset, false));
+                        $tag      = self::addAttr($tag, 'sizes', $sizes);
                         $tag      = self::addAttr($tag, 'data-mt-anim', $info['anim']);
                         $animated = true;
                     } elseif (isset($info['srcset'])) {
                         $tag = self::addAttr($tag, 'srcset', $info['srcset']);
-                        $tag = self::addAttr($tag, 'sizes', self::sizes($html, $offset, !$eager));
+                        $tag = self::addAttr($tag, 'sizes', $sizes);
                     }
                 }
                 // the largest picture at the top is usually what the visitor waits for: fetched first
@@ -183,21 +184,24 @@ final class Speedup
     }
 
     /**
-     * The sizes attribute of a picture: the whole screen width on phones, else the share of its
-     * Gridbox column (ba-col-N of 12, at least a third of the usual 1200 px content width; a full
-     * column: the whole screen). Lazy images let the browser measure them ("auto").
+     * The sizes attribute of a picture of $natural px. Gridbox sizes most pictures by their own width
+     * (width/height "auto"), and with a srcset that width comes from sizes — so sizes says exactly that
+     * width: the picture's own, or the whole screen when the screen is narrower. Never "auto": for a
+     * picture without a CSS width the browser takes 300 px and the picture shrank (1.0.1). A picture
+     * of a blog or store list (a grid cell, sized by its CSS) asks for at most 400 px. Unknown width:
+     * null, the picture keeps its single address.
      */
-    public static function sizes(string $html, int $offset, bool $lazy): string
+    public static function sizes(string $html, int $offset, int $natural): ?string
     {
+        if ($natural <= 0) {
+            return null;
+        }
         $before = substr($html, max(0, $offset - 8000), min($offset, 8000));
-        $span   = preg_match_all('#\bba-col-(\d{1,2})\b#', $before, $c) ? (int) end($c[1]) : 12;
-        $wide   = $span >= 12 || $span < 1 ? '100vw' : (int) round(max($span, 4) / 12 * 1200) . 'px';
-        // a picture of a blog or store list (a grid of posts or products: its columns are set in CSS)
         if (preg_match('#class="ba-blog-post-image\b[^"]*"[^>]*>(?:(?!</div>).){0,400}$#s', $before)) {
-            $wide = '400px';
+            $natural = min($natural, 400);
         }
 
-        return ($lazy ? 'auto, ' : '') . '(max-width: 768px) 100vw, ' . $wide;
+        return '(max-width: ' . $natural . 'px) 100vw, ' . $natural . 'px';
     }
 
     /**

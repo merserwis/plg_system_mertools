@@ -70,15 +70,15 @@ $check('plain: GIF at the top shows its first frame (srcset of frames)', str_con
 $check('plain: GIF animation address kept for later', str_contains($hm[0] ?? '', 'data-mt-anim="/images/hero.webp"'), true);
 $check('plain: GIF at the top fetched first', str_contains($hm[0] ?? '', 'fetchpriority="high"'), true);
 $check('plain: GIF proportions', str_contains($hm[0] ?? '', 'style="aspect-ratio:770/744"'), true);
-$check('plain: GIF sizes from its column (half of 1200 px)', str_contains($hm[0] ?? '', 'sizes="(max-width: 768px) 100vw, 600px"'), true);
+$check('plain: GIF sizes = its own width (or the screen when narrower)', str_contains($hm[0] ?? '', 'sizes="(max-width: 770px) 100vw, 770px"'), true);
 $check('plain: only one fetchpriority', substr_count($po, 'fetchpriority="high"'), 1);
 $check('plain: animation script added once', substr_count($po, 'img[data-mt-anim]'), 1);
 preg_match('#<img[^>]*photo-a\.jpg[^>]*>#', $po, $am);
 $check('plain: second picture of the first section not lazy, copies offered', !str_contains($am[0], 'loading=') && str_contains($am[0], 'srcset="/media/mertools-img/cd/y-photo-480.webp 480w'), true);
-$check('plain: eager sizes without auto', str_contains($am[0], 'sizes="(max-width: 768px) 100vw, 600px"'), true);
+$check('plain: eager sizes = own width', str_contains($am[0], 'sizes="(max-width: 1200px) 100vw, 1200px"'), true);
 preg_match('#<img[^>]*photo-b\.jpg[^>]*>#', $po, $bm);
 $check('plain: further down lazy + async', str_contains($bm[0], 'loading="lazy"') && str_contains($bm[0], 'decoding="async"'), true);
-$check('plain: lazy sizes auto, full column = whole screen', str_contains($bm[0], 'sizes="auto, (max-width: 768px) 100vw, 100vw"'), true);
+$check('plain: lazy sizes never auto (a picture without CSS width would get 300 px)', str_contains($bm[0], 'sizes="(max-width: 1200px) 100vw, 1200px"') && !str_contains($po, 'auto,'), true);
 $check('plain: logo in header gets proportions, not lazy, no priority', str_contains($po, '<img style="aspect-ratio:240/60" src="https://www.merserwis.pl/images/logo.svg" alt="" width="100" height="100">'), true);
 $check('plain: other site untouched', str_contains($po, '<img src="https://cdn.example.com/x.jpg">'), true);
 $check('plain: idempotent', Speedup::images($po, $site, $dimsOf, $copies, true, true), $po);
@@ -94,8 +94,10 @@ $check('first section: inner ba-section-items is not a section', Speedup::firstS
 $check('first section: class not first in the list', Speedup::firstSectionEnd('<header></header><div class="x ba-section"></div><div class="y ba-section"></div>', 17), 49);
 $check('no sections: nothing counts as first section', Speedup::firstSectionEnd('<header></header><div>x</div>', 17), 0);
 $check('one section: all of it', Speedup::firstSectionEnd('<header></header><div class="ba-section">x</div>', 17), 48);
-$check('sizes: picture of a blog/store list = a grid cell', Speedup::sizes('<div class="ba-grid-column-wrapper ba-col-12"><div class="ba-blog-post-image"><a href="/p">', 90, true), 'auto, (max-width: 768px) 100vw, 400px');
-$check('sizes: after a list picture, back to the column', Speedup::sizes('<div class="ba-col-12"><div class="ba-blog-post-image"><a href="/p"><img></a></div></div><div class="x">', 104, false), '(max-width: 768px) 100vw, 100vw');
+$check('sizes: picture of a blog/store list = a grid cell, at most 400 px', Speedup::sizes('<div class="ba-grid-column-wrapper ba-col-12"><div class="ba-blog-post-image"><a href="/p">', 90, 960), '(max-width: 400px) 100vw, 400px');
+$check('sizes: small list picture keeps its width', Speedup::sizes('<div class="ba-blog-post-image"><a href="/p">', 46, 300), '(max-width: 300px) 100vw, 300px');
+$check('sizes: unknown width = no copies', Speedup::sizes('<div>', 5, 0), null);
+$check('sizes: after a list picture, own width again', Speedup::sizes('<div class="ba-col-12"><div class="ba-blog-post-image"><a href="/p"><img></a></div></div><div class="x">', 104, 602), '(max-width: 602px) 100vw, 602px');
 $check('srcset escaped', str_contains(Speedup::images('<header></header><div class="ba-section"></div><div class="ba-section"><img src="/images/photo-q.jpg"></div>', $site, $dimsOf,
     fn ($u) => ['srcset' => '/a b.webp 480w"x'], true), 'srcset="/a b.webp 480w&quot;x"'), true);
 $ic = Speedup::iconStyles($page);

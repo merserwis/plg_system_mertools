@@ -2,6 +2,14 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.0.1 — 2026-10-13
+
+### 🐛 Pictures shown too small
+
+- **Pictures in descriptions, tabs and blog articles shrank to 300 px** (e.g. the *Equipment* tab of a product, the pictures of an article) when *Images in the size of the screen (WebP)* was on. The copies come with a `srcset`, and its `sizes` started with `auto`; Gridbox gives most pictures no CSS width (`width="100" height="100"` with `width: auto`), and for such a picture the browser takes 300 px as the width. Now `sizes` says the picture's own width, or the whole screen when the screen is narrower: `(max-width: 800px) 100vw, 800px` — the pictures are as large as without the copies (checked on merserwis.pl at 1400 and 390 px: 800 / 777 / 602 / 419 px instead of 300) and still load the lighter files.
+- Pictures of blog and store lists ask for at most 400 px, as before; on phones they again fill the card (338 px, they had 300).
+- The pages kept by MerTools and Joomla's page cache are emptied by the update, so the pictures are right at once.
+
 ## 1.0.0 — 2026-10-13
 
 ### 🎉 First stable release
