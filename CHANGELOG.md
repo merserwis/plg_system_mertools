@@ -2,6 +2,13 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.0.9 — 2026-10-14
+
+### 🐞 Fixes
+
+- **Product editor: the fields of *Pricing and Inventory* fit again.** *Discount %* (1.0.8) was added as a field of its own and pushed *In Stock* into the second row, squeezed against *SKU*. It is now a small line under the sale price, inside its field, so Gridbox's three-per-row layout stays as it is. What is typed there never reaches Gridbox's copying of prices to the versions.
+- **A long currency** (e.g. “zł netto”) is shown on one line next to the price, as wide as its text, and the price makes room for it (Gridbox reserves 50 px and broke it into two lines).
+
 ## 1.0.8 — 2026-10-14
 
 ### 🏷 Discount % in the product editor

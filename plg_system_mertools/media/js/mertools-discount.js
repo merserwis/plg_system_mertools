@@ -22,35 +22,56 @@
     input.dispatchEvent(new Event('input', { bubbles: true }));
   };
 
+  // the look: the currency next to a price on one line, as wide as its text ("zł netto" did not fit in
+  // Gridbox's 50 px), and the discount line under the sale price
+  const style = document.createElement('style');
+  style.textContent = '#blog-post-editor-fields-options #ba-group-product-pricing .field-editor-price-wrapper.right-currency-position > span.field-editor-price-currency'
+    + '{left:auto!important;right:1px!important;margin-left:0!important;width:auto!important;white-space:nowrap;text-overflow:clip}'
+    + '#ba-group-product-pricing .mt-discount-line{display:flex;align-items:center;gap:10px;margin-top:8px}'
+    + '#ba-group-product-pricing .mt-discount-line label{margin:0!important;font-size:13px;white-space:nowrap}'
+    + '#ba-group-product-pricing .mt-discount-line .field-editor-price-wrapper{flex:0 0 110px;width:110px!important;max-width:110px}';
+  document.head.append(style);
+  const fitCurrency = (pricing) => pricing.querySelectorAll('.field-editor-price-wrapper.right-currency-position').forEach((wrapper) => {
+    const span = wrapper.querySelector(':scope > span.field-editor-price-currency');
+    const input = wrapper.querySelector(':scope > input');
+    if (span && input && span.offsetWidth > 0) input.style.setProperty('padding-right', (span.offsetWidth + 10) + 'px', 'important');
+  });
+
   const setup = (pricing) => {
     if (pricing.dataset.mtDiscount) return;
     const price = pricing.querySelector('.blog-post-editor-options-group[data-field-key="price"] input');
     const sale = pricing.querySelector('.blog-post-editor-options-group[data-field-key="sale_price"] input');
     if (!price || !sale) return;
     pricing.dataset.mtDiscount = '1';
-    const saleGroup = sale.closest('.blog-post-editor-options-group');
-    // a copy of Gridbox's own field (same look), without the classes Gridbox collects for the save
-    const group = saleGroup.cloneNode(true);
-    group.classList.remove('product-data', 'trigger-variations-table', 'ba-alert-label');
-    group.classList.add('mt-discount-group');
-    group.dataset.fieldKey = 'mertools_discount';
-    group.removeAttribute('data-id');
-    group.querySelectorAll('[data-field-key], [data-id]').forEach((el) => { el.removeAttribute('data-field-key'); el.removeAttribute('data-id'); });
-    const label = [...group.querySelectorAll('label, .ba-settings-item-title, span')].find((el) => el.textContent.trim() !== '' && !el.classList.contains('field-editor-price-currency') && !el.querySelector('input'));
-    if (label) label.textContent = cfg.label;
-    group.querySelectorAll('.field-editor-price-currency').forEach((el) => { el.textContent = '%'; });
-    group.querySelectorAll('.ba-tooltip, .help-tooltip, i.zmdi-help').forEach((el) => el.remove());
-    const input = group.querySelector('input');
-    if (!input) return;
-    input.value = '';
-    input.removeAttribute('name');
-    input.removeAttribute('data-key');
-    input.setAttribute('data-decimals', '2');
+    const saleWrapper = sale.closest('.field-editor-price-wrapper');
+    // a small line under the sale price, in Gridbox's own field style, inside the same field (the
+    // three-per-row layout of Gridbox stays as it is)
+    const line = document.createElement('div');
+    line.className = 'mt-discount-line';
+    const id = 'mt-discount-' + Math.random().toString(36).slice(2, 8);
+    const label = document.createElement('label');
+    label.className = 'ba-field-editor-label';
+    label.htmlFor = id;
+    label.textContent = cfg.label;
+    const wrap = document.createElement('div');
+    wrap.className = 'field-editor-price-wrapper right-currency-position mt-discount-wrap';
+    const unit = document.createElement('span');
+    unit.className = 'field-editor-price-currency';
+    unit.textContent = '%';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = id;
     input.setAttribute('inputmode', 'decimal');
     input.setAttribute('placeholder', cfg.placeholder);
-    input.setAttribute('aria-label', cfg.label);
     input.title = cfg.hint;
-    saleGroup.after(group);
+    wrap.append(unit, input);
+    line.append(label, wrap);
+    saleWrapper.after(line);
+    // Gridbox copies what is typed in the price fields to the versions: our field must not reach it
+    ['input', 'keyup', 'keydown', 'change', 'focusin', 'focusout', 'paste'].forEach((type) => input.addEventListener(type, (e) => e.stopPropagation()));
+    fitCurrency(pricing);
+    setTimeout(() => fitCurrency(pricing), 500);
+    window.addEventListener('resize', () => fitCurrency(pricing));
 
     let typed = false;
     const show = () => {
@@ -89,7 +110,8 @@
     });
   };
 
-  const scan = () => document.querySelectorAll('#ba-group-product-pricing').forEach(setup);
+  // set up once; the currency width again whenever the panel shows (hidden fields have no width)
+  const scan = () => document.querySelectorAll('#ba-group-product-pricing').forEach((pricing) => { setup(pricing); if (pricing.offsetParent) fitCurrency(pricing); });
   let queued = false;
   scan();
   // the editor builds its panels as it goes: looked for again after changes, at most once a frame

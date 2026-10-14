@@ -61,7 +61,7 @@ A link to a chosen product option or set (Gridbox adds it to the address, e.g. `
 
 ### 🏷 Shop — discount % in the product editor
 
-Gridbox works out the discount badge from the regular and the sale price, but the sale price itself has to be calculated by hand. MerTools adds **Discount %** next to *Sale price* in the Gridbox editor of a product: typing e.g. `10` sets the sale price to the regular price − 10 % (rounded to the store's decimals) and the sale price of **every version/set from its own price**; `0` or an empty field removes the sale price. A sale price typed by hand shows its discount in the field; once a percentage was typed, a changed regular price recomputes the sale price. Gridbox saves only the prices, as always. In the Gridbox lists, `10%` typed as the sale price does the same for the product. On by default, tab *Shop*.
+Gridbox works out the discount badge from the regular and the sale price, but the sale price itself has to be calculated by hand. MerTools adds **Discount %** under *Sale price* in the Gridbox editor of a product (a small line inside the field, Gridbox's layout unchanged; a long currency such as “zł netto” is also shown on one line): typing e.g. `10` sets the sale price to the regular price − 10 % (rounded to the store's decimals) and the sale price of **every version/set from its own price**; `0` or an empty field removes the sale price. A sale price typed by hand shows its discount in the field; once a percentage was typed, a changed regular price recomputes the sale price. Gridbox saves only the prices, as always. In the Gridbox lists, `10%` typed as the sale price does the same for the product. On by default, tab *Shop*.
 
 ### 🧹 Shop — tidy up old carts
 
