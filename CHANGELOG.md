@@ -2,6 +2,12 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.0.4 — 2026-10-14
+
+### 🐞 Fixes
+
+- **Settings page after the update to 1.0.3: “Call to undefined method …MerTools::historyTexts()”.** On servers where PHP's OPcache checks the files rarely or never, PHP kept running the previous version of the plugin's main class next to the new files of 1.0.3, and the new *Edit history* field called a method the old class does not have. The installer now drops every PHP file of MerTools from OPcache after an install or update, so the new version is used at once (as AI Markdown does), and the field no longer calls any method of the other classes. Updating to 1.0.4 through *Extensions → Update* also repairs a site where the settings show this error.
+
 ## 1.0.3 — 2026-10-14
 
 ### 🕘 Edit history

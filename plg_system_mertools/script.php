@@ -43,6 +43,27 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
         }
     }
 
+    /** Every PHP file of the plugin and its menu component dropped from OPcache (compiled again at the next request). */
+    private function refreshOpcache(): void
+    {
+        if (!\function_exists('opcache_invalidate')) {
+            return;
+        }
+        foreach ([JPATH_PLUGINS . '/system/mertools', JPATH_ADMINISTRATOR . '/components/com_mertools'] as $dir) {
+            if (!is_dir($dir)) {
+                continue;
+            }
+            try {
+                foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)) as $file) {
+                    if ($file->getExtension() === 'php') {
+                        @opcache_invalidate($file->getPathname(), true);
+                    }
+                }
+            } catch (\Throwable $e) {
+            }
+        }
+    }
+
     /** Uninstalling removes the tables of MerTools (cart clean-up, speed measurements, edit history); Gridbox's own tables stay as they are. */
     public function uninstall(InstallerAdapter $adapter): bool
     {
@@ -98,6 +119,12 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
 
     public function postflight(string $type, InstallerAdapter $adapter): bool
     {
+        // PHP may keep the previous version of the plugin's classes in OPcache (on hosts that check
+        // file times rarely or never), next to the new files: a mix that breaks (1.0.3: "Call to
+        // undefined method …historyTexts()" in the settings). The new files are compiled again now.
+        if ($type === 'install' || $type === 'update' || $type === 'discover_install') {
+            $this->refreshOpcache();
+        }
         if ($type === 'update') {
             $this->removeDroppedLanguages();
         }
