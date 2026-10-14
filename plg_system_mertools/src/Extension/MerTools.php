@@ -77,7 +77,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.0.6';
+    public const VERSION = '1.0.7';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
@@ -281,17 +281,24 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             if ($product) {
                 $extra['sale_price'] = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_SALE_PRICE');
                 $extra['min']        = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_MIN');
+                $extra['badges']     = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_BADGES');
+                $extra['variants']   = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_VARIANTS');
             }
-            foreach (['created' => 'CREATED', 'end_publishing' => 'END_PUBLISHING', 'featured' => 'FEATURED', 'language' => 'LANGUAGE', 'tags' => 'TAGS', 'modified' => 'MODIFIED'] as $key => $label) {
+            foreach (['created' => 'CREATED', 'end_publishing' => 'END_PUBLISHING'] as $key => $label) {
                 if (!\in_array($key, $builtin, true)) {
                     $extra[$key] = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_' . $label);
                 }
             }
-            $fields = [];
+            $fields       = [];
+            $hiddenFields = self::hiddenFields((string) $this->params->get('list_fields_hidden', self::LIST_FIELDS_HIDDEN));
             if ($appId) {
                 foreach ($db->setQuery('SELECT id, label, field_type, options FROM ' . $db->quoteName('#__gridbox_fields') . ' WHERE app_id = ' . $appId
                     . ' AND field_type IN (\'text\', \'textarea\', \'select\', \'radio\', \'checkbox\', \'url\', \'email\', \'number\', \'date\', \'price\', \'time\')'
                     . ' ORDER BY order_list, id')->loadAssocList() ?: [] as $field) {
+                    // a field without a real name (empty, "." …) or hidden in the settings is not offered
+                    if (!self::fieldOffered($field, $hiddenFields)) {
+                        continue;
+                    }
                     $fields[(int) $field['id']] = $field;
                     $extra['field_' . (int) $field['id']] = trim((string) $field['label']) ?: '#' . (int) $field['id'];
                 }
@@ -314,11 +321,19 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                     $products[(int) $row['product_id']] ??= $row;
                 }
             }
-            $tags = [];
-            if (isset($shown['tags'])) {
-                foreach ($db->setQuery('SELECT m.page_id, t.title FROM ' . $db->quoteName('#__gridbox_tags_map') . ' AS m INNER JOIN ' . $db->quoteName('#__gridbox_tags')
-                    . ' AS t ON t.id = m.tag_id WHERE m.page_id IN (' . $in . ') ORDER BY t.title')->loadRowList() ?: [] as [$pid, $title]) {
-                    $tags[(int) $pid][] = (string) $title;
+            $badges    = [];
+            $allBadges = [];
+            if ($product) {
+                foreach ($db->setQuery('SELECT id, title, color, type FROM ' . $db->quoteName('#__gridbox_store_badges') . ' ORDER BY id')->loadAssocList() ?: [] as $badge) {
+                    $allBadges[(int) $badge['id']] = $badge;
+                }
+            }
+            if (isset($shown['badges'])) {
+                foreach ($db->setQuery('SELECT product_id, badge_id FROM ' . $db->quoteName('#__gridbox_store_badges_map') . ' WHERE product_id IN (' . $in
+                    . ') ORDER BY order_list, id')->loadRowList() ?: [] as [$pid, $bid]) {
+                    if (isset($allBadges[(int) $bid])) {
+                        $badges[(int) $pid][] = (int) $bid;
+                    }
                 }
             }
             $values = [];
@@ -329,12 +344,6 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                     $values[(int) $pid][(int) $fid] = (string) $value;
                 }
             }
-            $latest = [];
-            if (isset($shown['modified'])) {
-                $history = new History($db);
-                $history->ensureTables();
-                $latest = $history->latest($ids);
-            }
         } catch (\Throwable $e) {
             return;
         }
@@ -344,7 +353,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $esc      = static fn ($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
         $date     = static fn ($v) => ($v === '' || $v === null || str_starts_with((string) $v, '0000')) ? '' : HTMLHelper::_('date', (string) $v, 'd.m.Y H:i', false);
 
-        $extraCell = function (string $key, int $id) use ($pages, $products, $tags, $values, $fields, $latest, $currency, $esc, $date): string {
+        $extraCell = function (string $key, int $id) use ($pages, $products, $badges, $allBadges, $values, $fields, $currency, $esc, $date): string {
             $page = $pages[$id] ?? [];
             switch ($key) {
                 case 'sale_price':
@@ -354,19 +363,14 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                 case 'created':
                 case 'end_publishing':
                     return $esc($date($page[$key] ?? ''));
-                case 'featured':
-                    return !empty($page['featured']) ? '★' : '';
-                case 'language':
-                    return $esc((string) ($page['language'] ?? '') === '*' ? Text::_('JALL') : (string) ($page['language'] ?? ''));
-                case 'tags':
-                    return $esc(implode(', ', $tags[$id] ?? []));
-                case 'modified':
-                    if (!isset($latest[$id])) {
+                case 'badges':
+                    return self::badgesHtml($badges[$id] ?? [], $allBadges, $products[$id] ?? []);
+                case 'variants':
+                    if (!isset($products[$id])) {
                         return '';
                     }
 
-                    return $esc(HTMLHelper::_('date', (string) $latest[$id]['created'], 'd.m.Y H:i')) . '<br><small>'
-                        . $esc(preg_replace('/\s*\([^()]*\)$/', '', (string) $latest[$id]['user_name'])) . '</small>';
+                    return $esc(Text::_(self::hasVariants((string) $products[$id]['variations']) ? 'JYES' : 'JNO'));
             }
             if (str_starts_with($key, 'field_')) {
                 $fid = (int) substr($key, 6);
@@ -376,13 +380,16 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
 
             return '';
         };
-        $decorate = function (string $key, string $cell, int $id) use ($products, $edit, $esc): string {
+        $decorate = function (string $key, string $cell, int $id) use ($products, $badges, $edit, $esc): string {
+            if ($edit && $key === 'badges' && isset($products[$id])) {
+                return ListColumns::withAttributes($cell, ['data-mt-badges' => $id, 'data-mt-raw' => implode(',', $badges[$id] ?? []), 'tabindex' => '0']);
+            }
             if (!$edit || !isset(ListColumns::EDITABLE[$key]) || !isset($products[$id])) {
                 return $cell;
             }
             $row  = $products[$id];
             $attr = ['data-mt-edit' => $key, 'data-mt-id' => $id, 'data-mt-raw' => (string) ($row[$key] ?? ''), 'tabindex' => '0'];
-            if ($key === 'price' && trim((string) $row['variations']) !== '' && !\in_array(trim((string) $row['variations']), ['{}', '[]'], true)) {
+            if ($key === 'price' && self::hasVariants((string) $row['variations'])) {
                 $attr['data-mt-variants'] = '1';
             }
 
@@ -407,13 +414,15 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             return ($ia === false ? 1000 : $ia) <=> ($ib === false ? 1000 : $ib);
         });
         $texts = [];
-        foreach (['BUTTON', 'TITLE', 'HINT', 'SAVE', 'RESET', 'CANCEL', 'UP', 'DOWN', 'ADDED', 'SAVING', 'ERROR', 'EDIT_HINT', 'VARIANTS', 'SAVED', 'EMPTY_SALE'] as $k) {
+        foreach (['BUTTON', 'TITLE', 'HINT', 'SAVE', 'RESET', 'CANCEL', 'UP', 'DOWN', 'ADDED', 'SAVING', 'ERROR', 'EDIT_HINT', 'VARIANTS', 'SAVED', 'EMPTY_SALE',
+            'BADGES_TITLE', 'BADGES_NONE'] as $k) {
             $texts[$k] = Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_' . $k);
         }
         $config = ['url' => Uri::base(true) . '/index.php', 'token' => Session::getFormToken(), 'list' => $list, 'builtin' => array_values(array_diff($builtin, ['select'])),
-            'columns' => $columns, 'edit' => $edit, 'texts' => $texts];
+            'columns' => $columns, 'edit' => $edit, 'texts' => $texts,
+            'badges' => array_values(array_map(static fn ($b) => ['id' => (int) $b['id'], 'label' => self::badgeLabel($b), 'color' => (string) $b['color']], $allBadges))];
         $tools  = '<div class="mt-list-tools"><button type="button" class="mt-cols-btn" data-mt-columns><span aria-hidden="true">☰</span> ' . $esc($texts['BUTTON']) . '</button>'
-            . ($edit && $product ? '<span class="mt-list-hint">' . $esc($texts['EDIT_HINT']) . '</span>' : '') . '</div>';
+            . ($edit && $product ? '<span class="mt-list-hint">' . $esc(Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_EDIT_HINT_BADGES')) . '</span>' : '') . '</div>';
         $body = substr($body, 0, $start) . $tools . $table . substr($body, $end);
         $tail = '<style>' . self::LIST_CSS . '</style><script type="application/json" id="mertools-lists-config">'
             . json_encode($config, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . '</script><script src="' . Uri::root(true)
@@ -427,6 +436,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         . '[data-mt-edit]{cursor:pointer;position:relative}[data-mt-edit]:hover{outline:1px dashed #93c5fd;outline-offset:-3px}[data-mt-edit].mt-saving{opacity:.5}'
         . '[data-mt-edit].mt-saved{background:#dcfce7!important;transition:background 1.5s}[data-mt-edit] input{width:100%;min-width:80px;box-sizing:border-box;'
         . 'padding:3px 6px;font:inherit;border:1px solid #1d4ed8;border-radius:4px}[data-mt-variants]::after{content:"ⓘ";font-size:11px;color:#b45309;margin-left:4px}'
+        . '[data-mt-badges]{cursor:pointer;min-width:60px}[data-mt-badges]:hover{outline:1px dashed #93c5fd;outline-offset:-3px}'
+        . '.mt-badge{display:inline-block;color:#fff;font-size:11px;font-weight:600;padding:1px 7px;border-radius:10px;margin:1px 2px 1px 0;white-space:nowrap}'
         . '.mt-col{font-size:13px}.mt-col small{color:#6b7280}';
 
     /** The value of a Gridbox field as text: the title of a chosen option, the label of a link, a short text. */
@@ -459,6 +470,126 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $text = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8')) ?? '');
 
         return mb_strlen($text) > 80 ? mb_substr($text, 0, 79) . '…' : $text;
+    }
+
+    /** Fields hidden from the columns window by default (a link to a manual is no column for a list). */
+    public const LIST_FIELDS_HIDDEN = 'Instrukcja obsługi Metrel';
+
+    /** @return array<string, true> the hidden fields of the setting: names (lower case, without a final ":") and ids */
+    private static function hiddenFields(string $setting): array
+    {
+        $out = [];
+        foreach (preg_split('/\R|,/', $setting) ?: [] as $line) {
+            $line = mb_strtolower(rtrim(trim($line), ':'));
+            if ($line !== '') {
+                $out[$line] = true;
+            }
+        }
+
+        return $out;
+    }
+
+    /** A field offered as a column: it has a real name (letters or digits) and is not hidden by name or id. */
+    private static function fieldOffered(array $field, array $hidden): bool
+    {
+        $label = trim((string) ($field['label'] ?? ''));
+        if (!preg_match('/[\p{L}\p{N}]/u', $label)) {
+            return false;
+        }
+
+        return !isset($hidden[mb_strtolower(rtrim($label, ':'))]) && !isset($hidden[(string) (int) ($field['id'] ?? 0)]);
+    }
+
+    /** The product has versions or sets (Gridbox options with their own prices). */
+    private static function hasVariants(string $variations): bool
+    {
+        $data = json_decode($variations, true);
+
+        return \is_array($data) && $data !== [];
+    }
+
+    /** The name of a badge: its title; the discount badge of Gridbox ("sale", no title) as "Discount −%". */
+    private static function badgeLabel(array $badge): string
+    {
+        $title = trim((string) ($badge['title'] ?? ''));
+
+        return ($badge['type'] ?? '') === 'sale' && $title === '' ? Text::_('PLG_SYSTEM_MERTOOLS_LIST_BADGE_SALE') : ($title !== '' ? $title : '#' . (int) $badge['id']);
+    }
+
+    /** The badges of a product as Gridbox shows them (the discount with its percentage). */
+    private static function badgesHtml(array $ids, array $all, array $product): string
+    {
+        $out = [];
+        foreach ($ids as $id) {
+            $badge = $all[$id] ?? null;
+            if (!$badge) {
+                continue;
+            }
+            $label = self::badgeLabel($badge);
+            if (($badge['type'] ?? '') === 'sale' && trim((string) $badge['title']) === '' && isset($product['price'])) {
+                $price = (float) $product['price'];
+                $sale  = (string) $product['sale_price'] === '' ? $price : (float) $product['sale_price'];
+                $label = '- ' . ($price == 0.0 ? 0 : (int) round(100 - $sale * 100 / $price)) . '%';
+            }
+            $color = preg_match('/^#[0-9a-f]{3,8}$/i', (string) $badge['color']) ? (string) $badge['color'] : '#6b7280';
+            $out[] = '<span class="mt-badge" style="background:' . $color . '">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>';
+        }
+
+        return implode(' ', $out);
+    }
+
+    /**
+     * The badges of a product chosen in the list: the map of Gridbox replaced (in the chosen order), noted
+     * in the edit history. Refused while the product is open in the Gridbox editor (it saves its badges).
+     */
+    private function listBadges(): array
+    {
+        $app   = $this->getApplication();
+        $input = $app->getInput();
+        $user  = $app->getIdentity();
+        $id    = $input->getInt('id', 0);
+        $db    = Factory::getContainer()->get(DatabaseInterface::class);
+        $row   = $id > 0 ? $db->setQuery('SELECT d.price, d.sale_price, p.title, p.app_id FROM ' . $db->quoteName('#__gridbox_store_product_data') . ' AS d INNER JOIN '
+            . $db->quoteName('#__gridbox_pages') . ' AS p ON p.id = d.product_id WHERE d.product_id = ' . $id . ' ORDER BY d.id LIMIT 1')->loadAssoc() : null;
+        if (!$row) {
+            return ['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_NOT_PRODUCT')];
+        }
+        if ($this->lockOn()) {
+            $lock = $this->editLocks()->get(EditLock::key('', $id));
+            if (EditLock::held($lock, time(), $this->lockIdle())) {
+                return ['success' => false, 'message' => Text::sprintf('PLG_SYSTEM_MERTOOLS_LIST_UI_LOCKED', preg_replace('/\s*\([^()]*\)$/', '', (string) $lock['user_name']))];
+            }
+        }
+        $all = [];
+        foreach ($db->setQuery('SELECT id, title, color, type FROM ' . $db->quoteName('#__gridbox_store_badges'))->loadAssocList() ?: [] as $badge) {
+            $all[(int) $badge['id']] = $badge;
+        }
+        $chosen = json_decode($input->getString('badges', '[]'), true);
+        $chosen = array_values(array_unique(array_filter(array_map('intval', \is_array($chosen) ? $chosen : []), static fn ($b) => isset($all[$b]))));
+        $old    = array_map('intval', $db->setQuery('SELECT badge_id FROM ' . $db->quoteName('#__gridbox_store_badges_map') . ' WHERE product_id = ' . $id
+            . ' ORDER BY order_list, id')->loadColumn() ?: []);
+        if ($old !== $chosen) {
+            $db->setQuery('DELETE FROM ' . $db->quoteName('#__gridbox_store_badges_map') . ' WHERE product_id = ' . $id)->execute();
+            foreach ($chosen as $i => $badgeId) {
+                $db->setQuery('INSERT INTO ' . $db->quoteName('#__gridbox_store_badges_map') . ' (product_id, badge_id, order_list) VALUES (' . $id . ', ' . $badgeId . ', ' . $i . ')')->execute();
+            }
+            $names = fn (array $ids) => implode(', ', array_map(fn ($b) => isset($all[$b]) ? self::badgeLabel($all[$b]) : '#' . $b, $ids));
+            if ($this->historyOn()) {
+                try {
+                    $history = new History($db);
+                    $history->ensureTables();
+                    $history->record($id, (int) $row['app_id'], (string) $row['title'], (int) $user->id, self::userLabel($user), 'edited',
+                        [['f' => 'badges', 'from' => $names($old), 'to' => $names($chosen)]], 'admin', gmdate('Y-m-d H:i:s'));
+                    if ((int) $this->params->get('history_actionlog', 1) === 1) {
+                        $this->historyActionLog('edited', $id, (string) $row['title'], (int) $user->id, (string) $user->username);
+                    }
+                } catch (\Throwable $e) {
+                }
+            }
+            $this->purgeKeptPages();
+        }
+
+        return ['success' => true, 'raw' => implode(',', $chosen), 'html' => self::badgesHtml($chosen, $all, $row)];
     }
 
     /** The columns window saved: the order of the shown columns (empty = Gridbox's own again). */
@@ -1584,19 +1715,19 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $action = $input->getCmd('mertools_action', '');
         if (!\in_array($action, ['cart_stats', 'cart_check', 'cart_clean', 'speed_list', 'speed_save', 'speed_baseline', 'speed_delete',
             'pcache_stats', 'pcache_clear', 'dbidx_status', 'dbidx_fix', 'img_stats', 'img_run', 'img_clear', 'cache_clear_all', 'history_list',
-            'list_columns', 'list_edit'], true)) {
+            'list_columns', 'list_edit', 'list_badges'], true)) {
             return;
         }
         $this->loadLanguage();
         $user = $app->getIdentity();
         // the Gridbox lists: own columns (whoever may use the lists), quick edits (whoever may edit)
-        if ($action === 'list_columns' || $action === 'list_edit') {
-            $right = $action === 'list_edit' ? 'core.edit' : 'core.manage';
+        if ($action === 'list_columns' || $action === 'list_edit' || $action === 'list_badges') {
+            $right = $action === 'list_columns' ? 'core.manage' : 'core.edit';
             if ($input->getMethod() !== 'POST' || !$user || !$user->authorise($right, 'com_gridbox') || !Session::checkToken('request')) {
                 $this->sendJson(['success' => false, 'message' => Text::_('JERROR_ALERTNOAUTHOR')], 403);
             }
             try {
-                $this->sendJson($action === 'list_edit' ? $this->listEdit() : $this->listColumnsSave());
+                $this->sendJson($action === 'list_edit' ? $this->listEdit() : ($action === 'list_badges' ? $this->listBadges() : $this->listColumnsSave()));
             } catch (\Throwable $e) {
                 $this->sendJson(['success' => false, 'message' => $e->getMessage()]);
             }

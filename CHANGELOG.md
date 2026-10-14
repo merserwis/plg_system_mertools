@@ -2,6 +2,15 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.0.7 — 2026-10-14
+
+### 📋 Gridbox lists
+
+- **Product badges column**, editable: a click opens the badges of the store (Gridbox's *New*, *Hot*, the discount…) to tick; the product's badges are replaced in the order kept, noted in the edit history and the kept pages emptied. The discount badge shows its percentage as in the store (“- 25%”). Refused while the product is open in the Gridbox editor (it saves its badges too).
+- **Versions/sets column**: Yes when the product has options with their own prices (versions, sets), else No.
+- Fewer columns to choose from: featured, language, tags and last change are no longer offered, nor fields of the app without a real name (empty or only a dot, e.g. the description fields); new setting **Hidden app fields** (names or numbers) — by default “Instrukcja obsługi Metrel”.
+- Edit history: changes of the badges in the Gridbox editor are noted too.
+
 ## 1.0.6 — 2026-10-14
 
 ### 📋 Gridbox lists

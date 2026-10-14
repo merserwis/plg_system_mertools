@@ -220,6 +220,8 @@ final class History
             . ' AS m WHERE m.page_id = p.id) AS ' . $db->quoteName('crc_categories');
         $select[] = '(SELECT CRC32(GROUP_CONCAT(t.tag_id ORDER BY t.tag_id)) FROM ' . $db->quoteName('#__gridbox_tags_map')
             . ' AS t WHERE t.page_id = p.id) AS ' . $db->quoteName('crc_tags');
+        $select[] = '(SELECT CRC32(GROUP_CONCAT(b.badge_id ORDER BY b.order_list, b.id)) FROM ' . $db->quoteName('#__gridbox_store_badges_map')
+            . ' AS b WHERE b.product_id = p.id) AS ' . $db->quoteName('crc_badges');
 
         $rows = $db->setQuery('SELECT ' . implode(', ', $select) . ' FROM ' . $db->quoteName('#__gridbox_pages') . ' AS p LEFT JOIN '
             . $db->quoteName('#__gridbox_store_product_data') . ' AS d ON d.product_id = p.id WHERE p.id IN (' . implode(',', $ids) . ')')->loadAssocList() ?: [];

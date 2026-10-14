@@ -141,7 +141,59 @@
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.target.matches && e.target.matches('[data-mt-edit]')) { e.preventDefault(); start(e.target); }
   });
+  // ---------------------------------------------------------------- badges of a product
+  let badgePop = null;
+  const closeBadges = () => { if (badgePop) { badgePop.remove(); badgePop = null; } };
+  const openBadges = (cell) => {
+    closeBadges();
+    const current = (cell.getAttribute('data-mt-raw') || '').split(',').filter(Boolean).map(Number);
+    const boxes = (cfg.badges || []).map((b) => {
+      const box = el('input', { type: 'checkbox', value: String(b.id), checked: current.includes(b.id) });
+      return el('label', { class: 'mt-cols-row', style: 'cursor:pointer' }, box,
+        el('span', { class: 'mt-badge', style: 'background:' + (/^#[0-9a-f]{3,8}$/i.test(b.color) ? b.color : '#6b7280'), text: b.label }));
+    });
+    const save = el('button', { type: 'button', class: 'mt-primary', text: t.SAVE });
+    const cancel = el('button', { type: 'button', text: t.CANCEL });
+    badgePop = el('div', { class: 'mt-cols-pop', role: 'dialog', 'aria-label': t.BADGES_TITLE, style: 'width:260px' }, el('h4', { text: t.BADGES_TITLE }),
+      boxes.length ? boxes : el('p', { text: t.BADGES_NONE }), el('div', { class: 'mt-cols-btns' }, cancel, save));
+    document.body.append(badgePop);
+    const r = cell.getBoundingClientRect();
+    badgePop.style.left = Math.max(8, Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - 280)) + 'px';
+    badgePop.style.top = (window.scrollY + r.bottom + 4) + 'px';
+    cancel.addEventListener('click', closeBadges);
+    save.addEventListener('click', async () => {
+      // the badges kept in their order, newly ticked ones after them
+      const ticked = boxes.map((l) => l.querySelector('input')).filter((b) => b.checked).map((b) => Number(b.value));
+      const order = current.filter((id) => ticked.includes(id)).concat(ticked.filter((id) => !current.includes(id)));
+      save.disabled = true;
+      save.textContent = t.SAVING;
+      try {
+        const data = await post({ mertools_action: 'list_badges', id: cell.getAttribute('data-mt-badges'), badges: JSON.stringify(order) });
+        if (!data.success) throw new Error(data.message || t.ERROR);
+        cell.innerHTML = data.html;
+        cell.setAttribute('data-mt-raw', data.raw);
+        cell.classList.add('mt-saved');
+        setTimeout(() => cell.classList.remove('mt-saved'), 1600);
+        closeBadges();
+      } catch (e) {
+        alert(e.message);
+        save.disabled = false;
+        save.textContent = t.SAVE;
+      }
+    });
+  };
+  document.addEventListener('click', (e) => {
+    const cell = e.target.closest && e.target.closest('[data-mt-badges]');
+    if (cell) { e.preventDefault(); e.stopPropagation(); openBadges(cell); return; }
+    if (badgePop && !badgePop.contains(e.target)) closeBadges();
+  }, true);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeBadges();
+    if (e.key === 'Enter' && e.target.matches && e.target.matches('[data-mt-badges]')) { e.preventDefault(); openBadges(e.target); }
+  });
+
   document.querySelectorAll('[data-mt-edit]').forEach((cell) => {
     if (!cell.title) cell.title = cell.hasAttribute('data-mt-variants') ? t.VARIANTS : t.EDIT_HINT;
   });
+  document.querySelectorAll('[data-mt-badges]').forEach((cell) => { if (!cell.title) cell.title = t.BADGES_TITLE; });
 })();
