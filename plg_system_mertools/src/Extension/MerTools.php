@@ -27,6 +27,8 @@
  *    In onAfterRender, after Gridbox has finished the page (lowest priority).
  *  - Links to a product option: a link with a chosen product option ("?Zestawy+Metrel+MI+3155=…")
  *    opens the product with that option selected. Runs in onAfterRoute, on Gridbox pages only.
+ *  - Gridbox lists (ListColumns): each user chooses, orders and adds the columns of the product and
+ *    post lists, and edits prices, sale prices, stock and SKU right in the list.
  *  - Edit lock (EditLock): one person at a time in the Gridbox editor of a page; the others see who
  *    edits it (and may take it over, by the setting), a save of an editor that lost the lock is refused.
  *  - Edit history (History): who changed which Gridbox page or product and when, from the editor's
@@ -62,6 +64,7 @@ use Merserwis\Plugin\System\MerTools\Tool\History;
 use Merserwis\Plugin\System\MerTools\Tool\ImageOptimizer;
 use Merserwis\Plugin\System\MerTools\Tool\ImageSize;
 use Merserwis\Plugin\System\MerTools\Tool\Layout;
+use Merserwis\Plugin\System\MerTools\Tool\ListColumns;
 use Merserwis\Plugin\System\MerTools\Tool\NotFound;
 use Merserwis\Plugin\System\MerTools\Tool\PageCache;
 use Merserwis\Plugin\System\MerTools\Tool\PostRows;
@@ -74,7 +77,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.0.5';
+    public const VERSION = '1.0.6';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
@@ -158,6 +161,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $this->purgeOnChange();
         }
         if ($app->isClient('administrator')) {
+            $this->adminLockGuard();
             $this->handleAdministratorAction();
 
             return;
@@ -180,6 +184,393 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $input->get->set($name, $value);
             $_GET[$name] = $value;
         }
+    }
+
+    // ---------------------------------------------------------------- Gridbox lists: columns and quick edits
+
+    /** The list of this request: "apps.<id>" (an app's products or posts) or "pages" (single pages); null elsewhere. */
+    private function gridboxList(): ?string
+    {
+        $input = $this->getApplication()->getInput();
+        if ($input->getCmd('option') !== 'com_gridbox' || $input->getCmd('format', 'html') !== 'html') {
+            return null;
+        }
+        $view = $input->getCmd('view', '');
+        if ($view === 'apps' && $input->getInt('id', 0) > 0) {
+            return 'apps.' . $input->getInt('id', 0);
+        }
+
+        return $view === 'pages' ? 'pages' : null;
+    }
+
+    private function listProfileKey(string $list): string
+    {
+        return 'mertools.listcols.' . $list;
+    }
+
+    /** @return array{order: string[], known: string[]}|null the user's saved columns of a list */
+    private function listPrefs(int $userId, string $list): ?array
+    {
+        $db  = Factory::getContainer()->get(DatabaseInterface::class);
+        $raw = $db->setQuery('SELECT profile_value FROM ' . $db->quoteName('#__user_profiles') . ' WHERE user_id = ' . $userId . ' AND profile_key = '
+            . $db->quote($this->listProfileKey($list)))->loadResult();
+        $prefs = \is_string($raw) ? json_decode($raw, true) : null;
+
+        return \is_array($prefs) && isset($prefs['order']) && \is_array($prefs['order'])
+            ? ['order' => array_map('strval', $prefs['order']), 'known' => array_map('strval', (array) ($prefs['known'] ?? []))] : null;
+    }
+
+    /** The store's currency (as Gridbox shows prices in its lists). */
+    private function storeCurrency(): array
+    {
+        static $currency = null;
+        if ($currency === null) {
+            $currency = ['symbol' => '', 'position' => '', 'thousand' => ' ', 'separator' => ',', 'decimals' => 2];
+            try {
+                $db    = Factory::getContainer()->get(DatabaseInterface::class);
+                $store = json_decode((string) $db->setQuery('SELECT ' . $db->quoteName('key') . ' FROM ' . $db->quoteName('#__gridbox_api') . ' WHERE service = '
+                    . $db->quote('store'))->loadResult());
+                if (\is_object($store->currency ?? null)) {
+                    $currency = array_merge($currency, array_intersect_key((array) $store->currency, $currency));
+                }
+            } catch (\Throwable $e) {
+            }
+        }
+
+        return $currency;
+    }
+
+    /**
+     * The Gridbox list as the user arranged it: Gridbox's columns in the chosen order (hidden ones out),
+     * the added columns, and the cells of price, sale price, stock and SKU editable in place.
+     */
+    private function listColumns(): void
+    {
+        $list = $this->gridboxList();
+        if ($list === null || !(int) $this->params->get('list_columns', 1)) {
+            return;
+        }
+        $app  = $this->getApplication();
+        $user = $app->getIdentity();
+        if (!$user || !$user->authorise('core.manage', 'com_gridbox')) {
+            return;
+        }
+        $body   = (string) $app->getBody();
+        $bounds = ListColumns::tableBounds($body);
+        if (!$bounds) {
+            return;
+        }
+        [$start, $end] = $bounds;
+        $table = substr($body, $start, $end - $start);
+        $head  = ListColumns::headCells($table);
+        if (!$head || !preg_match_all('/name="cid\[\]" value="(\d+)"/', $table, $m)) {
+            return;
+        }
+        $ids     = array_map('intval', $m[1]);
+        $builtin = array_column($head, 'key');
+        $db      = Factory::getContainer()->get(DatabaseInterface::class);
+        $this->loadLanguage();
+
+        try {
+            $appId   = str_starts_with($list, 'apps.') ? (int) substr($list, 5) : 0;
+            $appType = $appId ? (string) $db->setQuery('SELECT type FROM ' . $db->quoteName('#__gridbox_app') . ' WHERE id = ' . $appId)->loadResult() : 'single';
+            $product = $appType === 'products';
+
+            // the columns MerTools can add to this list
+            $extra = [];
+            if ($product) {
+                $extra['sale_price'] = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_SALE_PRICE');
+                $extra['min']        = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_MIN');
+            }
+            foreach (['created' => 'CREATED', 'end_publishing' => 'END_PUBLISHING', 'featured' => 'FEATURED', 'language' => 'LANGUAGE', 'tags' => 'TAGS', 'modified' => 'MODIFIED'] as $key => $label) {
+                if (!\in_array($key, $builtin, true)) {
+                    $extra[$key] = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_' . $label);
+                }
+            }
+            $fields = [];
+            if ($appId) {
+                foreach ($db->setQuery('SELECT id, label, field_type, options FROM ' . $db->quoteName('#__gridbox_fields') . ' WHERE app_id = ' . $appId
+                    . ' AND field_type IN (\'text\', \'textarea\', \'select\', \'radio\', \'checkbox\', \'url\', \'email\', \'number\', \'date\', \'price\', \'time\')'
+                    . ' ORDER BY order_list, id')->loadAssocList() ?: [] as $field) {
+                    $fields[(int) $field['id']] = $field;
+                    $extra['field_' . (int) $field['id']] = trim((string) $field['label']) ?: '#' . (int) $field['id'];
+                }
+            }
+
+            $prefs   = $this->listPrefs((int) $user->id, $list);
+            $visible = ListColumns::visible($builtin, array_keys($extra), $prefs['order'] ?? null, $prefs['known'] ?? []);
+            $shown   = array_flip($visible);
+
+            // the data of the shown rows, only for the columns shown (and the editable cells)
+            $in    = implode(',', $ids);
+            $pages = [];
+            foreach ($db->setQuery('SELECT id, created, end_publishing, featured, language FROM ' . $db->quoteName('#__gridbox_pages') . ' WHERE id IN (' . $in . ')')->loadAssocList() ?: [] as $row) {
+                $pages[(int) $row['id']] = $row;
+            }
+            $products = [];
+            if ($product) {
+                foreach ($db->setQuery('SELECT product_id, price, sale_price, stock, sku, min, variations FROM ' . $db->quoteName('#__gridbox_store_product_data')
+                    . ' WHERE product_id IN (' . $in . ') ORDER BY id')->loadAssocList() ?: [] as $row) {
+                    $products[(int) $row['product_id']] ??= $row;
+                }
+            }
+            $tags = [];
+            if (isset($shown['tags'])) {
+                foreach ($db->setQuery('SELECT m.page_id, t.title FROM ' . $db->quoteName('#__gridbox_tags_map') . ' AS m INNER JOIN ' . $db->quoteName('#__gridbox_tags')
+                    . ' AS t ON t.id = m.tag_id WHERE m.page_id IN (' . $in . ') ORDER BY t.title')->loadRowList() ?: [] as [$pid, $title]) {
+                    $tags[(int) $pid][] = (string) $title;
+                }
+            }
+            $values = [];
+            $wanted = array_filter(array_keys($fields), static fn ($id) => isset($shown['field_' . $id]));
+            if ($wanted) {
+                foreach ($db->setQuery('SELECT page_id, field_id, value FROM ' . $db->quoteName('#__gridbox_page_fields') . ' WHERE page_id IN (' . $in . ') AND field_id IN ('
+                    . implode(',', $wanted) . ')')->loadRowList() ?: [] as [$pid, $fid, $value]) {
+                    $values[(int) $pid][(int) $fid] = (string) $value;
+                }
+            }
+            $latest = [];
+            if (isset($shown['modified'])) {
+                $history = new History($db);
+                $history->ensureTables();
+                $latest = $history->latest($ids);
+            }
+        } catch (\Throwable $e) {
+            return;
+        }
+
+        $currency = $this->storeCurrency();
+        $edit     = (int) $this->params->get('list_quickedit', 1) === 1 && $user->authorise('core.edit', 'com_gridbox');
+        $esc      = static fn ($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+        $date     = static fn ($v) => ($v === '' || $v === null || str_starts_with((string) $v, '0000')) ? '' : HTMLHelper::_('date', (string) $v, 'd.m.Y H:i', false);
+
+        $extraCell = function (string $key, int $id) use ($pages, $products, $tags, $values, $fields, $latest, $currency, $esc, $date): string {
+            $page = $pages[$id] ?? [];
+            switch ($key) {
+                case 'sale_price':
+                    return $esc(ListColumns::money((string) ($products[$id]['sale_price'] ?? ''), $currency));
+                case 'min':
+                    return $esc((string) ($products[$id]['min'] ?? ''));
+                case 'created':
+                case 'end_publishing':
+                    return $esc($date($page[$key] ?? ''));
+                case 'featured':
+                    return !empty($page['featured']) ? '★' : '';
+                case 'language':
+                    return $esc((string) ($page['language'] ?? '') === '*' ? Text::_('JALL') : (string) ($page['language'] ?? ''));
+                case 'tags':
+                    return $esc(implode(', ', $tags[$id] ?? []));
+                case 'modified':
+                    if (!isset($latest[$id])) {
+                        return '';
+                    }
+
+                    return $esc(HTMLHelper::_('date', (string) $latest[$id]['created'], 'd.m.Y H:i')) . '<br><small>'
+                        . $esc(preg_replace('/\s*\([^()]*\)$/', '', (string) $latest[$id]['user_name'])) . '</small>';
+            }
+            if (str_starts_with($key, 'field_')) {
+                $fid = (int) substr($key, 6);
+
+                return $esc(self::fieldText($fields[$fid] ?? [], $values[$id][$fid] ?? ''));
+            }
+
+            return '';
+        };
+        $decorate = function (string $key, string $cell, int $id) use ($products, $edit, $esc): string {
+            if (!$edit || !isset(ListColumns::EDITABLE[$key]) || !isset($products[$id])) {
+                return $cell;
+            }
+            $row  = $products[$id];
+            $attr = ['data-mt-edit' => $key, 'data-mt-id' => $id, 'data-mt-raw' => (string) ($row[$key] ?? ''), 'tabindex' => '0'];
+            if ($key === 'price' && trim((string) $row['variations']) !== '' && !\in_array(trim((string) $row['variations']), ['{}', '[]'], true)) {
+                $attr['data-mt-variants'] = '1';
+            }
+
+            return ListColumns::withAttributes($cell, $attr);
+        };
+        $table = ListColumns::apply($table, $visible, $extra, $extraCell, $decorate);
+
+        // the columns window: Gridbox's columns (labels from its head), then the added ones
+        $columns = [];
+        $labels  = array_column($head, 'label', 'key');
+        foreach (array_merge($builtin, array_keys($extra)) as $key) {
+            if ($key === 'select') {
+                continue;
+            }
+            $columns[] = ['key' => $key, 'label' => $labels[$key] ?? $extra[$key] ?? $key, 'visible' => isset($shown[$key]), 'locked' => $key === 'title',
+                'added' => isset($extra[$key])];
+        }
+        usort($columns, static function ($a, $b) use ($visible) {
+            $ia = array_search($a['key'], $visible, true);
+            $ib = array_search($b['key'], $visible, true);
+
+            return ($ia === false ? 1000 : $ia) <=> ($ib === false ? 1000 : $ib);
+        });
+        $texts = [];
+        foreach (['BUTTON', 'TITLE', 'HINT', 'SAVE', 'RESET', 'CANCEL', 'UP', 'DOWN', 'ADDED', 'SAVING', 'ERROR', 'EDIT_HINT', 'VARIANTS', 'SAVED', 'EMPTY_SALE'] as $k) {
+            $texts[$k] = Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_' . $k);
+        }
+        $config = ['url' => Uri::base(true) . '/index.php', 'token' => Session::getFormToken(), 'list' => $list, 'builtin' => array_values(array_diff($builtin, ['select'])),
+            'columns' => $columns, 'edit' => $edit, 'texts' => $texts];
+        $tools  = '<div class="mt-list-tools"><button type="button" class="mt-cols-btn" data-mt-columns><span aria-hidden="true">☰</span> ' . $esc($texts['BUTTON']) . '</button>'
+            . ($edit && $product ? '<span class="mt-list-hint">' . $esc($texts['EDIT_HINT']) . '</span>' : '') . '</div>';
+        $body = substr($body, 0, $start) . $tools . $table . substr($body, $end);
+        $tail = '<style>' . self::LIST_CSS . '</style><script type="application/json" id="mertools-lists-config">'
+            . json_encode($config, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . '</script><script src="' . Uri::root(true)
+            . '/media/plg_system_mertools/js/mertools-lists' . (JDEBUG ? '' : '.min') . '.js?' . self::VERSION . '" defer></script>';
+        $pos  = strripos($body, '</body>');
+        $app->setBody($pos === false ? $body . $tail : substr($body, 0, $pos) . $tail . substr($body, $pos));
+    }
+
+    public const LIST_CSS = '.mt-list-tools{display:flex;align-items:center;gap:12px;margin:0 0 8px}.mt-cols-btn{border:1px solid #d1d5db;background:#fff;border-radius:6px;'
+        . 'padding:6px 12px;cursor:pointer;font-size:13px}.mt-cols-btn:hover{border-color:#1d4ed8;color:#1d4ed8}.mt-list-hint{font-size:12px;color:#6b7280}'
+        . '[data-mt-edit]{cursor:pointer;position:relative}[data-mt-edit]:hover{outline:1px dashed #93c5fd;outline-offset:-3px}[data-mt-edit].mt-saving{opacity:.5}'
+        . '[data-mt-edit].mt-saved{background:#dcfce7!important;transition:background 1.5s}[data-mt-edit] input{width:100%;min-width:80px;box-sizing:border-box;'
+        . 'padding:3px 6px;font:inherit;border:1px solid #1d4ed8;border-radius:4px}[data-mt-variants]::after{content:"ⓘ";font-size:11px;color:#b45309;margin-left:4px}'
+        . '.mt-col{font-size:13px}.mt-col small{color:#6b7280}';
+
+    /** The value of a Gridbox field as text: the title of a chosen option, the label of a link, a short text. */
+    private static function fieldText(array $field, string $value): string
+    {
+        if ($value === '') {
+            return '';
+        }
+        $type    = (string) ($field['field_type'] ?? '');
+        $options = [];
+        $json    = json_decode((string) ($field['options'] ?? ''), true);
+        foreach ((array) ($json['items'] ?? []) as $item) {
+            if (\is_array($item) && isset($item['key'])) {
+                $options[(string) $item['key']] = (string) ($item['title'] ?? $item['key']);
+            }
+        }
+        if (\in_array($type, ['select', 'radio'], true)) {
+            return $options[$value] ?? $value;
+        }
+        if ($type === 'checkbox') {
+            $keys = json_decode($value, true);
+
+            return implode(', ', array_map(static fn ($k) => $options[(string) $k] ?? (string) $k, \is_array($keys) ? $keys : [$value]));
+        }
+        if ($type === 'url') {
+            $link = json_decode($value, true);
+
+            return \is_array($link) ? (string) ($link['label'] ?? $link['link'] ?? '') : $value;
+        }
+        $text = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8')) ?? '');
+
+        return mb_strlen($text) > 80 ? mb_substr($text, 0, 79) . '…' : $text;
+    }
+
+    /** The columns window saved: the order of the shown columns (empty = Gridbox's own again). */
+    private function listColumnsSave(): array
+    {
+        $app   = $this->getApplication();
+        $input = $app->getInput();
+        $user  = $app->getIdentity();
+        $list  = $input->getString('list', '');
+        if (!preg_match('/^(apps\.\d{1,9}|pages)$/', $list)) {
+            return ['success' => false, 'message' => 'list'];
+        }
+        $clean = static fn ($v) => array_values(array_filter(array_map('strval', \is_array($v) ? $v : []), static fn ($k) => preg_match('/^[a-z_0-9]{1,40}$/', $k)));
+        $order = $clean(json_decode($input->getString('order', '[]'), true));
+        $known = $clean(json_decode($input->getString('known', '[]'), true));
+        $db    = Factory::getContainer()->get(DatabaseInterface::class);
+        $key   = $db->quote($this->listProfileKey($list));
+        $db->setQuery('DELETE FROM ' . $db->quoteName('#__user_profiles') . ' WHERE user_id = ' . (int) $user->id . ' AND profile_key = ' . $key)->execute();
+        if ($order) {
+            $db->setQuery('INSERT INTO ' . $db->quoteName('#__user_profiles') . ' (user_id, profile_key, profile_value, ordering) VALUES (' . (int) $user->id . ', ' . $key
+                . ', ' . $db->quote(json_encode(['order' => \array_slice($order, 0, 60), 'known' => \array_slice($known, 0, 60)])) . ', 0)')->execute();
+        }
+
+        return ['success' => true];
+    }
+
+    /**
+     * A price, sale price, stock or SKU changed in the list: checked, kept as Gridbox keeps it, noted in
+     * the edit history, kept pages emptied. Refused while the product is open in the Gridbox editor
+     * (its next save would put the old value back).
+     */
+    private function listEdit(): array
+    {
+        $app   = $this->getApplication();
+        $input = $app->getInput();
+        $user  = $app->getIdentity();
+        $id    = $input->getInt('id', 0);
+        $field = $input->getCmd('field', '');
+        if ($id <= 0 || !isset(ListColumns::EDITABLE[$field])) {
+            return ['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_ERROR')];
+        }
+        $value = ListColumns::clean(ListColumns::EDITABLE[$field], (string) $input->post->get('value', '', 'raw'));
+        if ($value === null || ($field === 'price' && $value === '')) {
+            return ['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_BAD_' . strtoupper(ListColumns::EDITABLE[$field]))];
+        }
+        $db  = Factory::getContainer()->get(DatabaseInterface::class);
+        $row = $db->setQuery('SELECT d.id, d.' . $db->quoteName($field) . ' AS value, p.title, p.app_id FROM ' . $db->quoteName('#__gridbox_store_product_data')
+            . ' AS d INNER JOIN ' . $db->quoteName('#__gridbox_pages') . ' AS p ON p.id = d.product_id WHERE d.product_id = ' . $id . ' ORDER BY d.id LIMIT 1')->loadAssoc();
+        if (!$row) {
+            return ['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_NOT_PRODUCT')];
+        }
+        if ($this->lockOn()) {
+            $lock = $this->editLocks()->get(EditLock::key('', $id));
+            if (EditLock::held($lock, time(), $this->lockIdle())) {
+                return ['success' => false, 'message' => Text::sprintf('PLG_SYSTEM_MERTOOLS_LIST_UI_LOCKED', preg_replace('/\s*\([^()]*\)$/', '', (string) $lock['user_name']))];
+            }
+        }
+        $old = (string) $row['value'];
+        if ($old !== $value) {
+            $db->setQuery('UPDATE ' . $db->quoteName('#__gridbox_store_product_data') . ' SET ' . $db->quoteName($field) . ' = ' . $db->quote($value)
+                . ' WHERE id = ' . (int) $row['id'])->execute();
+            if ($this->historyOn()) {
+                try {
+                    $history = new History($db);
+                    $history->ensureTables();
+                    $history->record($id, (int) $row['app_id'], (string) $row['title'], (int) $user->id, self::userLabel($user), 'edited',
+                        [['f' => 'product_' . $field, 'from' => $old, 'to' => $value]], 'admin', gmdate('Y-m-d H:i:s'));
+                    if ((int) $this->params->get('history_actionlog', 1) === 1) {
+                        $this->historyActionLog('edited', $id, (string) $row['title'], (int) $user->id, (string) $user->username);
+                    }
+                } catch (\Throwable $e) {
+                }
+            }
+            $this->purgeKeptPages();
+        }
+        $kind = ListColumns::EDITABLE[$field];
+
+        return ['success' => true, 'raw' => $value, 'display' => $kind === 'money' ? ListColumns::money($value, $this->storeCurrency()) : $value];
+    }
+
+    /**
+     * The Settings window of a page in the Gridbox lists (gridbox.updateParams) while somebody else has
+     * the page open in the editor: refused, as their next save would undo it.
+     */
+    private function adminLockGuard(): void
+    {
+        if (!$this->lockOn()) {
+            return;
+        }
+        $app   = $this->getApplication();
+        $input = $app->getInput();
+        if ($input->getCmd('option') !== 'com_gridbox' || strtolower((string) $input->getString('task', '')) !== 'gridbox.updateparams'
+            || strtoupper((string) $input->getMethod()) !== 'POST') {
+            return;
+        }
+        $user = $app->getIdentity();
+        $id   = $input->getInt('ba_id', 0);
+        if (!$user || $user->guest || $id <= 0) {
+            return;
+        }
+        try {
+            $lock = $this->editLocks()->get(EditLock::key('', $id));
+            if (!EditLock::blocks($lock, (int) $user->id, time(), $this->lockIdle())) {
+                return;
+            }
+        } catch (\Throwable $e) {
+            return;
+        }
+        $this->loadLanguage();
+        $app->enqueueMessage(Text::sprintf('PLG_SYSTEM_MERTOOLS_LOCK_SETTINGS_REFUSED', preg_replace('/\s*\([^()]*\)$/', '', (string) $lock['user_name'])), 'error');
+        $back = (string) $input->server->getString('HTTP_REFERER', '');
+        $app->redirect($back !== '' && Uri::isInternal($back) ? $back : 'index.php?option=com_gridbox');
     }
 
     // ---------------------------------------------------------------- edit lock
@@ -439,6 +830,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             'obj'          => $obj,
             'id'           => $input->getInt('id', 0),
             'context-item' => $input->getInt('context-item', 0),
+            'ba_id'        => $input->getInt('ba_id', 0),
             'cid'          => $input->get('cid', [], 'array'),
         ]);
         $creates = History::creates($task);
@@ -1191,11 +1583,24 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $input  = $app->getInput();
         $action = $input->getCmd('mertools_action', '');
         if (!\in_array($action, ['cart_stats', 'cart_check', 'cart_clean', 'speed_list', 'speed_save', 'speed_baseline', 'speed_delete',
-            'pcache_stats', 'pcache_clear', 'dbidx_status', 'dbidx_fix', 'img_stats', 'img_run', 'img_clear', 'cache_clear_all', 'history_list'], true)) {
+            'pcache_stats', 'pcache_clear', 'dbidx_status', 'dbidx_fix', 'img_stats', 'img_run', 'img_clear', 'cache_clear_all', 'history_list',
+            'list_columns', 'list_edit'], true)) {
             return;
         }
         $this->loadLanguage();
         $user = $app->getIdentity();
+        // the Gridbox lists: own columns (whoever may use the lists), quick edits (whoever may edit)
+        if ($action === 'list_columns' || $action === 'list_edit') {
+            $right = $action === 'list_edit' ? 'core.edit' : 'core.manage';
+            if ($input->getMethod() !== 'POST' || !$user || !$user->authorise($right, 'com_gridbox') || !Session::checkToken('request')) {
+                $this->sendJson(['success' => false, 'message' => Text::_('JERROR_ALERTNOAUTHOR')], 403);
+            }
+            try {
+                $this->sendJson($action === 'list_edit' ? $this->listEdit() : $this->listColumnsSave());
+            } catch (\Throwable $e) {
+                $this->sendJson(['success' => false, 'message' => $e->getMessage()]);
+            }
+        }
         // the edit history: whoever may use Gridbox's lists
         if ($action === 'history_list') {
             if ($input->getMethod() !== 'POST' || !$user || !$user->authorise('core.manage', 'com_gridbox') || !Session::checkToken('request')) {
@@ -1483,6 +1888,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     {
         $app = $this->getApplication();
         if ($app->isClient('administrator')) {
+            $this->listColumns();
             $this->historyInLists();
 
             return;

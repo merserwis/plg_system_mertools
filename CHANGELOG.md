@@ -2,6 +2,17 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.0.6 — 2026-10-14
+
+### 📋 Gridbox lists
+
+- **Your own columns.** A **Columns** button above the lists of products, posts and pages in the Gridbox panel: show, hide and order Gridbox's columns (the tick box and the title always stay) and add others — sale price, minimum quantity, publishing date and end, featured, language, tags, last change (edit history) and the fields of the app (e.g. *Producent*, with the names of its options). Kept per user and list on the server (Joomla user profile); **As in Gridbox** restores Gridbox's columns. The list is rearranged on the server (no flicker); Gridbox's selection, context menu, featured star, sorting and drag-ordering work as before.
+- **Prices edited in the list.** A click on a product's price, sale price, stock or SKU edits it in place (Enter or leaving the field saves, Esc cancels; `1234,50`, `1 234,50` or `1234.5`; an empty sale price removes the sale). Checked on the server, noted in the edit history, kept pages emptied. Refused while the product is open in the Gridbox editor (its next save would undo it); products with options show ⓘ (the list changes the base price). New tab *Gridbox lists* (both on by default).
+
+### 🐞 Fixes
+
+- **Edit history: the Settings window of the Gridbox lists** (right click → Settings: title, address, dates, meta texts…) was not noted; it is now. While somebody else has the page open in the editor, saving it there is refused with a message (the editor's next save would undo it).
+
 ## 1.0.5 — 2026-10-14
 
 ### 🔒 Edit lock

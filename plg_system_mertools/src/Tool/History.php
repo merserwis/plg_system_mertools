@@ -46,7 +46,9 @@ final class History
         'apps.moveto', 'apps.pagemoveto',
         'pages.publish', 'pages.unpublish', 'pages.addtrash', 'pages.contexttrash', 'pages.duplicate', 'pages.contextduplicate', 'pages.setfeatured',
         'pages.moveto', 'pages.pagemoveto',
-        'trashed.delete', 'trashed.contextdelete', 'trashed.restoresingle', 'trashed.restore'];
+        'trashed.delete', 'trashed.contextdelete', 'trashed.restoresingle', 'trashed.restore',
+        // the Settings window of a page in the Gridbox lists
+        'gridbox.updateparams'];
 
     public const ACTIONS = ['created', 'duplicated', 'edited', 'saved', 'published', 'unpublished', 'trashed', 'restored', 'deleted'];
 
@@ -88,7 +90,7 @@ final class History
                 $ids[] = (int) $obj->page->id;
             }
         }
-        foreach (['id', 'context-item'] as $key) {
+        foreach (['id', 'context-item', 'ba_id'] as $key) {
             if (isset($request[$key]) && is_scalar($request[$key])) {
                 $ids[] = (int) $request[$key];
             }
