@@ -63,6 +63,16 @@ A link to a chosen product option or set (Gridbox adds it to the address, e.g. `
 
 Gridbox never removes a cart, so its cart tables only grow. **Clean and optimise** (tab *Shop*) removes the carts nobody can open any more — empty carts at once, carts with products unused for N days (default 30, at least 8, since Gridbox's cart cookie lives 7 days) — and rebuilds the tables so the database shrinks; **Check** shows what would go. Orders and their data, carts with attached files and carts in use are never touched. Can also run automatically once a day or above a cart limit (default: by hand only).
 
+### 🕘 Edit history — who changed which page or product, and when
+
+Gridbox keeps no record of who edited a page: its page versions have no author or date and it writes nothing to Joomla's User Actions Log. MerTools notes every save in the **Gridbox editor** and every action of the **Gridbox lists** by a logged-in user — publish, unpublish, featured, duplicate, move to another category, trash, restore, delete for good — with what really changed: title, status, category, address, publishing dates, access, language, image, content, intro text, meta texts, the app's fields (description, specifications, producer…), other categories, tags, and for products price, sale price, SKU, stock and options (long texts as “changed”, the others with the old and the new value). The page is read before the request and again after it, so a request that changed nothing leaves no entry (a save in the editor is noted as “saved without changes”).
+
+* **In the Gridbox lists** (products, articles, pages, trash): under each title the date and the user of the last change; a click opens a window with the whole history of the page.
+* **Tab *Edit history***: all changes, newest first, with filters by title or ID, user, kind of change and dates.
+* **User Actions Log** (optional, on by default): every change also in Joomla's *Users → User Actions Log*, with its filters and CSV export.
+
+Kept for 365 days by default (0 = for ever) in `#__mertools_history`. Changes made before MerTools 1.0.3 and imports from CSV files are not in the history. On by default, tab *Edit history*.
+
 ### 🗄 Database — indexes of Gridbox tables
 
 Gridbox creates its tables with a primary key only, so each lookup of product data, categories, tags or cart products reads the whole table (on merserwis.pl a query of the search index took 6 s). MerTools creates 8 plain indexes (`idx_mt_…`) and keeps them: checked after Gridbox or MerTools is installed or updated and once a day, missing ones are created again; an index Gridbox adds on the same column counts as present. The tab shows the state of each index and has a **Check and create missing** button. No data is changed; uninstalling MerTools leaves the indexes in place.

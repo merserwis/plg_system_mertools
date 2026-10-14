@@ -2,6 +2,16 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.0.3 — 2026-10-14
+
+### 🕘 Edit history
+
+- **Who changed which Gridbox page or product, and when.** Gridbox keeps no such record (its page versions have no author or date). MerTools now notes every save in the Gridbox editor and every action of the Gridbox lists by a logged-in user — publish, unpublish, featured, duplicate, move, trash, restore, delete — with what changed: title, status, category, address, dates, access, language, image, content, intro and meta texts, the app's fields (description, specifications, producer…), other categories, tags, and for products price, sale price, SKU, stock and options. Long texts are noted as “changed”, the others with the old and the new value.
+- The page is read before the request and again once it has finished (Gridbox ends its requests with `exit`, so at shutdown), so only real changes are kept; a save in the editor that changed nothing is noted as “saved without changes”. Both ways the editor saves (the request body and the `obj` field) are read.
+- **In the Gridbox lists** (products, articles, pages, trash): the date and the user of the last change under each title; a click opens a window with the whole history of the page.
+- **New tab *Edit history***: all changes, newest first, with filters by title or ID, user, kind of change and dates; **also in Joomla's User Actions Log** (*Users → User Actions Log*, on by default), with its filters and CSV export.
+- Entries are kept for 365 days by default (setting *Keep for (days)*, 0 = for ever) in the new table `#__mertools_history` (removed on uninstall). Changes made before 1.0.3 and imports from CSV files are not in the history.
+
 ## 1.0.2 — 2026-10-13
 
 ### 🔗 A link to a tab

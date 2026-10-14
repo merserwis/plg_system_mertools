@@ -43,12 +43,12 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
         }
     }
 
-    /** Uninstalling removes the tables of MerTools (cart clean-up, speed measurements); Gridbox's own tables stay as they are. */
+    /** Uninstalling removes the tables of MerTools (cart clean-up, speed measurements, edit history); Gridbox's own tables stay as they are. */
     public function uninstall(InstallerAdapter $adapter): bool
     {
         try {
             $db = Factory::getContainer()->get(DatabaseInterface::class);
-            foreach (['#__mertools_cart_seen', '#__mertools_cart_marks', '#__mertools_cart_queue', '#__mertools_state', '#__mertools_speed'] as $table) {
+            foreach (['#__mertools_cart_seen', '#__mertools_cart_marks', '#__mertools_cart_queue', '#__mertools_state', '#__mertools_speed', '#__mertools_history'] as $table) {
                 $db->setQuery('DROP TABLE IF EXISTS ' . $db->quoteName($table))->execute();
             }
         } catch (\Throwable $e) {
