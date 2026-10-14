@@ -153,6 +153,23 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
                 // done by the daily check
             }
         }
+        // a "<" in the introductions that Gridbox's lists lose with an old libxml (1.0.11): kept as &lt;
+        // at once, unless switched off (the pages kept in the caches are emptied just below)
+        if ($type === 'install' || $type === 'update' || $type === 'discover_install') {
+            try {
+                $db     = Factory::getContainer()->get(DatabaseInterface::class);
+                $params = json_decode((string) $db->setQuery('SELECT params FROM ' . $db->quoteName('#__extensions') . ' WHERE type = ' . $db->quote('plugin')
+                    . ' AND folder = ' . $db->quote('system') . ' AND element = ' . $db->quote('mertools'))->loadResult(), true);
+                if ((string) ($params['intro_lt'] ?? '1') !== '0') {
+                    if (!class_exists(\Merserwis\Plugin\System\MerTools\Tool\IntroText::class) && is_file(__DIR__ . '/src/Tool/IntroText.php')) {
+                        require_once __DIR__ . '/src/Tool/IntroText.php';
+                    }
+                    \Merserwis\Plugin\System\MerTools\Tool\IntroText::repair($db);
+                }
+            } catch (\Throwable $e) {
+                // done by the daily check
+            }
+        }
         // pages kept by Joomla's page cache still point to the previous script version and settings
         if ($type === 'install' || $type === 'update' || $type === 'discover_install') {
             try {

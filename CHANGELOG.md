@@ -2,6 +2,12 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.0.11 — 2026-10-14
+
+### 🐞 Fixes
+
+- **A “<” in a product's introduction broke Gridbox's lists.** “sensitivity <30 mK” or “RE < 0,5 Ω” in the introduction: on servers whose PHP uses libxml older than 2.9.11 (e.g. 2.9.10), Gridbox's lists lost the text from the “<” to the next “>” together with the end of the introduction, so the following products fell into that card and the grid or list went to pieces; the meta description made from *[Intro Text]* was cut there too. Such a “<” (one that starts no tag) is now kept as `&lt;` — after every save in Gridbox, at the installation of MerTools and once a day — so it is shown as “<” in the lists, on the page and in Gridbox's editor, and the description meta tags show it right. Setting *“<” in introductions* (tab *Page layout*, on by default).
+
 ## 1.0.10 — 2026-10-14
 
 ### 👻 Products of other folders in the Gridbox lists

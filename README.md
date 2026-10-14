@@ -75,6 +75,8 @@ Gridbox never removes a cart, so its cart tables only grow. **Clean and optimise
 
 **Items from other folders:** Gridbox lists a product (or post) only in its main folder, so a folder whose products were only added to it from other folders looked empty. Each folder now also lists them, after its own items and greyed out, under *Also in this folder, edited in their main folder: N*: no tick box, no editing in the list, no row menu, and the title says **Main folder: …** with a link there. The list's search and filters apply to them; on a list of more pages they are on the last one. Setting *Items from other folders* (on by default).
 
+**“<” in introductions:** with libxml older than 2.9.11 (PHP on some hosts) Gridbox loses the text of an introduction from a “<” that starts no tag (“<30 mK”, “< 0,5 Ω”) to the next “>”, the end of its card with it — the grid or list breaks. MerTools keeps such a “<” as `&lt;` (after saves in Gridbox, at installation, daily) and fixes the description meta tags; it is shown as “<” everywhere.
+
 ### 🔒 Edit lock — one person at a time in the editor of a page
 
 Gridbox has no check-out: two people could open the same article, product or page in the Gridbox editor and the later save overwrote the other one's work. With MerTools whoever opens the editor first holds the page; anybody else who opens it sees a page saying who edits it, since when and their last activity, with **Try again**, **Back** and — by the setting — **Take over editing** (after a confirmation). In the Gridbox lists the page shows “🔒 Edited by … (since …)”.

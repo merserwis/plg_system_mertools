@@ -64,6 +64,7 @@ use Merserwis\Plugin\System\MerTools\Tool\History;
 use Merserwis\Plugin\System\MerTools\Tool\ImageOptimizer;
 use Merserwis\Plugin\System\MerTools\Tool\ImageSize;
 use Merserwis\Plugin\System\MerTools\Tool\Layout;
+use Merserwis\Plugin\System\MerTools\Tool\IntroText;
 use Merserwis\Plugin\System\MerTools\Tool\ListColumns;
 use Merserwis\Plugin\System\MerTools\Tool\NotFound;
 use Merserwis\Plugin\System\MerTools\Tool\PageCache;
@@ -77,7 +78,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.0.10';
+    public const VERSION = '1.0.11';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
@@ -157,6 +158,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $this->editLock();
         }
         if ($app->isClient('administrator') || $app->isClient('site')) {
+            // before the history: it then notes the introduction as it is kept
+            $this->introGuard();
             $this->trackHistory();
             $this->purgeOnChange();
         }
@@ -1764,6 +1767,55 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
     }
 
+    // ---------------------------------------------------------------- "<" in introductions
+
+    private function introLtOn(): bool
+    {
+        return (int) $this->params->get('intro_lt', 1) === 1;
+    }
+
+    /**
+     * After anything sent to Gridbox by a logged-in user (the editor's save, the settings of a page,
+     * a CSV import…): a "<" Gridbox's lists would lose with an old libxml is kept as &lt; (IntroText).
+     * Looks only for the rows that have one, so it costs a few ms.
+     */
+    private function introGuard(): void
+    {
+        if (!$this->introLtOn()) {
+            return;
+        }
+        $app   = $this->getApplication();
+        $input = $app->getInput();
+        $user  = $app->getIdentity();
+        if (strtoupper((string) $input->getMethod()) !== 'POST' || $input->getCmd('option') !== 'com_gridbox' || !$user || $user->guest) {
+            return;
+        }
+        register_shutdown_function(static function (): void {
+            try {
+                IntroText::repair(Factory::getContainer()->get(DatabaseInterface::class));
+            } catch (\Throwable $e) {
+            }
+        });
+    }
+
+    /** Once a day: introductions changed past Gridbox (another import, the database directly). */
+    private function dailyIntroCheck(): void
+    {
+        if (!$this->introLtOn()) {
+            return;
+        }
+        $gate = self::cacheBase() . '/mertools-intro-tick';
+        if ((is_file($gate) && (int) @filemtime($gate) > time() - 86400) || !@touch($gate)) {
+            return;
+        }
+        try {
+            if (IntroText::repair(Factory::getContainer()->get(DatabaseInterface::class)) && ($this->pageCacheOn() || $this->dataCacheOn())) {
+                $this->pageCache()->purge(false);
+            }
+        } catch (\Throwable $e) {
+        }
+    }
+
     /** Gridbox (its component or package) installed or updated: the missing indexes are created again at once. */
     public function onExtensionAfterInstallOrUpdate(\Joomla\Event\EventInterface $event): void
     {
@@ -1840,6 +1892,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $this->prunePageCache();
         }
         $this->dailyIndexCheck();
+        $this->dailyIntroCheck();
         $this->imageWork();
         if (!$this->cartsOn()) {
             return;
@@ -2209,6 +2262,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $new = ProductLinks::markChosenRadios($new);
         }
         $new = $this->speedup($new);
+        if ($this->introLtOn()) {
+            $new = IntroText::fixMeta($new);
+        }
         if ((int) $this->params->get('layout_post_rows', 1)) {
             $new = PostRows::apply($new);
         }
