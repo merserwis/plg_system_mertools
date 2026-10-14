@@ -9,7 +9,8 @@
  * change, the fields of the app…). The finished list page is rewritten on the server: the cells of
  * the head and of every row are put in the chosen order, so the list never flickers. Gridbox's list
  * script finds its cells by class (select-td, title-cell…), never by position, so this is safe;
- * a row whose cells do not match the head is left as Gridbox made it.
+ * a row whose cells do not match the head is left as Gridbox made it. The rows of products shown in a
+ * folder that is not their main one ("ghosts", in a tbody of their own) are rearranged the same way.
  */
 
 namespace Merserwis\Plugin\System\MerTools\Tool;
@@ -131,9 +132,10 @@ final class ListColumns
         return preg_replace_callback('#(<tbody\b[^>]*>)(.*?)(</tbody>)#s', static function ($body) use ($keys, $visible, $extraLabels, $extraCell, $decorate): string {
             $rows = preg_replace_callback('#(<tr\b[^>]*>)(.*?)(</tr>)#s', static function ($row) use ($keys, $visible, $extraLabels, $extraCell, $decorate): string {
                 if (!preg_match_all('#<td\b.*?</td>#s', $row[2], $cells) || \count($cells[0]) !== \count($keys)
-                    || !preg_match('/name="cid\[\]" value="(\d+)"/', $row[2], $id)) {
+                    || !preg_match('/name="cid\[\]" value="(\d+)"|data-mt-ghost="(\d+)"/', $row[2], $id)) {
                     return $row[0];
                 }
+                $id     = [1 => (int) ($id[1] ?: ($id[2] ?? 0))];
                 $cellBy = array_combine($keys, $cells[0]);
                 $out    = '';
                 foreach ($visible as $key) {
@@ -148,7 +150,21 @@ final class ListColumns
             }, $body[2]) ?? $body[2];
 
             return $body[1] . $rows . $body[3];
-        }, $table, 1) ?? $table;
+        }, $table) ?? $table;
+    }
+
+    /**
+     * Is this the last page of the list? Read from Gridbox's "1 - 20 / 26 items" under the table
+     * (the HTML after the table); yes when it cannot be read.
+     */
+    public static function lastPage(string $after): bool
+    {
+        $nav = strpos($after, 'pagination__wrapper');
+        if ($nav === false || !preg_match('#(\d+)\s*-\s*(\d+)\s*/\s*(\d+)#', strip_tags(substr($after, $nav, 1500)), $m)) {
+            return true;
+        }
+
+        return (int) $m[2] >= (int) $m[3];
     }
 
     /** Attributes added to the opening tag of a cell. */

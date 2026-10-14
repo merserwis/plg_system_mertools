@@ -2,6 +2,12 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.0.10 — 2026-10-14
+
+### 👻 Products of other folders in the Gridbox lists
+
+- A product added to more folders (categories) was listed by Gridbox only in its main folder: a folder holding only such products looked empty. Each folder now also lists the products (and posts) added to it whose main folder is another one, **after its own items, greyed out**, under a line *Also in this folder, edited in their main folder: N*. They cannot be ticked, edited in the list or reached from Gridbox's row menu; the title shows **Main folder: …** with a link to that folder, where the product is edited. Price, stock, SKU and the columns chosen in *Columns* are shown as for the other rows; the list's search and filters apply to them too. On a list of more pages they are on the last one. Setting *Items from other folders* (tab *Gridbox lists*, on by default).
+
 ## 1.0.9 — 2026-10-14
 
 ### 🐞 Fixes

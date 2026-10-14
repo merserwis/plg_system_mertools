@@ -77,7 +77,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.0.9';
+    public const VERSION = '1.0.10';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
@@ -242,15 +242,24 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
 
     /**
      * The Gridbox list as the user arranged it: Gridbox's columns in the chosen order (hidden ones out),
-     * the added columns, and the cells of price, sale price, stock and SKU editable in place.
+     * the added columns, and the cells of price, sale price, stock and SKU editable in place. In a
+     * folder, the products (posts) added to it whose main folder is another one are listed after its
+     * own, greyed out: Gridbox lists an item only in its main folder.
      */
     private function listColumns(): void
     {
         $list = $this->gridboxList();
-        if ($list === null || !(int) $this->params->get('list_columns', 1)) {
+        if ($list === null) {
             return;
         }
-        $app  = $this->getApplication();
+        $app       = $this->getApplication();
+        $input     = $app->getInput();
+        $columnsOn = (int) $this->params->get('list_columns', 1) === 1;
+        $category  = str_starts_with($list, 'apps.') && $input->getCmd('layout', '') !== 'modal' ? $input->getInt('category', 0) : 0;
+        $ghostsOn  = $category > 0 && (int) $this->params->get('list_ghosts', 1) === 1;
+        if (!$columnsOn && !$ghostsOn) {
+            return;
+        }
         $user = $app->getIdentity();
         if (!$user || !$user->authorise('core.manage', 'com_gridbox')) {
             return;
@@ -263,10 +272,10 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         [$start, $end] = $bounds;
         $table = substr($body, $start, $end - $start);
         $head  = ListColumns::headCells($table);
-        if (!$head || !preg_match_all('/name="cid\[\]" value="(\d+)"/', $table, $m)) {
+        if (!$head) {
             return;
         }
-        $ids     = array_map('intval', $m[1]);
+        $ids     = preg_match_all('/name="cid\[\]" value="(\d+)"/', $table, $m) ? array_map('intval', $m[1]) : [];
         $builtin = array_column($head, 'key');
         $db      = Factory::getContainer()->get(DatabaseInterface::class);
         $this->loadLanguage();
@@ -276,22 +285,31 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $appType = $appId ? (string) $db->setQuery('SELECT type FROM ' . $db->quoteName('#__gridbox_app') . ' WHERE id = ' . $appId)->loadResult() : 'single';
             $product = $appType === 'products';
 
+            // the items of other folders added to this one: listed on the last page of the list
+            $ghosts   = $ghostsOn ? $this->ghostItems($appId, $appType, $category) : [];
+            $lastPage = ListColumns::lastPage(substr($body, $end, 6000));
+            if ((!$ids && !$ghosts) || (!$columnsOn && !$ghosts)) {
+                return;
+            }
+
             // the columns MerTools can add to this list
             $extra = [];
-            if ($product) {
+            if (!$columnsOn) {
+                // only the ghosts: Gridbox's columns as they are
+            } elseif ($product) {
                 $extra['sale_price'] = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_SALE_PRICE');
                 $extra['min']        = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_MIN');
                 $extra['badges']     = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_BADGES');
                 $extra['variants']   = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_VARIANTS');
             }
-            foreach (['created' => 'CREATED', 'end_publishing' => 'END_PUBLISHING'] as $key => $label) {
+            foreach ($columnsOn ? ['created' => 'CREATED', 'end_publishing' => 'END_PUBLISHING'] : [] as $key => $label) {
                 if (!\in_array($key, $builtin, true)) {
                     $extra[$key] = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_' . $label);
                 }
             }
             $fields       = [];
             $hiddenFields = self::hiddenFields((string) $this->params->get('list_fields_hidden', self::LIST_FIELDS_HIDDEN));
-            if ($appId) {
+            if ($appId && $columnsOn) {
                 foreach ($db->setQuery('SELECT id, label, field_type, options FROM ' . $db->quoteName('#__gridbox_fields') . ' WHERE app_id = ' . $appId
                     . ' AND field_type IN (\'text\', \'textarea\', \'select\', \'radio\', \'checkbox\', \'url\', \'email\', \'number\', \'date\', \'price\', \'time\')'
                     . ' ORDER BY order_list, id')->loadAssocList() ?: [] as $field) {
@@ -304,12 +322,13 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                 }
             }
 
-            $prefs   = $this->listPrefs((int) $user->id, $list);
+            $prefs   = $columnsOn ? $this->listPrefs((int) $user->id, $list) : null;
             $visible = ListColumns::visible($builtin, array_keys($extra), $prefs['order'] ?? null, $prefs['known'] ?? []);
             $shown   = array_flip($visible);
 
             // the data of the shown rows, only for the columns shown (and the editable cells)
-            $in    = implode(',', $ids);
+            $ghostIds = $lastPage ? array_keys($ghosts) : [];
+            $in       = implode(',', array_merge($ids, $ghostIds) ?: [0]);
             $pages = [];
             foreach ($db->setQuery('SELECT id, created, end_publishing, featured, language FROM ' . $db->quoteName('#__gridbox_pages') . ' WHERE id IN (' . $in . ')')->loadAssocList() ?: [] as $row) {
                 $pages[(int) $row['id']] = $row;
@@ -380,7 +399,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
 
             return '';
         };
-        $decorate = function (string $key, string $cell, int $id) use ($products, $badges, $edit, $esc): string {
+        $ghostSet = array_flip($ghostIds);
+        $decorate = function (string $key, string $cell, int $id) use ($products, $badges, $edit, $ghostSet): string {
+            if (isset($ghostSet[$id])) {
+                return $cell;
+            }
             if ($edit && $key === 'badges' && isset($products[$id])) {
                 return ListColumns::withAttributes($cell, ['data-mt-badges' => $id, 'data-mt-raw' => implode(',', $badges[$id] ?? []), 'tabindex' => '0']);
             }
@@ -395,7 +418,20 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
 
             return ListColumns::withAttributes($cell, $attr);
         };
-        $table = ListColumns::apply($table, $visible, $extra, $extraCell, $decorate);
+        if ($ghosts) {
+            $rows = '';
+            foreach ($ghostIds as $gid) {
+                $rows .= '<tr class="mt-ghost">' . implode('', array_map(fn ($key) => $this->ghostCell($key, $ghosts[$gid], $products[$gid] ?? [], $appId, $currency),
+                    $builtin)) . '</tr>';
+            }
+            $note  = Text::sprintf($lastPage ? 'PLG_SYSTEM_MERTOOLS_LIST_GHOSTS_HEAD' : 'PLG_SYSTEM_MERTOOLS_LIST_GHOSTS_LATER', \count($ghosts));
+            $rows  = '<tr class="mt-ghost-head"><td colspan="' . \count($visible) . '">' . $esc($note) . '</td></tr>' . $rows;
+            $close = strrpos($table, '</table>');
+            $table = substr($table, 0, $close) . '<tbody class="mt-ghosts">' . $rows . '</tbody>' . substr($table, $close);
+        }
+        if ($columnsOn) {
+            $table = ListColumns::apply($table, $visible, $extra, $extraCell, $decorate);
+        }
 
         // the columns window: Gridbox's columns (labels from its head), then the added ones
         $columns = [];
@@ -418,13 +454,14 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             'BADGES_TITLE', 'BADGES_NONE'] as $k) {
             $texts[$k] = Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_' . $k);
         }
+        $edit   = $edit && $columnsOn;
         $config = ['url' => Uri::base(true) . '/index.php', 'token' => Session::getFormToken(), 'list' => $list, 'builtin' => array_values(array_diff($builtin, ['select'])),
             'columns' => $columns, 'edit' => $edit, 'texts' => $texts,
             'badges' => array_values(array_map(static fn ($b) => ['id' => (int) $b['id'], 'label' => self::badgeLabel($b), 'color' => (string) $b['color']], $allBadges))];
-        $tools  = '<div class="mt-list-tools"><button type="button" class="mt-cols-btn" data-mt-columns><span aria-hidden="true">☰</span> ' . $esc($texts['BUTTON']) . '</button>'
+        $tools  = !$columnsOn ? '' : '<div class="mt-list-tools"><button type="button" class="mt-cols-btn" data-mt-columns><span aria-hidden="true">☰</span> ' . $esc($texts['BUTTON']) . '</button>'
             . ($edit && $product ? '<span class="mt-list-hint">' . $esc(Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_EDIT_HINT_BADGES')) . '</span>' : '') . '</div>';
         $body = substr($body, 0, $start) . $tools . $table . substr($body, $end);
-        $tail = '<style>' . self::LIST_CSS . '</style><script type="application/json" id="mertools-lists-config">'
+        $tail = '<style>' . self::LIST_CSS . ($ghosts ? self::GHOST_CSS : '') . '</style><script type="application/json" id="mertools-lists-config">'
             . json_encode($config, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . '</script><script src="' . Uri::root(true)
             . '/media/plg_system_mertools/js/mertools-lists' . (JDEBUG ? '' : '.min') . '.js?' . self::VERSION . '" defer></script>';
         $pos  = strripos($body, '</body>');
@@ -439,6 +476,100 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         . '[data-mt-badges]{cursor:pointer;min-width:60px}[data-mt-badges]:hover{outline:1px dashed #93c5fd;outline-offset:-3px}'
         . '.mt-badge{display:inline-block;color:#fff;font-size:11px;font-weight:600;padding:1px 7px;border-radius:10px;margin:1px 2px 1px 0;white-space:nowrap}'
         . '.mt-col{font-size:13px}.mt-col small{color:#6b7280}';
+
+    public const GHOST_CSS = 'tbody.mt-ghosts tr.mt-ghost td{color:#9ca3af!important;background:#fafafa}tbody.mt-ghosts tr.mt-ghost .post-intro-image{filter:grayscale(1);opacity:.45}'
+        . 'tbody.mt-ghosts tr.mt-ghost .mt-badge{opacity:.5}.mt-ghost-title{display:flex;align-items:center;line-height:18px;font-style:italic}'
+        . '.mt-ghost-title .post-intro-image{display:block;flex:0 0 50px;width:50px;height:50px;margin-right:15px;background-size:cover;background-position:center;border-radius:3px}'
+        . '.mt-ghost-note{margin:4px 0 0 65px;font-size:12px;line-height:16px;color:#6b7280}'
+        . '.mt-ghost-note a{display:inline!important;color:#1d4ed8!important;text-decoration:underline}.mt-ghost-mark{font-size:15px;color:#9ca3af}'
+        . 'tbody.mt-ghosts tr.mt-ghost-head td{background:#f3f4f6;color:#4b5563;font-size:12px;font-weight:600;padding:8px 14px;text-align:left!important;border-top:2px dashed #d1d5db}';
+
+    /**
+     * The items of other folders added to this one (Gridbox keeps the extra folders of an item in
+     * #__gridbox_category_page_map, the main one in page_category), with the list's filters applied.
+     *
+     * @return array<int, array<string, mixed>>  id => item
+     */
+    private function ghostItems(int $appId, string $appType, int $category): array
+    {
+        $db      = Factory::getContainer()->get(DatabaseInterface::class);
+        $app     = $this->getApplication();
+        $context = 'com_gridbox.apps.' . strtolower($appType);
+        $query   = 'SELECT DISTINCT p.id, p.title, p.published, p.intro_image, p.page_category, p.hits, p.created, p.language, c.title AS main_title'
+            . ' FROM ' . $db->quoteName('#__gridbox_category_page_map') . ' AS m JOIN ' . $db->quoteName('#__gridbox_pages') . ' AS p ON p.id = m.page_id'
+            . ' LEFT JOIN ' . $db->quoteName('#__gridbox_categories') . ' AS c ON c.id = p.page_category'
+            . ' WHERE m.category_id = ' . $category . ' AND p.app_id = ' . $appId . ' AND p.page_category <> ' . $db->quote('trashed')
+            . ' AND p.page_category <> ' . $db->quote((string) $category);
+        // the filters of the list (as Gridbox applies them to its own rows)
+        $search = trim((string) $app->getUserState($context . '.filter.search', ''));
+        if ($search !== '') {
+            $query .= ' AND p.title LIKE ' . $db->quote('%' . $db->escape($search, true) . '%', false);
+        }
+        $state = (string) $app->getUserState($context . '.filter.state', '');
+        $query .= is_numeric($state) ? ' AND p.published = ' . (int) $state : ' AND p.published IN (0, 1)';
+        if ((int) $app->getUserState($context . '.filter.theme', 0)) {
+            $query .= ' AND p.theme = ' . (int) $app->getUserState($context . '.filter.theme', 0);
+        }
+        if ((int) $app->getUserState($context . '.filter.author', 0)) {
+            $query .= ' AND EXISTS (SELECT 1 FROM ' . $db->quoteName('#__gridbox_authors_map') . ' AS a WHERE a.page_id = p.id AND a.author_id = '
+                . (int) $app->getUserState($context . '.filter.author', 0) . ')';
+        }
+        foreach (['access' => 'page_access', 'language' => 'language'] as $filter => $column) {
+            $value = (string) $app->getUserState($context . '.filter.' . $filter, '');
+            if ($value !== '') {
+                $query .= ' AND p.' . $column . ' = ' . $db->quote($value);
+            }
+        }
+        $items = [];
+        foreach ($db->setQuery($query . ' ORDER BY c.title, p.title LIMIT 500')->loadAssocList() ?: [] as $row) {
+            $items[(int) $row['id']] = $row;
+        }
+
+        return $items;
+    }
+
+    /** A cell of a ghost row, for a column of Gridbox's list: shown only, nothing to click but the main folder. */
+    private function ghostCell(string $key, array $item, array $product, int $appId, array $currency): string
+    {
+        $esc = static fn ($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+        switch ($key) {
+            case 'select':
+                // no tick box: Gridbox's bulk actions and its row menu are for the items of this folder
+                return '<td class="select-td" data-mt-ghost="' . (int) $item['id'] . '"><span class="mt-ghost-mark" aria-hidden="true">↪</span></td>';
+            case 'published':
+                $on = (int) $item['published'] === 1;
+
+                return '<td class="status-td"><i class="zmdi zmdi-' . ($on ? 'eye' : 'eye-off') . ' ba-icon-md" title="' . $esc(Text::_($on ? 'JPUBLISHED' : 'JUNPUBLISHED')) . '"></i></td>';
+            case 'title':
+                $image = trim((string) $item['intro_image']);
+                if ($image !== '' && !preg_match('#^(https?:)?//#i', $image)) {
+                    $image = Uri::root() . ltrim($image, '/');
+                }
+                $folder = '<a href="' . $esc('index.php?option=com_gridbox&view=apps&id=' . $appId . '&category=' . (int) $item['page_category']) . '">'
+                    . $esc((string) ($item['main_title'] ?? '') !== '' ? $item['main_title'] : '#' . $item['page_category']) . '</a>';
+
+                return '<td class="title-cell" title="' . $esc(Text::_('PLG_SYSTEM_MERTOOLS_LIST_GHOST_TIP')) . '"><span class="mt-ghost-title">'
+                    . ($image !== '' ? '<span class="post-intro-image" style="background-image: url(' . $esc($image) . ');"></span>' : '')
+                    . $esc($item['title']) . '</span><div class="mt-ghost-note"' . ($image === '' ? ' style="margin-left:0"' : '') . '>' . Text::sprintf('PLG_SYSTEM_MERTOOLS_LIST_GHOST_NOTE', $folder) . '</div></td>';
+            case 'price':
+                return '<td class="price-cell">' . $esc(isset($product['price']) ? ListColumns::money((string) $product['price'], $currency) : '') . '</td>';
+            case 'stock':
+            case 'sku':
+                return '<td class="' . $key . '-cell">' . $esc($product[$key] ?? '') . '</td>';
+            case 'page_category':
+                return '<td class="category-cell">' . $esc($item['main_title'] ?? '') . '</td>';
+            case 'hits':
+                return '<td class="hits-cell">' . (int) $item['hits'] . '</td>';
+            case 'created':
+                return '<td>' . $esc(str_starts_with((string) $item['created'], '0000') ? '' : HTMLHelper::_('date', (string) $item['created'], Text::_('DATE_FORMAT_LC4'), false)) . '</td>';
+            case 'language':
+                return '<td>' . $esc($item['language'] === '*' ? Text::_('JALL') : $item['language']) . '</td>';
+            case 'id':
+                return '<td>' . (int) $item['id'] . '</td>';
+        }
+
+        return '<td></td>';
+    }
 
     /** The value of a Gridbox field as text: the title of a chosen option, the label of a link, a short text. */
     private static function fieldText(array $field, string $value): string

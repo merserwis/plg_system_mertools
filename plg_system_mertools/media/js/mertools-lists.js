@@ -1,7 +1,8 @@
 /**
  * MerTools — Gridbox lists: the columns window (show, hide, order, add columns; saved per user on the
  * server) and editing prices, sale prices, stock and SKU right in the list (click or Enter; Enter or
- * leaving the field saves, Esc cancels). Config: <script type="application/json" id="mertools-lists-config">.
+ * leaving the field saves, Esc cancels); rows of items from other folders (greyed out) left alone.
+ * Config: <script type="application/json" id="mertools-lists-config">.
  */
 (() => {
   'use strict';
@@ -10,6 +11,11 @@
   let cfg;
   try { cfg = JSON.parse(node.textContent); } catch (e) { return; }
   const t = cfg.texts;
+
+  // rows of items whose main folder is another one: shown only; Gridbox's row menu would act on them as on its own rows
+  document.addEventListener('contextmenu', (e) => {
+    if (e.target.closest && e.target.closest('tbody.mt-ghosts')) e.stopPropagation();
+  }, true);
 
   const el = (tag, attrs, ...children) => {
     const n = document.createElement(tag);

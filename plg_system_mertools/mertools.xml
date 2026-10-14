@@ -6,7 +6,7 @@
     <creationDate>2026-10-14</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.0.9</version>
+    <version>1.0.10</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -288,6 +288,11 @@
                 </field>
                 <field name="list_fields_hidden" type="textarea" rows="3" default="Instrukcja obsługi Metrel" filter="string" showon="list_columns:1"
                     label="PLG_SYSTEM_MERTOOLS_LIST_FIELDS_HIDDEN_LABEL" description="PLG_SYSTEM_MERTOOLS_LIST_FIELDS_HIDDEN_DESC" />
+                <field name="list_ghosts" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_LIST_GHOSTS_LABEL" description="PLG_SYSTEM_MERTOOLS_LIST_GHOSTS_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
             </fieldset>
 
             <!-- ============================================================ Edit lock -->
