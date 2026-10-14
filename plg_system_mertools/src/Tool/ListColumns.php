@@ -192,6 +192,16 @@ final class ListColumns
         return $number === '' ? '0' : $number;
     }
 
+    /** A discount typed as a percentage ("10%", "12,5 %"): the number (0–99.99), else null. */
+    public static function percent(string $value): ?float
+    {
+        if (!preg_match('/^\s*(\d{1,2}(?:[.,]\d{1,2})?)\s*%\s*$/u', $value, $m)) {
+            return null;
+        }
+
+        return (float) str_replace(',', '.', $m[1]);
+    }
+
     /** A price as Gridbox shows it in its lists (the store's currency settings). */
     public static function money(string $value, array $currency): string
     {

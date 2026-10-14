@@ -2,6 +2,13 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.0.8 — 2026-10-14
+
+### 🏷 Discount % in the product editor
+
+- Gridbox works out the discount badge from the prices, but the sale price had to be calculated by hand. **Discount %** next to *Sale price* in the Gridbox editor of a product: e.g. `10` sets the sale price to the regular price − 10 % (rounded to the store's decimals) and the sale price of every version/set from its own price; `0` or empty removes the sale price. A sale price typed by hand shows its discount; after a percentage was typed, a new regular price recomputes the sale price. Only the prices are saved (by Gridbox). Setting *Discount % in the product editor* (tab *Shop*, on by default).
+- **Gridbox lists:** `10%` (or `12,5 %`) typed as the sale price sets the regular price minus that discount; `0%` removes the sale price.
+
 ## 1.0.7 — 2026-10-14
 
 ### 📋 Gridbox lists

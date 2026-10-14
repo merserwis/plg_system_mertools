@@ -77,7 +77,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.0.7';
+    public const VERSION = '1.0.8';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
@@ -631,12 +631,14 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if ($id <= 0 || !isset(ListColumns::EDITABLE[$field])) {
             return ['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_ERROR')];
         }
-        $value = ListColumns::clean(ListColumns::EDITABLE[$field], (string) $input->post->get('value', '', 'raw'));
+        $typed   = (string) $input->post->get('value', '', 'raw');
+        $percent = $field === 'sale_price' ? ListColumns::percent($typed) : null;
+        $value   = $percent === null ? ListColumns::clean(ListColumns::EDITABLE[$field], $typed) : '';
         if ($value === null || ($field === 'price' && $value === '')) {
             return ['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_BAD_' . strtoupper(ListColumns::EDITABLE[$field]))];
         }
         $db  = Factory::getContainer()->get(DatabaseInterface::class);
-        $row = $db->setQuery('SELECT d.id, d.' . $db->quoteName($field) . ' AS value, p.title, p.app_id FROM ' . $db->quoteName('#__gridbox_store_product_data')
+        $row = $db->setQuery('SELECT d.id, d.' . $db->quoteName($field) . ' AS value, d.price AS base_price, p.title, p.app_id FROM ' . $db->quoteName('#__gridbox_store_product_data')
             . ' AS d INNER JOIN ' . $db->quoteName('#__gridbox_pages') . ' AS p ON p.id = d.product_id WHERE d.product_id = ' . $id . ' ORDER BY d.id LIMIT 1')->loadAssoc();
         if (!$row) {
             return ['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_NOT_PRODUCT')];
@@ -646,6 +648,12 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             if (EditLock::held($lock, time(), $this->lockIdle())) {
                 return ['success' => false, 'message' => Text::sprintf('PLG_SYSTEM_MERTOOLS_LIST_UI_LOCKED', preg_replace('/\s*\([^()]*\)$/', '', (string) $lock['user_name']))];
             }
+        }
+        // "10%" in the sale price: the regular price minus 10 % (0 % = no sale price)
+        if ($percent !== null) {
+            $value = $percent > 0 && (float) $row['base_price'] > 0
+                ? (string) ListColumns::clean('money', number_format((float) $row['base_price'] * (1 - $percent / 100), max(0, min(4, (int) ($this->storeCurrency()['decimals'] ?? 2))), '.', ''))
+                : '';
         }
         $old = (string) $row['value'];
         if ($old !== $value) {
@@ -903,6 +911,32 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         } catch (\Throwable $e) {
             $this->sendJson(['ok' => false, 'error' => true]);
         }
+    }
+
+    /**
+     * "Discount %" next to the sale price in the Gridbox editor of a product (mertools-discount.js): a
+     * percentage sets the sale prices of the product and of its versions; Gridbox saves the prices.
+     */
+    private function discountScript(): void
+    {
+        $app   = $this->getApplication();
+        $input = $app->getInput();
+        if (!(int) $this->params->get('shop_discount_field', 1) || $input->getCmd('option') !== 'com_gridbox' || $input->getCmd('view') !== 'editor') {
+            return;
+        }
+        $user = $app->getIdentity();
+        if (!$user || $user->guest) {
+            return;
+        }
+        $this->loadLanguage();
+        $currency = $this->storeCurrency();
+        $cfg      = ['decimals' => (int) ($currency['decimals'] ?? 2), 'label' => Text::_('PLG_SYSTEM_MERTOOLS_DISCOUNT_LABEL'),
+            'placeholder' => Text::_('PLG_SYSTEM_MERTOOLS_DISCOUNT_PLACEHOLDER'), 'hint' => Text::_('PLG_SYSTEM_MERTOOLS_DISCOUNT_HINT')];
+        $tail = '<script type="application/json" id="mertools-discount-config">' . json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP)
+            . '</script><script src="' . Uri::root(true) . '/media/plg_system_mertools/js/mertools-discount' . (JDEBUG ? '' : '.min') . '.js?' . self::VERSION . '" defer></script>';
+        $body = (string) $app->getBody();
+        $pos  = strripos($body, '</body>');
+        $app->setBody($pos === false ? $body . $tail : substr($body, 0, $pos) . $tail . substr($body, $pos));
     }
 
     /** The editor page that took the lock: its script confirms it and gives it back when closed. */
@@ -2030,6 +2064,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $document = $app->getDocument();
         if ($this->editorLock && $document && $document->getType() === 'html') {
             $this->lockScript();
+        }
+        if ($document && $document->getType() === 'html') {
+            $this->discountScript();
         }
         if (!$document || $document->getType() !== 'html' || $this->inBuilder()) {
             return;

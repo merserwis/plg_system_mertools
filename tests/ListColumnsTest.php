@@ -61,5 +61,11 @@ $check('text control char', ListColumns::clean('text', "a\x01"), null);
 $check('money format', ListColumns::money('1234.5', ['symbol' => 'zł', 'position' => '', 'thousand' => ' ', 'separator' => ',', 'decimals' => 2]), '1 234,50 zł');
 $check('money format left', ListColumns::money('9', ['symbol' => '€', 'position' => 'left-currency-position', 'thousand' => '.', 'separator' => ',', 'decimals' => 2]), '€ 9,00');
 
+$check('percent 10%', ListColumns::percent('10%'), 10.0);
+$check('percent 12,5 %', ListColumns::percent(' 12,5 % '), 12.5);
+$check('percent no sign', ListColumns::percent('10'), null);
+$check('percent 100% refused', ListColumns::percent('100%'), null);
+$check('percent text', ListColumns::percent('abc%'), null);
+
 echo $fail === 0 ? "\nALL PASS\n" : "\n$fail FAILED\n";
 exit($fail === 0 ? 0 : 1);
