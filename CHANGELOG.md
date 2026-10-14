@@ -2,6 +2,15 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.0.5 — 2026-10-14
+
+### 🔒 Edit lock
+
+- **One person at a time in the Gridbox editor of an article, product or page.** Gridbox has no check-out, so two people could edit the same page and the later save overwrote the other one's work. Whoever opens the editor first now holds the page; anybody else sees who edits it, since when and their last activity, with *Try again*, *Back* and *Take over editing* (after a confirmation; setting *Taking over*: everybody who may edit, administrators only, or nobody).
+- The open editor confirms the lock every 30 s and gives it back when closed (each editor tab has its own key, so the late “closed” signal of a reloaded editor never removes the new lock). A lock is free again 2 minutes after its editor stopped confirming it (a closed laptop, a crashed browser) or after the idle time without anything done in the editor (setting, default 30 minutes; 0 = only when closed).
+- **A save from an editor that no longer holds the lock is refused on the server** — Gridbox shows “Not saved: this page is now being edited by …” — and that editor gets a red bar saying who took it over, so nothing is overwritten; unsaved changes stay in it to be copied.
+- The Gridbox lists show “🔒 Edited by … (since …)” under the title of a page being edited. Layouts, headers and other templates of the editor are locked the same way. New tab *Edit lock* (on by default), new table `#__mertools_locks` (removed on uninstall).
+
 ## 1.0.4 — 2026-10-14
 
 ### 🐞 Fixes

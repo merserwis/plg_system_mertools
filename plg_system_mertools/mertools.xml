@@ -6,7 +6,7 @@
     <creationDate>2026-10-14</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.0.4</version>
+    <version>1.0.5</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -266,6 +266,24 @@
                 </field>
                 <field name="cart_panel" type="mtcarts" showon="cart_enabled:1"
                     label="PLG_SYSTEM_MERTOOLS_CART_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_CART_PANEL_DESC" />
+            </fieldset>
+
+            <!-- ============================================================ Edit lock -->
+            <fieldset name="lock" label="PLG_SYSTEM_MERTOOLS_FIELDSET_LOCK">
+                <field name="lock_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_LOCK_NOTE" />
+                <field name="lock_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_LOCK_ENABLED_LABEL" description="PLG_SYSTEM_MERTOOLS_LOCK_ENABLED_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="lock_takeover" type="list" default="all" showon="lock_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_LOCK_TAKEOVER_LABEL" description="PLG_SYSTEM_MERTOOLS_LOCK_TAKEOVER_DESC">
+                    <option value="all">PLG_SYSTEM_MERTOOLS_LOCK_TAKEOVER_ALL</option>
+                    <option value="admins">PLG_SYSTEM_MERTOOLS_LOCK_TAKEOVER_ADMINS</option>
+                    <option value="none">PLG_SYSTEM_MERTOOLS_LOCK_TAKEOVER_NONE</option>
+                </field>
+                <field name="lock_idle" type="number" default="30" min="0" max="1440" filter="integer" showon="lock_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_LOCK_IDLE_LABEL" description="PLG_SYSTEM_MERTOOLS_LOCK_IDLE_DESC" />
             </fieldset>
 
             <!-- ============================================================ Edit history -->

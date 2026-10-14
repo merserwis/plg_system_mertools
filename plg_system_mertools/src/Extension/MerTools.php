@@ -27,6 +27,8 @@
  *    In onAfterRender, after Gridbox has finished the page (lowest priority).
  *  - Links to a product option: a link with a chosen product option ("?Zestawy+Metrel+MI+3155=…")
  *    opens the product with that option selected. Runs in onAfterRoute, on Gridbox pages only.
+ *  - Edit lock (EditLock): one person at a time in the Gridbox editor of a page; the others see who
+ *    edits it (and may take it over, by the setting), a save of an editor that lost the lock is refused.
  *  - Edit history (History): who changed which Gridbox page or product and when, from the editor's
  *    saves and the actions of the Gridbox lists; shown under the titles of the Gridbox lists, in a
  *    window per page, on the tab "Edit history" and (optionally) in Joomla's User Actions Log.
@@ -55,6 +57,7 @@ use Joomla\Event\SubscriberInterface;
 use Merserwis\Plugin\System\MerTools\Tool\CartCleaner;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\DbIndexes;
+use Merserwis\Plugin\System\MerTools\Tool\EditLock;
 use Merserwis\Plugin\System\MerTools\Tool\History;
 use Merserwis\Plugin\System\MerTools\Tool\ImageOptimizer;
 use Merserwis\Plugin\System\MerTools\Tool\ImageSize;
@@ -71,13 +74,16 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.0.4';
+    public const VERSION = '1.0.5';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
+
+    /** the edit lock this editor page holds (key, page, tab), for its script */
+    private ?array $editorLock = null;
 
     /** a page of this request that may be kept: key, address, start time; 'ok' once the page qualified */
     private ?array $pageToStore = null;
@@ -144,6 +150,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     public function onAfterRoute(): void
     {
         $app = $this->getApplication();
+        if ($app->isClient('site')) {
+            $this->editLock();
+        }
         if ($app->isClient('administrator') || $app->isClient('site')) {
             $this->trackHistory();
             $this->purgeOnChange();
@@ -171,6 +180,230 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $input->get->set($name, $value);
             $_GET[$name] = $value;
         }
+    }
+
+    // ---------------------------------------------------------------- edit lock
+
+    private function lockOn(): bool
+    {
+        return (bool) (int) $this->params->get('lock_enabled', 1);
+    }
+
+    /** Minutes without anything done in the editor after which its lock is free (0 = never). */
+    private function lockIdle(): int
+    {
+        return max(0, (int) $this->params->get('lock_idle', 30)) * 60;
+    }
+
+    private function editLocks(): EditLock
+    {
+        $locks = new EditLock(Factory::getContainer()->get(DatabaseInterface::class));
+        $locks->ensureTables();
+
+        return $locks;
+    }
+
+    /** "Name (username)" of the user, as kept with a lock and in the history. */
+    private static function userLabel($user): string
+    {
+        return trim((string) $user->name) . ' (' . (string) $user->username . ')';
+    }
+
+    /** The JSON of the editor's save: the request body (editor.gridboxSave) or the form field obj (editor.gridboxAjaxSave). */
+    private function editorSaveObj(string $task): string
+    {
+        static $obj = null;
+
+        return $obj ??= $task === 'editor.gridboxsave' ? (string) @file_get_contents('php://input')
+            : (string) $this->getApplication()->getInput()->get('obj', '', 'raw');
+    }
+
+    /**
+     * Site requests of a logged-in user: the confirmations of an open editor, the Gridbox editor
+     * itself (the lock is taken, or the page of who edits it is shown) and the editor's saves.
+     */
+    private function editLock(): void
+    {
+        if (!$this->lockOn()) {
+            return;
+        }
+        $app  = $this->getApplication();
+        $user = $app->getIdentity();
+        if (!$user || $user->guest) {
+            return;
+        }
+        $input  = $app->getInput();
+        $action = $input->getCmd('mertools_lock', '');
+        if ($action !== '') {
+            $this->lockEndpoint($action);
+        }
+        if ($input->getCmd('option') !== 'com_gridbox') {
+            return;
+        }
+        $task = strtolower((string) $input->getString('task', ''));
+        try {
+            if (\in_array($task, ['editor.gridboxsave', 'editor.gridboxajaxsave'], true) && strtoupper((string) $input->getMethod()) === 'POST') {
+                $this->lockSaveGuard($task);
+            } elseif ($task === '' && $input->getCmd('view') === 'editor' && $input->getInt('id', 0) > 0 && strtoupper((string) $input->getMethod()) === 'GET') {
+                $this->lockEditorGate();
+            }
+        } catch (\Throwable $e) {
+            // without its table (or database trouble) the editor works as without the lock
+        }
+    }
+
+    private function mayTakeOver($user): bool
+    {
+        switch ((string) $this->params->get('lock_takeover', 'all')) {
+            case 'none':
+                return false;
+            case 'admins':
+                return $user->authorise('core.admin', 'com_gridbox') || $user->authorise('core.admin');
+            default:
+                return true;
+        }
+    }
+
+    /** Opening the Gridbox editor: the lock is ours (taken, or taken over), else the page of who edits it. */
+    private function lockEditorGate(): void
+    {
+        $app      = $this->getApplication();
+        $input    = $app->getInput();
+        $user     = $app->getIdentity();
+        $id       = $input->getInt('id', 0);
+        $editType = $input->getCmd('edit_type', '');
+        $key      = EditLock::key($editType, $id);
+        $locks    = $this->editLocks();
+        $now      = time();
+        $tab      = bin2hex(random_bytes(8));
+        $force    = $input->getInt('mertools_takeover', 0) === 1 && Session::checkToken('get') && $this->mayTakeOver($user);
+        $holder   = $locks->acquire($key, $editType === '' ? $id : 0, (int) $user->id, self::userLabel($user), $tab, $now, $this->lockIdle(), $force);
+        if ($holder) {
+            $this->lockedPage($holder, $user);
+        }
+        $this->editorLock = ['key' => $key, 'page' => $editType === '' ? $id : 0, 'tab' => $tab];
+        if (random_int(1, 50) === 1) {
+            $locks->prune($now);
+        }
+    }
+
+    /** The page instead of the editor: who edits the page since when, and what can be done. */
+    private function lockedPage(array $holder, $user): void
+    {
+        $app = $this->getApplication();
+        $this->loadLanguage();
+        $esc     = fn ($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+        $name    = preg_replace('/\s*\([^()]*\)$/', '', (string) $holder['user_name']);
+        $since   = HTMLHelper::_('date', (string) $holder['since'], 'd.m.Y H:i');
+        $active  = HTMLHelper::_('date', (string) $holder['active'], 'H:i');
+        $idle    = (int) round($this->lockIdle() / 60);
+        $uri     = clone Uri::getInstance();
+        $uri->setVar('mertools_takeover', '1');
+        $uri->setVar(Session::getFormToken(), '1');
+        $take    = $this->mayTakeOver($user)
+            ? '<a class="btn warn" href="' . $esc($uri->toString()) . '" onclick="return confirm(' . $esc(json_encode(Text::sprintf('PLG_SYSTEM_MERTOOLS_LOCK_TAKE_CONFIRM', $name), JSON_UNESCAPED_UNICODE)) . ')">'
+                . $esc(Text::_('PLG_SYSTEM_MERTOOLS_LOCK_TAKE')) . '</a>'
+            : '';
+        $html = '<!DOCTYPE html><html lang="' . $esc($app->getLanguage()->getTag()) . '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+            . '<meta name="robots" content="noindex"><title>' . $esc(Text::_('PLG_SYSTEM_MERTOOLS_LOCK_TITLE')) . '</title><style>'
+            . 'body{font:15px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f3f4f6;color:#1f2328;margin:0;display:flex;min-height:100vh;align-items:center;justify-content:center}'
+            . '.box{background:#fff;border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.12);padding:28px 32px;max-width:560px;margin:16px}'
+            . 'h1{font-size:20px;margin:0 0 12px}p{margin:0 0 10px}.who{font-size:17px;font-weight:600}.muted{color:#6b7280;font-size:13px}'
+            . '.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.btn{display:inline-block;padding:9px 16px;border-radius:6px;text-decoration:none;border:1px solid #d1d5db;color:#1f2328;background:#fff;cursor:pointer;font:inherit}'
+            . '.btn.primary{background:#1d4ed8;border-color:#1d4ed8;color:#fff}.btn.warn{border-color:#b91c1c;color:#b91c1c}</style></head><body><div class="box">'
+            . '<h1>🔒 ' . $esc(Text::_('PLG_SYSTEM_MERTOOLS_LOCK_TITLE')) . '</h1>'
+            . '<p class="who">' . $esc(Text::sprintf('PLG_SYSTEM_MERTOOLS_LOCK_WHO', $name)) . '</p>'
+            . '<p>' . $esc(Text::sprintf('PLG_SYSTEM_MERTOOLS_LOCK_SINCE', $since, $active)) . '</p>'
+            . '<p class="muted">' . $esc($idle > 0 ? Text::sprintf('PLG_SYSTEM_MERTOOLS_LOCK_EXPLAIN', $idle) : Text::_('PLG_SYSTEM_MERTOOLS_LOCK_EXPLAIN_NOIDLE')) . '</p>'
+            . '<div class="btns"><a class="btn primary" href="' . $esc(Uri::getInstance()->toString()) . '">' . $esc(Text::_('PLG_SYSTEM_MERTOOLS_LOCK_RETRY')) . '</a>'
+            . '<button type="button" class="btn" onclick="window.close();history.length>1&&history.back()">' . $esc(Text::_('PLG_SYSTEM_MERTOOLS_LOCK_BACK')) . '</button>'
+            . $take . '</div></div></body></html>';
+        $app->setHeader('Content-Type', 'text/html; charset=utf-8', true);
+        $app->setHeader('Cache-Control', 'no-store', true);
+        $app->setHeader('X-Robots-Tag', 'noindex', true);
+        $app->sendHeaders();
+        echo $html;
+        $app->close();
+    }
+
+    /** A save of the editor while somebody else holds the lock is refused (Gridbox shows the answer as its notice). */
+    private function lockSaveGuard(string $task): void
+    {
+        $obj = json_decode($this->editorSaveObj($task));
+        if (!\is_object($obj) || empty($obj->page->id)) {
+            return;
+        }
+        $app      = $this->getApplication();
+        $user     = $app->getIdentity();
+        $editType = isset($obj->edit_type) && \is_string($obj->edit_type) ? $obj->edit_type : '';
+        $key      = EditLock::key($editType, (int) $obj->page->id);
+        $locks    = $this->editLocks();
+        $row      = $locks->get($key);
+        if (!EditLock::blocks($row, (int) $user->id, time(), $this->lockIdle())) {
+            return;
+        }
+        $this->loadLanguage();
+        $app->setHeader('Content-Type', 'text/plain; charset=utf-8', true);
+        $app->setHeader('Cache-Control', 'no-store', true);
+        $app->sendHeaders();
+        echo Text::sprintf('PLG_SYSTEM_MERTOOLS_LOCK_SAVE_REFUSED', preg_replace('/\s*\([^()]*\)$/', '', (string) $row['user_name']));
+        $app->close();
+    }
+
+    /** The open editor: ping (confirm the lock, every 30 s) and release (closed). */
+    private function lockEndpoint(string $action): void
+    {
+        $app   = $this->getApplication();
+        $input = $app->getInput();
+        $user  = $app->getIdentity();
+        if (!\in_array($action, ['ping', 'release'], true) || strtoupper((string) $input->getMethod()) !== 'POST' || !Session::checkToken('request')) {
+            $this->sendJson(['ok' => false], 403);
+        }
+        $key = $input->getString('key', '');
+        if (!preg_match('/^[a-z0-9_-]{1,40}:\d{1,10}$/', $key)) {
+            $this->sendJson(['ok' => false], 400);
+        }
+        $tab = substr(preg_replace('/[^a-f0-9]/', '', $input->getString('tab', '')), 0, 32);
+        try {
+            $locks = $this->editLocks();
+            if ($action === 'release') {
+                $locks->release($key, (int) $user->id, $tab);
+                $this->sendJson(['ok' => true]);
+            }
+            $holder = $locks->ping($key, max(0, $input->getInt('page', 0)), (int) $user->id, self::userLabel($user), $tab,
+                $input->getInt('active', 0) === 1, time(), $this->lockIdle());
+            if ($holder) {
+                $this->loadLanguage();
+                $this->sendJson(['ok' => false, 'lost' => true, 'message' => Text::sprintf('PLG_SYSTEM_MERTOOLS_LOCK_LOST',
+                    preg_replace('/\s*\([^()]*\)$/', '', (string) $holder['user_name']), HTMLHelper::_('date', (string) $holder['since'], 'H:i'))]);
+            }
+            $this->sendJson(['ok' => true]);
+        } catch (\Throwable $e) {
+            $this->sendJson(['ok' => false, 'error' => true]);
+        }
+    }
+
+    /** The editor page that took the lock: its script confirms it and gives it back when closed. */
+    private function lockScript(): void
+    {
+        if (!$this->editorLock) {
+            return;
+        }
+        $app  = $this->getApplication();
+        $this->loadLanguage();
+        $idle = $this->lockIdle();
+        $cfg  = $this->editorLock + [
+            'url'   => Uri::root(true) . '/index.php',
+            'token' => Session::getFormToken(),
+            'ping'  => EditLock::PING,
+            'idle'  => $idle,
+            'texts' => ['idle' => $idle > 0 ? Text::sprintf('PLG_SYSTEM_MERTOOLS_LOCK_IDLE', (int) round($idle / 60)) : '', 'resume' => Text::_('PLG_SYSTEM_MERTOOLS_LOCK_RESUMED')],
+        ];
+        $tail = '<script type="application/json" id="mertools-lock-config">' . json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP)
+            . '</script><script src="' . Uri::root(true) . '/media/plg_system_mertools/js/mertools-lock' . (JDEBUG ? '' : '.min') . '.js?' . self::VERSION . '" defer></script>';
+        $body = (string) $app->getBody();
+        $pos  = strripos($body, '</body>');
+        $app->setBody($pos === false ? $body . $tail : substr($body, 0, $pos) . $tail . substr($body, $pos));
     }
 
     // ---------------------------------------------------------------- edit history
@@ -201,7 +434,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
         // the editor's save sends its page as JSON: the whole request body (editor.gridboxSave, what
         // Gridbox uses) or the form field obj (editor.gridboxAjaxSave, its fallback)
-        $obj = $task === 'editor.gridboxsave' ? (string) @file_get_contents('php://input') : (string) $input->get('obj', '', 'raw');
+        $obj = str_starts_with($task, 'editor.gridbox') ? $this->editorSaveObj($task) : '';
         $ids = History::requestIds([
             'obj'          => $obj,
             'id'           => $input->getInt('id', 0),
@@ -283,7 +516,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
      */
     private function historyInLists(): void
     {
-        if (!$this->historyOn() || !(int) $this->params->get('history_lists', 1)) {
+        $showHistory = $this->historyOn() && (int) $this->params->get('history_lists', 1);
+        if (!$showHistory && !$this->lockOn()) {
             return;
         }
         $app   = $this->getApplication();
@@ -300,17 +534,39 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if (!preg_match_all('/name="cid\[\]" value="(\d+)"/', $body, $m)) {
             return;
         }
+        $latest = [];
+        $locked = [];
         try {
-            $history = new History(Factory::getContainer()->get(DatabaseInterface::class));
-            $history->ensureTables();
-            $latest = $history->latest(array_map('intval', $m[1]));
+            if ($showHistory) {
+                $history = new History(Factory::getContainer()->get(DatabaseInterface::class));
+                $history->ensureTables();
+                $latest = $history->latest(array_map('intval', $m[1]));
+            }
+            if ($this->lockOn()) {
+                $locked = $this->editLocks()->onPages(array_map('intval', $m[1]), time(), $this->lockIdle());
+            }
         } catch (\Throwable $e) {
             return;
         }
+        if (!$latest && !$locked) {
+            return;
+        }
         $this->loadLanguage();
-        $body = preg_replace_callback('#<tr\b[^>]*>.*?</tr>#s', function (array $row) use ($latest): string {
-            if (!preg_match('/name="cid\[\]" value="(\d+)"/', $row[0], $id) || !isset($latest[(int) $id[1]])) {
+        $body = preg_replace_callback('#<tr\b[^>]*>.*?</tr>#s', function (array $row) use ($latest, $locked): string {
+            if (!preg_match('/name="cid\[\]" value="(\d+)"/', $row[0], $id) || (!isset($latest[(int) $id[1]]) && !isset($locked[(int) $id[1]]))) {
                 return $row[0];
+            }
+            $lockHtml = '';
+            if (isset($locked[(int) $id[1]])) {
+                $lock     = $locked[(int) $id[1]];
+                $lockHtml = '<div class="mt-lock-mark">' . htmlspecialchars('🔒 ' . Text::sprintf('PLG_SYSTEM_MERTOOLS_LOCK_LIST',
+                    preg_replace('/\s*\([^()]*\)$/', '', (string) $lock['user_name']), HTMLHelper::_('date', (string) $lock['since'], 'H:i')), ENT_QUOTES, 'UTF-8') . '</div>';
+            }
+            if (!isset($latest[(int) $id[1]])) {
+                $cell = strpos($row[0], 'class="title-cell"');
+                $end  = $cell === false ? false : strpos($row[0], '</td>', $cell);
+
+                return $end === false ? $row[0] : substr($row[0], 0, $end) . $lockHtml . substr($row[0], $end);
             }
             $cell = strpos($row[0], 'class="title-cell"');
             $end  = $cell === false ? false : strpos($row[0], '</td>', $cell);
@@ -323,7 +579,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                 . htmlspecialchars(Text::_('PLG_SYSTEM_MERTOOLS_HISTORY_SHOW') . ': ' . Text::_('PLG_SYSTEM_MERTOOLS_HISTORY_A_' . strtoupper((string) $last['action'])), ENT_QUOTES, 'UTF-8')
                 . '">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</a></div>';
 
-            return substr($row[0], 0, $end) . $html . substr($row[0], $end);
+            return substr($row[0], 0, $end) . $lockHtml . $html . substr($row[0], $end);
         }, $body) ?? $body;
         $config = ['url' => Uri::base(true) . '/index.php?mertools_action=history_list', 'token' => Session::getFormToken(), 'texts' => self::historyTexts()];
         $tail   = '<style>' . self::HISTORY_CSS . '</style><script type="application/json" id="mertools-history-config">'
@@ -334,7 +590,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     }
 
     /** The look of the history in the Gridbox lists and its window (Gridbox's admin is not Atum). */
-    public const HISTORY_CSS = '.mt-hist-last{margin-top:4px;font-size:12px;line-height:1.3}.mt-hist-last a{color:#6b7280;text-decoration:none}'
+    public const HISTORY_CSS = '.mt-lock-mark{margin-top:4px;font-size:12px;line-height:1.3;color:#b45309;font-weight:600}.mt-hist-last{margin-top:4px;font-size:12px;line-height:1.3}.mt-hist-last a{color:#6b7280;text-decoration:none}'
         . '.mt-hist-last a:hover{color:#1d4ed8;text-decoration:underline}dialog.mt-hist-dlg{border:0;border-radius:8px;padding:0;width:min(920px,94vw);'
         . 'max-height:86vh;box-shadow:0 20px 60px rgba(0,0,0,.35);font:14px/1.45 -apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1f2328}'
         . 'dialog.mt-hist-dlg::backdrop{background:rgba(0,0,0,.4)}.mt-hist-head{display:flex;align-items:center;gap:12px;padding:14px 18px;'
@@ -1235,6 +1491,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             return;
         }
         $document = $app->getDocument();
+        if ($this->editorLock && $document && $document->getType() === 'html') {
+            $this->lockScript();
+        }
         if (!$document || $document->getType() !== 'html' || $this->inBuilder()) {
             return;
         }

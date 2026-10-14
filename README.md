@@ -63,6 +63,14 @@ A link to a chosen product option or set (Gridbox adds it to the address, e.g. `
 
 Gridbox never removes a cart, so its cart tables only grow. **Clean and optimise** (tab *Shop*) removes the carts nobody can open any more — empty carts at once, carts with products unused for N days (default 30, at least 8, since Gridbox's cart cookie lives 7 days) — and rebuilds the tables so the database shrinks; **Check** shows what would go. Orders and their data, carts with attached files and carts in use are never touched. Can also run automatically once a day or above a cart limit (default: by hand only).
 
+### 🔒 Edit lock — one person at a time in the editor of a page
+
+Gridbox has no check-out: two people could open the same article, product or page in the Gridbox editor and the later save overwrote the other one's work. With MerTools whoever opens the editor first holds the page; anybody else who opens it sees a page saying who edits it, since when and their last activity, with **Try again**, **Back** and — by the setting — **Take over editing** (after a confirmation). In the Gridbox lists the page shows “🔒 Edited by … (since …)”.
+
+* The open editor confirms the lock every 30 s and gives it back when it is closed; a lock its editor stopped confirming (a closed laptop, a crashed browser) is free after 2 minutes, and one whose holder did nothing in the editor after the idle time (default 30 minutes; the holder just continues if nobody took it).
+* A save from an editor that no longer holds the lock is **refused on the server** (Gridbox shows “Not saved: this page is now being edited by …”), and that editor gets a red bar saying who took it over — unsaved changes stay in it to be copied. Nothing is overwritten.
+* Taking over: everybody who may edit (default), administrators only, or nobody. On by default, tab *Edit lock*. Layouts, headers and other templates of the editor are locked the same way.
+
 ### 🕘 Edit history — who changed which page or product, and when
 
 Gridbox keeps no record of who edited a page: its page versions have no author or date and it writes nothing to Joomla's User Actions Log. MerTools notes every save in the **Gridbox editor** and every action of the **Gridbox lists** by a logged-in user — publish, unpublish, featured, duplicate, move to another category, trash, restore, delete for good — with what really changed: title, status, category, address, publishing dates, access, language, image, content, intro text, meta texts, the app's fields (description, specifications, producer…), other categories, tags, and for products price, sale price, SKU, stock and options (long texts as “changed”, the others with the old and the new value). The page is read before the request and again after it, so a request that changed nothing leaves no entry (a save in the editor is noted as “saved without changes”).
