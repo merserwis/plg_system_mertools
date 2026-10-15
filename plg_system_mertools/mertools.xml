@@ -3,10 +3,10 @@
     <name>plg_system_mertools</name>
     <author>Merserwis</author>
     <authorUrl>https://github.com/merserwis/</authorUrl>
-    <creationDate>2026-10-14</creationDate>
+    <creationDate>2026-10-15</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.0.11</version>
+    <version>1.0.12</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -249,6 +249,26 @@
                 </field>
                 <field name="shop_discount_field" type="radio" layout="joomla.form.field.radio.switcher" default="1"
                     label="PLG_SYSTEM_MERTOOLS_SHOP_DISCOUNT_FIELD_LABEL" description="PLG_SYSTEM_MERTOOLS_SHOP_DISCOUNT_FIELD_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="price_spacer" type="spacer" hr="true" />
+                <field name="price_request" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_LABEL" description="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="price_request_text" type="text" default="" showon="price_request:1" filter="string" maxlength="60"
+                    hint="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_DEFAULT"
+                    label="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_TEXT_LABEL" description="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_TEXT_DESC" />
+                <field name="price_request_choose" type="text" default="" showon="price_request:1" filter="string" maxlength="60"
+                    hint="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_CHOOSE_DEFAULT"
+                    label="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_CHOOSE_LABEL" description="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_CHOOSE_DESC" />
+                <field name="price_request_size" type="number" default="18" min="0" max="200" step="1" filter="integer" showon="price_request:1"
+                    label="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_SIZE_LABEL" description="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_SIZE_DESC" />
+                <field name="omnibus_spacer" type="spacer" hr="true" />
+                <field name="shop_omnibus" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_SHOP_OMNIBUS_LABEL" description="PLG_SYSTEM_MERTOOLS_SHOP_OMNIBUS_DESC">
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>

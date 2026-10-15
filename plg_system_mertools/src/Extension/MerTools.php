@@ -27,6 +27,13 @@
  *    In onAfterRender, after Gridbox has finished the page (lowest priority).
  *  - Links to a product option: a link with a chosen product option ("?Zestawy+Metrel+MI+3155=…")
  *    opens the product with that option selected. Runs in onAfterRoute, on Gridbox pages only.
+ *  - Price on request (PriceRequest): a product without a price shows a text ("On request") where
+ *    its price would be, one whose models have prices "Choose a model from the list", only in the
+ *    lists and sliders that show prices (mertools-price.js; the list products with priced models
+ *    are marked in onAfterRender).
+ *  - Omnibus (Omnibus): the "lowest price of the last 30 days" line of an Omnibus plugin only while
+ *    the product or its chosen version is on sale; the plugin's own script (which polled every half
+ *    second) is taken off the page in onAfterRender and replaced by mertools-omnibus.js.
  *  - Gridbox lists (ListColumns): each user chooses, orders and adds the columns of the product and
  *    post lists, and edits prices, sale prices, stock and SKU right in the list.
  *  - Edit lock (EditLock): one person at a time in the Gridbox editor of a page; the others see who
@@ -67,9 +74,11 @@ use Merserwis\Plugin\System\MerTools\Tool\Layout;
 use Merserwis\Plugin\System\MerTools\Tool\IntroText;
 use Merserwis\Plugin\System\MerTools\Tool\ListColumns;
 use Merserwis\Plugin\System\MerTools\Tool\NotFound;
+use Merserwis\Plugin\System\MerTools\Tool\Omnibus;
 use Merserwis\Plugin\System\MerTools\Tool\PageCache;
 use Merserwis\Plugin\System\MerTools\Tool\PostRows;
 use Merserwis\Plugin\System\MerTools\Tool\Phones;
+use Merserwis\Plugin\System\MerTools\Tool\PriceRequest;
 use Merserwis\Plugin\System\MerTools\Tool\ProductLinks;
 use Merserwis\Plugin\System\MerTools\Tool\Speed;
 use Merserwis\Plugin\System\MerTools\Tool\Speedup;
@@ -2268,6 +2277,16 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if ((int) $this->params->get('layout_post_rows', 1)) {
             $new = PostRows::apply($new);
         }
+        if (PriceRequest::enabled($this->params)) {
+            // the separate script that did this before goes, so nothing has to be deleted on the server
+            $new = Omnibus::dropScript($new, PriceRequest::OLD_SCRIPT);
+            if (str_contains($new, 'ba-store-app-product')) {
+                $new = $this->priceRequestTiles($new);
+            }
+        }
+        if (Omnibus::enabled($this->params)) {
+            $new = Omnibus::dropScript($new, Omnibus::SCRIPT);
+        }
         if ($new !== $body) {
             $app->setBody($new);
         }
@@ -2281,6 +2300,27 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                 $this->pageToStore = null;
             }
         }
+    }
+
+    /**
+     * Price on request: the list products with no price of their own but priced versions get
+     * data-mt-choose, so the script asks for a model there (the lists carry no versions).
+     */
+    private function priceRequestTiles(string $html): string
+    {
+        $ids = PriceRequest::tileIds($html);
+        if (!$ids) {
+            return $html;
+        }
+        try {
+            $db   = Factory::getContainer()->get(DatabaseInterface::class);
+            $rows = $db->setQuery('SELECT product_id, price, variations FROM ' . $db->quoteName('#__gridbox_store_product_data')
+                . ' WHERE product_id IN (' . implode(',', array_map('intval', $ids)) . ')')->loadAssocList() ?: [];
+        } catch (\Throwable $e) {
+            return $html;
+        }
+
+        return PriceRequest::markTiles($html, PriceRequest::chooseIds($rows));
     }
 
     /** The faster-first-view tools that are switched on, applied to the finished page. */
@@ -2386,6 +2426,20 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $document->addStyleDeclaration(Phones::css($this->params));
             $document->addScriptOptions('plg_system_mertools', ['tel' => Phones::jsConfig($this->params)]);
             $wa->registerAndUseScript('plg_system_mertools.tel', 'plg_system_mertools/mertools-tel.js', [], ['defer' => true]);
+        }
+        if (PriceRequest::enabled($this->params)) {
+            $this->loadLanguage();
+            $default = $this->translate('PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_DEFAULT');
+            $choose  = $this->translate('PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_CHOOSE_DEFAULT');
+            if (PriceRequest::text($this->params, $default) !== '') {
+                $document->addStyleDeclaration(PriceRequest::css($this->params));
+                $document->addScriptOptions('plg_system_mertools', ['price' => PriceRequest::jsConfig($this->params, $default, $choose)]);
+                $wa->registerAndUseScript('plg_system_mertools.price', 'plg_system_mertools/mertools-price.js', [], ['defer' => true]);
+            }
+        }
+        if (Omnibus::enabled($this->params)) {
+            $document->addStyleDeclaration(Omnibus::css());
+            $wa->registerAndUseScript('plg_system_mertools.omnibus', 'plg_system_mertools/mertools-omnibus.js', [], ['defer' => true]);
         }
         if (!(int) $this->params->get('dark_enabled', 0)) {
             return;

@@ -2,6 +2,22 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.0.12 — 2026-10-15
+
+### 💬 Price on request
+
+- **A product without a price shows “On request”** (or a text of your own) where its price would be, on the product page and in the product lists and sliders — Gridbox leaves the place empty.
+- **A product without a price of its own whose models have prices asks for a model:** “Choose a model from the list” (or a text of your own) is shown until a model is chosen in its Gridbox option list, then the price of that model — or “On request”, when that model has no price either. In the lists and sliders too: the server marks these products, as the lists carry no models.
+- **Only where prices are shown:** a list or slider whose prices are switched off in its Gridbox settings has an empty price for every product, priced or not, and stays as it is (a separate script that filled every empty price showed “On request” there next to products that do have a price).
+- Lists loaded later (filters, more products, search) and a model chosen on the product page are followed. The texts look like the prices of that element, in a size of their own (18 px by default).
+- A “lowest price of the last 30 days” line of an Omnibus plugin that says **0,00** (the price of a product on request) is hidden.
+- Settings *Price on request*, *Text*, *Text when the models have prices* and *Text size* (tab *Shop*, off by default). A separate script that did this before (`plugins/system/omnibus/assets/scprice.js` on merserwis.pl) is taken off the pages — nothing has to be deleted on the server.
+
+### 🏷 Omnibus: lowest price of the last 30 days
+
+- For an Omnibus plugin that prints a “lowest price of the last 30 days” line per product and per version: the line is shown **only while the product, or the version chosen, is on sale** (Gridbox shows a sale price), following each change of version. The plugin's own script showed it with every product with versions, also with no sale, and the product's own price first (“0,00 zł” with a product on request).
+- **No more checking every half second:** that script looked for a chosen version every 500 ms for as long as the page was open. It is taken off the pages (`plugins/system/omnibus/assets/scr_omnibus.js`); what else it did is kept — a category with subcategories in Gridbox's Categories element opens and closes with a click on its whole row. The plugin itself and its lines stay as they are. Setting *Omnibus: lowest price of the last 30 days* (tab *Shop*, off by default).
+
 ## 1.0.11 — 2026-10-14
 
 ### 🐞 Fixes
