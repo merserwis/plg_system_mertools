@@ -2,6 +2,19 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.0.13 — 2026-10-15
+
+### 🏷 Omnibus without a separate plugin
+
+- **The lowest price of the 30 days before a reduction is now worked out by MerTools**, as the law asks for it (EU Omnibus directive; in Poland art. 4 of the act on informing about prices): a separate Omnibus plugin is no longer needed. MerTools keeps a history of the regular and sale prices of every product and version (Gridbox keeps none) — after every change sent to Gridbox, once an hour and when the settings are saved. When a price goes down to a sale price, the lowest price of the 30 days before that moment (an earlier sale price of those days included; a product offered for less than 30 days: since it is offered) is kept for as long as the sale lasts; a further reduction takes the 30 days before itself.
+- **Shown** on the product page for the version chosen, only while it is on sale, and under the sale prices in the lists and sliders (setting *Also in the lists*, on by default). Text with `{price}` of your own (setting *Text*).
+- **Moving over:** at the start, the sales running then take the reference price of the Omnibus plugin when it belongs to the same sale (same regular and sale price; never above the regular price), else the regular price. On merserwis.pl that plugin's price watching had been switched off in its code since April 2025 and its line showed the current regular price, so for most sales the regular price is all there is to go on. The panel *Price history* (tab *Shop*) lists every product and version on sale with the lowest price shown and where it came from. The plugin's lines and script are taken off the pages; the line looks as its stylesheet made it.
+- The history stays when MerTools is uninstalled.
+
+### 🗂 Category pages (from the Omnibus plugin)
+
+- New setting *Category pages* (tab *Page layout*, off by default) with what the same plugin did for the shop's category pages, so it can be removed: **the category description** where the category layout holds the placeholder “Category Description” (the description block was moved out of Gridbox's category intro, so Gridbox does not fill it — without this the placeholder would show), a click on a whole category row in Gridbox's Categories element opens its subcategories (highlighted on hover), 25 px above the description and clicks through the background overlay.
+
 ## 1.0.12 — 2026-10-15
 
 ### 💬 Price on request

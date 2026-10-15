@@ -99,7 +99,7 @@
 
   /** An Omnibus line whose amount (the last number, after "30 days") is 0,00 is not shown. */
   function checkOmnibus(line) {
-    var m = line.textContent.match(/(\d[\d\s .,]*)\D*$/);
+    var m = line.textContent.match(/(\d[\d\s\u00a0.,]*)\D*$/);
     if (m && !/[1-9]/.test(m[1])) line.classList.add('mt-price-zero');
   }
 

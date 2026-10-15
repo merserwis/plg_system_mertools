@@ -31,9 +31,12 @@
  *    its price would be, one whose models have prices "Choose a model from the list", only in the
  *    lists and sliders that show prices (mertools-price.js; the list products with priced models
  *    are marked in onAfterRender).
- *  - Omnibus (Omnibus): the "lowest price of the last 30 days" line of an Omnibus plugin only while
- *    the product or its chosen version is on sale; the plugin's own script (which polled every half
- *    second) is taken off the page in onAfterRender and replaced by mertools-omnibus.js.
+ *  - Category pages (Categories): the category description in a description block Gridbox left as a
+ *    placeholder, a click on a whole category row, two spacing/overlay rules — from the Omnibus plugin.
+ *  - Omnibus (Omnibus + OmnibusStore): the lowest price of the 30 days before a reduction, as the law
+ *    asks for it — a price history of every product and version (after each change sent to Gridbox,
+ *    hourly in onAfterRespond, at the settings save), the line on the product page and in the lists
+ *    (onAfterRender); a separate Omnibus plugin's lines and script are taken off the pages.
  *  - Gridbox lists (ListColumns): each user chooses, orders and adds the columns of the product and
  *    post lists, and edits prices, sale prices, stock and SKU right in the list.
  *  - Edit lock (EditLock): one person at a time in the Gridbox editor of a page; the others see who
@@ -63,7 +66,9 @@ use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Event\Priority;
 use Joomla\Event\SubscriberInterface;
+use Joomla\Registry\Registry;
 use Merserwis\Plugin\System\MerTools\Tool\CartCleaner;
+use Merserwis\Plugin\System\MerTools\Tool\Categories;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\DbIndexes;
 use Merserwis\Plugin\System\MerTools\Tool\EditLock;
@@ -75,6 +80,7 @@ use Merserwis\Plugin\System\MerTools\Tool\IntroText;
 use Merserwis\Plugin\System\MerTools\Tool\ListColumns;
 use Merserwis\Plugin\System\MerTools\Tool\NotFound;
 use Merserwis\Plugin\System\MerTools\Tool\Omnibus;
+use Merserwis\Plugin\System\MerTools\Tool\OmnibusStore;
 use Merserwis\Plugin\System\MerTools\Tool\PageCache;
 use Merserwis\Plugin\System\MerTools\Tool\PostRows;
 use Merserwis\Plugin\System\MerTools\Tool\Phones;
@@ -169,6 +175,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if ($app->isClient('administrator') || $app->isClient('site')) {
             // before the history: it then notes the introduction as it is kept
             $this->introGuard();
+            $this->omnibusWatch();
             $this->trackHistory();
             $this->purgeOnChange();
         }
@@ -1902,6 +1909,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
         $this->dailyIndexCheck();
         $this->dailyIntroCheck();
+        $this->hourlyOmnibus();
         $this->imageWork();
         if (!$this->cartsOn()) {
             return;
@@ -2285,7 +2293,10 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             }
         }
         if (Omnibus::enabled($this->params)) {
-            $new = Omnibus::dropScript($new, Omnibus::SCRIPT);
+            $new = $this->omnibusLines($new);
+        }
+        if (Categories::enabled($this->params) && Categories::hasPlaceholder($new)) {
+            $new = $this->categoryDescription($new);
         }
         if ($new !== $body) {
             $app->setBody($new);
@@ -2321,6 +2332,104 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
 
         return PriceRequest::markTiles($html, PriceRequest::chooseIds($rows));
+    }
+
+    /** A category page: the description of the category in the description block left as a placeholder. */
+    private function categoryDescription(string $html): string
+    {
+        $input = $this->getApplication()->getInput();
+        $id    = $input->getInt('id');
+        if ($input->getCmd('option') !== 'com_gridbox' || $input->getCmd('view') !== 'blog' || $id <= 0) {
+            return $html;
+        }
+        try {
+            $db          = Factory::getContainer()->get(DatabaseInterface::class);
+            $description = (string) $db->setQuery('SELECT ' . $db->quoteName('description') . ' FROM ' . $db->quoteName('#__gridbox_categories')
+                . ' WHERE ' . $db->quoteName('id') . ' = ' . $id)->loadResult();
+        } catch (\Throwable $e) {
+            return $html;
+        }
+
+        return Categories::description($html, $description);
+    }
+
+    private function omnibusStore(): OmnibusStore
+    {
+        return new OmnibusStore(Factory::getContainer()->get(DatabaseInterface::class));
+    }
+
+    /**
+     * Omnibus on a finished page: the separate plugin's script and lines off, MerTools' lines in —
+     * on the product page one per item of the product on sale, in the lists under a sale price.
+     */
+    private function omnibusLines(string $html): string
+    {
+        $html = Omnibus::dropPluginLines(Omnibus::dropScript($html, Omnibus::SCRIPT));
+        $input = $this->getApplication()->getInput();
+        $page  = $input->getCmd('option') === 'com_gridbox' && $input->getCmd('view') === 'page' ? $input->getInt('id') : 0;
+        $tiles = Omnibus::lists($this->params) && str_contains($html, 'ba-blog-post-add-to-cart-sale-price-wrapper') ? PriceRequest::tileIds($html) : [];
+        if ((!$page || !str_contains($html, 'ba-add-to-cart-price')) && !$tiles) {
+            return $html;
+        }
+        try {
+            $this->loadLanguage();
+            $store    = $this->omnibusStore();
+            $template = Omnibus::template($this->params, $this->translate('PLG_SYSTEM_MERTOOLS_OMNIBUS_TEXT_DEFAULT'));
+            $currency = $this->storeCurrency();
+            if ($page && str_contains($html, 'ba-add-to-cart-price')) {
+                $lowest = [];
+                foreach ($store->references([$page]) as $key => $ref) {
+                    $lowest[$key] = $ref['lowest'];
+                }
+                $html = Omnibus::productLines($html, $page, $lowest, $template, $currency);
+            }
+            if ($tiles) {
+                $html = Omnibus::listLines($html, $store->listReferences($tiles), $template, $currency);
+            }
+        } catch (\Throwable $e) {
+            // no history yet (tables not made): the page as Gridbox made it
+        }
+
+        return $html;
+    }
+
+    /** After anything sent to Gridbox by a logged-in user: the prices compared with the history (at shutdown). */
+    private function omnibusWatch(): void
+    {
+        if (!Omnibus::enabled($this->params)) {
+            return;
+        }
+        $app   = $this->getApplication();
+        $input = $app->getInput();
+        $user  = $app->getIdentity();
+        if (strtoupper((string) $input->getMethod()) !== 'POST' || $input->getCmd('option') !== 'com_gridbox' || !$user || $user->guest) {
+            return;
+        }
+        register_shutdown_function(static function (): void {
+            try {
+                (new OmnibusStore(Factory::getContainer()->get(DatabaseInterface::class)))->sync();
+            } catch (\Throwable $e) {
+            }
+        });
+    }
+
+    /** Once an hour: prices changed past Gridbox (an import, the database directly); kept pages refreshed when they did. */
+    private function hourlyOmnibus(): void
+    {
+        if (!Omnibus::enabled($this->params)) {
+            return;
+        }
+        $gate = self::cacheBase() . '/mertools-omnibus-tick';
+        if ((is_file($gate) && (int) @filemtime($gate) > time() - 3600) || !@touch($gate)) {
+            return;
+        }
+        try {
+            $result = $this->omnibusStore()->sync();
+            if (($result['changed'] ?? 0) > 0 && ($this->pageCacheOn() || $this->dataCacheOn())) {
+                $this->pageCache()->purge(false);
+            }
+        } catch (\Throwable $e) {
+        }
     }
 
     /** The faster-first-view tools that are switched on, applied to the finished page. */
@@ -2437,6 +2546,10 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                 $wa->registerAndUseScript('plg_system_mertools.price', 'plg_system_mertools/mertools-price.js', [], ['defer' => true]);
             }
         }
+        if (Categories::enabled($this->params)) {
+            $document->addStyleDeclaration(Categories::css());
+            $wa->registerAndUseScript('plg_system_mertools.categories', 'plg_system_mertools/mertools-categories.js', [], ['defer' => true]);
+        }
         if (Omnibus::enabled($this->params)) {
             $document->addStyleDeclaration(Omnibus::css());
             $wa->registerAndUseScript('plg_system_mertools.omnibus', 'plg_system_mertools/mertools-omnibus.js', [], ['defer' => true]);
@@ -2475,6 +2588,14 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             return;
         }
         self::cleanPageCache();
+        // Omnibus switched on (or on): the price history starts at once, with the Omnibus plugin's references
+        if (Omnibus::enabled(new Registry((string) ($table->params ?? '')))) {
+            try {
+                (new OmnibusStore(Factory::getContainer()->get(DatabaseInterface::class)))->sync();
+            } catch (\Throwable $e) {
+                // the hourly check starts it then
+            }
+        }
     }
 
     /**

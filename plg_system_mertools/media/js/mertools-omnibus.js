@@ -1,34 +1,22 @@
 /**
- * MerTools for Gridbox — the "lowest price of the last 30 days" line of an Omnibus plugin, shown
- * only while the product (or its chosen version) is on sale.
+ * MerTools for Gridbox — Omnibus: the line "lowest price of the 30 days before the reduction" of the
+ * product page, shown only while the product (or its chosen version) is on sale.
  *
- * The plugin prints a hidden line (.omnibus_info) per product and per version: data-omnibus-id is
- * the product id or the version key, the product's own line comes first. The line of the product,
- * or of the chosen version when the product has versions, is shown while Gridbox shows a sale price
- * (.ba-add-to-cart-sale-price-wrapper in the price box); a line of 0,00 never. Gridbox redraws the
- * price box at every change of version, and each redraw is followed — no checking on a timer.
+ * The server puts a hidden line (.omnibus_info.mt-omnibus) after the price box for each item of the
+ * product on sale: data-omnibus-id is the version key or the product id (its line has data-mt-own).
+ * The line of the chosen version, or of the product while no version is chosen, is shown while
+ * Gridbox shows a sale price (.ba-add-to-cart-sale-price-wrapper in the price box); a line of 0,00
+ * never. Gridbox redraws the price box at every change of version, and each redraw is followed — no
+ * checking on a timer.
  *
- * Kept from the plugin's own script, which MerTools takes off the page: a category with
- * subcategories in Gridbox's Categories element opens and closes with a click on its whole row
- * (its link is taken off, the row gets Gridbox's collapse class) instead of opening its page.
+ * The line under a sale price in the lists is put in by the server; here it only gets the alignment
+ * of the prices above it. (The click on a whole category row, the other thing the separate plugin's
+ * script did, is in mertools-categories.js.)
  */
 (function () {
   'use strict';
 
   if (!document.querySelector || !Element.prototype.closest) return;
-
-  /** Subcategories: the whole row opens and closes, as the plugin's script did. */
-  function subcategories() {
-    var links = document.querySelectorAll('.ba-app-sub-category a');
-    for (var i = 0; i < links.length; i++) {
-      var link = links[i], icon = link.nextElementSibling;
-      if (icon && icon.tagName === 'I') {
-        link.removeAttribute('href');
-        icon.classList.remove('collapse-categories-list');
-        link.parentNode.classList.add('collapse-categories-list');
-      }
-    }
-  }
 
   /** Gridbox's working copy of an element (it holds the chosen version), else its settings. */
   function data(item) {
@@ -40,18 +28,18 @@
     return null;
   }
 
-  /** The key of the line to show: the chosen version, the product itself, or none (no version chosen yet). */
-  function current(item, lines) {
-    var obj = data(item), product = obj && obj.productData;
-    var versions = product && product.variations && Object.keys(product.variations).length;
-    if (!versions && !item.querySelector('.ba-add-to-cart-variation')) return lines[0].getAttribute('data-omnibus-id');
+  /** The key of the line to show: the chosen version, else the product itself (its line is marked). */
+  function current(item) {
+    var obj = data(item);
     if (obj && obj.product && obj.product.variation) return String(obj.product.variation);
     var chosen = item.querySelector('.ba-add-to-cart-row-value .ba-custom-select input[type="hidden"]');
-    return chosen && chosen.value ? chosen.value : null;
+    if (chosen && chosen.value) return chosen.value;
+    var own = item.querySelector('.omnibus_info[data-mt-own]');
+    return own ? own.getAttribute('data-omnibus-id') : null;
   }
 
   function zero(line) {
-    var m = line.textContent.match(/(\d[\d\s .,]*)\D*$/);
+    var m = line.textContent.match(/(\d[\d\s\u00a0.,]*)\D*$/);
     return !m || !/[1-9]/.test(m[1]);
   }
 
@@ -59,15 +47,25 @@
     var lines = item.querySelectorAll('.omnibus_info');
     if (!lines.length) return;
     var onSale = !!item.querySelector('.ba-add-to-cart-price .ba-add-to-cart-sale-price-wrapper');
-    var key = onSale ? current(item, lines) : null;
+    var key = onSale ? current(item) : null;
     for (var i = 0; i < lines.length; i++) {
       var show = key !== null && lines[i].getAttribute('data-omnibus-id') === key && !zero(lines[i]);
       lines[i].classList.toggle('mt-omnibus-on', show);
     }
   }
 
+  /** A list line wraps to more rows: aligned like the prices above it (Gridbox centres them with flexbox). */
+  function alignListLines() {
+    var lines = document.querySelectorAll('.mt-omnibus-list');
+    for (var i = 0; i < lines.length; i++) {
+      var align = getComputedStyle(lines[i].parentNode).alignItems;
+      if (align === 'center') lines[i].style.textAlign = 'center';
+      else if (align === 'flex-end' || align === 'end') lines[i].style.textAlign = 'right';
+    }
+  }
+
   function start() {
-    subcategories();
+    alignListLines();
     var boxes = document.querySelectorAll('.ba-add-to-cart-price');
     for (var i = 0; i < boxes.length; i++) {
       var item = boxes[i].closest('.ba-item[id]');
