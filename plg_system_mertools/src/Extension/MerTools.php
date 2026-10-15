@@ -88,6 +88,7 @@ use Merserwis\Plugin\System\MerTools\Tool\PriceRequest;
 use Merserwis\Plugin\System\MerTools\Tool\ProductLinks;
 use Merserwis\Plugin\System\MerTools\Tool\Speed;
 use Merserwis\Plugin\System\MerTools\Tool\Speedup;
+use Merserwis\Plugin\System\MerTools\Tool\StoreCurrency;
 use Merserwis\Plugin\System\MerTools\Tool\Tabs;
 use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
@@ -244,15 +245,12 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     {
         static $currency = null;
         if ($currency === null) {
-            $currency = ['symbol' => '', 'position' => '', 'thousand' => ' ', 'separator' => ',', 'decimals' => 2];
             try {
-                $db    = Factory::getContainer()->get(DatabaseInterface::class);
-                $store = json_decode((string) $db->setQuery('SELECT ' . $db->quoteName('key') . ' FROM ' . $db->quoteName('#__gridbox_api') . ' WHERE service = '
-                    . $db->quote('store'))->loadResult());
-                if (\is_object($store->currency ?? null)) {
-                    $currency = array_merge($currency, array_intersect_key((array) $store->currency, $currency));
-                }
+                $db       = Factory::getContainer()->get(DatabaseInterface::class);
+                $currency = StoreCurrency::from((string) $db->setQuery('SELECT ' . $db->quoteName('key') . ' FROM ' . $db->quoteName('#__gridbox_api')
+                    . ' WHERE service = ' . $db->quote('store'))->loadResult());
             } catch (\Throwable $e) {
+                $currency = StoreCurrency::DEFAULT;
             }
         }
 

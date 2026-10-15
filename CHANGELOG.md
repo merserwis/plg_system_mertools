@@ -2,6 +2,12 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.0.14 — 2026-10-15
+
+### 🐞 Fixes
+
+- **Omnibus line without the currency.** The lowest price was shown as “15 595,00”, without “zł netto”: MerTools read the store currency from Gridbox's old single currency setting, which stores set up with Gridbox's list of currencies (merserwis.pl) do not have. It now takes the default currency of that list, as Gridbox does, so the price is in the store's format — symbol, its position, separators and decimals (“15 595 zł netto”). The prices shown in the Gridbox lists of the administrator (*Columns*) take the same currency.
+
 ## 1.0.13 — 2026-10-15
 
 ### 🏷 Omnibus without a separate plugin
