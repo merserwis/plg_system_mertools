@@ -106,6 +106,27 @@ final class Feed
         return (bool) (int) $params->get('feed_image', 1);
     }
 
+    /**
+     * The image also as the item's attachment (RSS enclosure and media:content, Atom enclosure link):
+     * off by default — the image is already above the text, and readers such as Feedbro show the
+     * attachment as one more line ("View enclosure").
+     */
+    public static function enclosure(Registry $params): bool
+    {
+        return (bool) (int) $params->get('feed_enclosure', 0);
+    }
+
+    /** The text of the link to the full article under each item ('' = no link); empty setting: the language default. */
+    public static function more(Registry $params, string $default): string
+    {
+        if (!(int) $params->get('feed_more', 1)) {
+            return '';
+        }
+        $text = trim((string) $params->get('feed_more_text', ''));
+
+        return $text !== '' ? $text : trim($default);
+    }
+
     /** Where the head gets links to the feeds: 'blog' (the blog pages and its posts), 'all' (every page) or 'none'. */
     public static function headMode(Registry $params): string
     {
@@ -230,7 +251,10 @@ final class Feed
         return preg_replace('/[^\x{9}\x{A}\x{D}\x{20}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u', '', $s) ?? '';
     }
 
-    /** The HTML of an item: the image first (when there is one), then the summary. */
+    /**
+     * The HTML of an item: the image first (when there is one), the summary, then the link to the full
+     * article ('more'), drawn as a button in the reader's link colour where the reader keeps styles.
+     */
     private static function itemHtml(array $item): string
     {
         $html = '';
@@ -238,15 +262,21 @@ final class Feed
             $html .= '<p><img src="' . htmlspecialchars($item['image']['url'], ENT_QUOTES, 'UTF-8') . '" alt="'
                 . htmlspecialchars((string) ($item['image']['alt'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"></p>';
         }
+        $html .= (string) ($item['summary'] ?? '');
+        if ((string) ($item['more'] ?? '') !== '') {
+            $html .= '<p><a href="' . htmlspecialchars($item['link'], ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;padding:6px 14px;border:1px solid;border-radius:4px;text-decoration:none">'
+                . htmlspecialchars($item['more'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . ' &rarr;</a></p>';
+        }
 
-        return $html . (string) ($item['summary'] ?? '');
+        return $html;
     }
 
     /**
      * An RSS 2.0 feed.
      *
      * @param array $channel title, link (the page), self (the feed), description, language (pl-PL), updated (Unix time), ttl (minutes)
-     * @param array $items   each: title, link, summary (HTML), published, updated (Unix times), authors (names), categories (names), image (url, alt, type, length)
+     * @param array $items   each: title, link, summary (HTML), more (text of the link to the article, '' = none), published, updated (Unix times),
+     *                       authors (names), categories (names), image (url, alt, type, length, enclose: also as the attachment)
      */
     public static function rss(array $channel, array $items): string
     {
@@ -286,7 +316,7 @@ final class Feed
             foreach ($item['categories'] ?? [] as $category) {
                 $xml .= '<category>' . $e($category) . "</category>\n";
             }
-            if (!empty($item['image']['url'])) {
+            if (!empty($item['image']['url']) && ($item['image']['enclose'] ?? true)) {
                 $image = $item['image'];
                 $type  = (string) ($image['type'] ?? '');
                 if (!empty($image['length']) && $type !== '') {
@@ -340,7 +370,7 @@ final class Feed
             if ($html !== '') {
                 $xml .= '<summary type="html">' . $e($html) . "</summary>\n";
             }
-            if (!empty($item['image']['url'])) {
+            if (!empty($item['image']['url']) && ($item['image']['enclose'] ?? true)) {
                 $image = $item['image'];
                 $xml  .= '<link rel="enclosure" href="' . $e($image['url']) . '"'
                     . (!empty($image['type']) ? ' type="' . $e($image['type']) . '"' : '')

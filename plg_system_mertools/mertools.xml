@@ -6,7 +6,7 @@
     <creationDate>2026-10-16</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -274,6 +274,19 @@
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
+                <field name="feed_enclosure" type="radio" layout="joomla.form.field.radio.switcher" default="0" showon="feed_enabled:1[AND]feed_image:1"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_ENCLOSURE_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_ENCLOSURE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="feed_more" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="feed_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_MORE_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_MORE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="feed_more_text" type="text" default="" filter="string" maxlength="80" showon="feed_enabled:1[AND]feed_more:1"
+                    hint="PLG_SYSTEM_MERTOOLS_FEED_MORE_DEFAULT"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_MORE_TEXT_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_MORE_TEXT_DESC" />
                 <field name="feed_head" type="list" default="blog" showon="feed_enabled:1"
                     label="PLG_SYSTEM_MERTOOLS_FEED_HEAD_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_HEAD_DESC">
                     <option value="blog">PLG_SYSTEM_MERTOOLS_FEED_HEAD_BLOG</option>

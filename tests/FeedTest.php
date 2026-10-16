@@ -122,6 +122,24 @@ $check('Atom enclosure', $x->evaluate('string(/a:feed/a:entry[1]/a:link[@rel="en
 $check('Atom entry author', $x->evaluate('string(/a:feed/a:entry[1]/a:author/a:name)'), 'Jan Kowalski');
 $check('invalid UTF-8 still well-formed', (new DOMDocument())->loadXML(Feed::rss($channel, [['title' => "Z\xC3\x28le", 'link' => 'https://x.pl/z'] + $items[1]])), true);
 
+// the link to the full article and the attachment
+$check('more: on by default, language text', Feed::more(new Registry(), 'Przeczytaj cały artykuł'), 'Przeczytaj cały artykuł');
+$check('more: own text', Feed::more(new Registry(['feed_more_text' => ' Czytaj dalej ']), 'x'), 'Czytaj dalej');
+$check('more: off', Feed::more(new Registry(['feed_more' => '0']), 'x'), '');
+$check('enclosure off by default', Feed::enclosure(new Registry()), false);
+$it = ['more' => 'Przeczytaj cały artykuł', 'image' => ['enclose' => false] + $items[0]['image']] + $items[0];
+$rss = Feed::rss($channel, [$it]);
+$doc = new DOMDocument();
+$doc->loadXML($rss);
+$x = new DOMXPath($doc);
+$x->registerNamespace('media', 'http://search.yahoo.com/mrss/');
+$desc = $x->evaluate('string(/rss/channel/item[1]/description)');
+$check('more: a link to the post after the text', str_ends_with($desc, '<p>Tekst &amp; więcej</p><p><a href="https://x.pl/blog/kamera?a=1&amp;b=2" style="display:inline-block;padding:6px 14px;border:1px solid;border-radius:4px;text-decoration:none">Przeczytaj cały artykuł &rarr;</a></p>'), true);
+$check('image still above the text', str_starts_with($desc, '<p><img src="https://x.pl/images/k.jpg"'), true);
+$check('no enclosure, no media:content', (int) $x->evaluate('count(/rss/channel/item[1]/enclosure)') + (int) $x->evaluate('count(/rss/channel/item[1]/media:content)'), 0);
+$check('Atom: no enclosure link either', str_contains(Feed::atom($channel, [$it]), 'rel="enclosure"'), false);
+$check('Atom: the link in the summary', str_contains(Feed::atom($channel, [$it]), 'Przeczytaj cały artykuł &amp;rarr;'), true);
+
 // conditional requests
 $check('ETag matches', Feed::notModified('"abc"', '"abc"'), true);
 $check('weak ETag in a list', Feed::notModified('"abc"', '"x", W/"abc"'), true);

@@ -260,6 +260,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
 
         $mode   = Feed::textMode($this->params);
         $images = Feed::images($this->params);
+        $attach = Feed::enclosure($this->params);
+        $this->loadLanguage();
+        $more   = Feed::more($this->params, $this->translate('PLG_SYSTEM_MERTOOLS_FEED_MORE_DEFAULT'));
         $root   = rtrim(Uri::root(), '/');
         $items  = [];
         $latest = 0;
@@ -271,7 +274,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $image     = null;
             if ($images && trim((string) $post['intro_image']) !== '') {
                 $url   = Feed::absolute((string) $post['intro_image'], $root);
-                $image = ['url' => $url, 'alt' => (string) ($post['image_alt'] ?: $post['title']), 'type' => Feed::imageType($url), 'length' => 0];
+                $image = ['url' => $url, 'alt' => (string) ($post['image_alt'] ?: $post['title']), 'type' => Feed::imageType($url), 'length' => 0, 'enclose' => $attach];
                 // the size of a picture of this site, for the RSS enclosure
                 if (str_starts_with($url, $root . '/')) {
                     $file = JPATH_ROOT . '/' . rawurldecode((string) parse_url(substr($url, \strlen($root) + 1), PHP_URL_PATH));
@@ -285,6 +288,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                 'link'       => $this->gridboxLink('getGridboxPageLinks', [(int) $post['id'], (string) $blog['type'], $appId, $category],
                     'index.php?option=com_gridbox&view=page&blog=' . $appId . '&category=' . $category . '&id=' . (int) $post['id']),
                 'summary'    => Feed::summary($post, $mode),
+                'more'       => $more,
                 'published'  => $published,
                 'updated'    => $updated,
                 'authors'    => $authors[(int) $post['id']] ?? [],

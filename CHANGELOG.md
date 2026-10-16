@@ -2,6 +2,13 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.1.1 — 2026-10-16
+
+### 📰 Blog feeds
+
+- **“Read the full article →” under each item**: a button-like link to the post on the site, in the reader's link colour (setting *Link to the full article*, on by default; its text of your own in *Text of the link*, empty = “Read the full article” in the language of the site).
+- **The intro image no longer also as an attachment** by default: it is above the text already, and readers such as Feedbro showed the attachment as one more line, “View enclosure”. Setting *Image also as an attachment* (RSS enclosure and media:content, Atom enclosure link) for services that take the picture from there.
+
 ## 1.1.0 — 2026-10-16
 
 ### 📰 Blog feeds: RSS and Atom
