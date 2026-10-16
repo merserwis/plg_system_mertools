@@ -8,6 +8,8 @@ All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta 
 
 - **“Read the full article →” under each item**: a button-like link to the post on the site, in the reader's link colour (setting *Link to the full article*, on by default; its text of your own in *Text of the link*, empty = “Read the full article” in the language of the site).
 - **The intro image no longer also as an attachment** by default: it is above the text already, and readers such as Feedbro showed the attachment as one more line, “View enclosure”. Setting *Image also as an attachment* (RSS enclosure and media:content, Atom enclosure link) for services that take the picture from there.
+- **The panel *Feed addresses* shows the addresses as the site does** (e.g. `https://www.merserwis.pl/blog?format=feed&type=rss`) instead of the plain `index.php?option=com_gridbox…` ones.
+- **The links to the feeds in the page head are full addresses** (with the domain), as some feed readers and browser extensions expect.
 
 ## 1.1.0 — 2026-10-16
 

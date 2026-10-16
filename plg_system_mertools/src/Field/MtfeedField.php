@@ -7,15 +7,16 @@ namespace Merserwis\Plugin\System\MerTools\Field;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\FormField;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Registry\Registry;
 use Merserwis\Plugin\System\MerTools\Tool\Feed;
 
 /**
- * The feeds in the plugin settings: each blog with a feed and the addresses of its feeds (as saved).
- * Plain addresses, which work with and without search engine friendly URLs; on the site the head of
- * the blog pages links the friendly ones.
+ * The feeds in the plugin settings: each blog with a feed and the addresses of its feeds (as saved),
+ * as the site shows them (search engine friendly, routed by Gridbox to the blog's menu item); the
+ * plain address when the site's router cannot be used from here.
  */
 final class MtfeedField extends FormField
 {
@@ -41,7 +42,7 @@ final class MtfeedField extends FormField
         foreach ($apps as $id => $app) {
             $links = [];
             foreach (Feed::formats($params) as $format) {
-                $url     = $root . '/index.php?option=com_gridbox&view=blog&app=' . (int) $id . '&id=0&format=feed&type=' . $format;
+                $url     = self::siteUrl((int) $id, '&format=feed&type=' . $format, $root);
                 $links[] = '<a href="' . $e($url) . '" target="_blank" rel="noopener">' . ($format === 'atom' ? 'Atom' : 'RSS') . '</a> <code class="small">' . $e($url) . '</code>';
             }
             $off   = (int) $app['published'] ? '' : ' <span class="badge bg-secondary">' . $e(Text::_('JUNPUBLISHED')) . '</span>';
@@ -49,5 +50,26 @@ final class MtfeedField extends FormField
         }
 
         return '<div class="mt-feed-panel">' . $html . '</tbody></table><p class="small text-muted mb-0">' . $e(Text::_('PLG_SYSTEM_MERTOOLS_FEED_UI_HINT')) . '</p></div>';
+    }
+
+    /** The address of a blog's page on the site with the query added, routed as the site does it. */
+    private static function siteUrl(int $appId, string $query, string $root): string
+    {
+        $plain  = 'index.php?option=com_gridbox&view=blog&app=' . $appId . '&id=0';
+        $link   = $plain;
+        $helper = 'Balbooa\\Component\\Gridbox\\Site\\Helper\\GridboxHelper';
+        try {
+            if (class_exists($helper)) {
+                // the blog's menu item (Itemid), so the address is the one of the menu
+                $link = (string) $helper::getGridboxCategoryLinks(0, $appId);
+            }
+            $url = (string) Route::link('site', $link . $query, false, Route::TLS_IGNORE, true);
+            if ($url !== '' && !str_contains($url, '/administrator/')) {
+                return $url;
+            }
+        } catch (\Throwable $e) {
+        }
+
+        return $root . '/' . $plain . $query;
     }
 }

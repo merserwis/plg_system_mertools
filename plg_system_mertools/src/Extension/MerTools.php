@@ -415,7 +415,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             }
             $done[$plain] = true;
             foreach ($formats as $format) {
-                $url   = $this->gridboxLink($method, $args, $plain, '&format=feed&type=' . $format, false);
+                // absolute, as feed readers and browser extensions expect (a relative one is not found by all of them)
+                $url   = $this->gridboxLink($method, $args, $plain, '&format=feed&type=' . $format);
                 $label = $title . (\count($formats) > 1 ? ($format === 'atom' ? ' (Atom)' : ' (RSS)') : '');
                 $document->addHeadLink(htmlspecialchars($url, ENT_QUOTES, 'UTF-8'), 'alternate', 'rel',
                     ['type' => Feed::TYPES[$format], 'title' => htmlspecialchars($label, ENT_QUOTES, 'UTF-8')]);
