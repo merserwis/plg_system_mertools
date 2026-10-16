@@ -6,7 +6,7 @@
     <creationDate>2026-10-16</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.1.1</version>
+    <version>1.2.0</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -405,6 +405,42 @@
                 </field>
                 <field name="lock_idle" type="number" default="30" min="0" max="1440" filter="integer" showon="lock_enabled:1"
                     label="PLG_SYSTEM_MERTOOLS_LOCK_IDLE_LABEL" description="PLG_SYSTEM_MERTOOLS_LOCK_IDLE_DESC" />
+            </fieldset>
+
+            <!-- ============================================================ Apps against deletion -->
+            <fieldset name="apps" label="PLG_SYSTEM_MERTOOLS_FIELDSET_APPS">
+                <field name="apps_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_APPS_NOTE" />
+                <field name="apps_protect" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_APPS_PROTECT_LABEL" description="PLG_SYSTEM_MERTOOLS_APPS_PROTECT_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="apps_unlocked" type="mtapps" multiple="true" layout="joomla.form.field.list-fancy-select" showon="apps_protect:1"
+                    hint="PLG_SYSTEM_MERTOOLS_APPS_UNLOCKED_HINT"
+                    label="PLG_SYSTEM_MERTOOLS_APPS_UNLOCKED_LABEL" description="PLG_SYSTEM_MERTOOLS_APPS_UNLOCKED_DESC" />
+                <field name="apps_backup_delete" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_APPS_BACKUP_DELETE_LABEL" description="PLG_SYSTEM_MERTOOLS_APPS_BACKUP_DELETE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="apps_backup_required" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="apps_backup_delete:1"
+                    label="PLG_SYSTEM_MERTOOLS_APPS_BACKUP_REQUIRED_LABEL" description="PLG_SYSTEM_MERTOOLS_APPS_BACKUP_REQUIRED_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="apps_backup_auto" type="list" default="daily"
+                    label="PLG_SYSTEM_MERTOOLS_APPS_BACKUP_AUTO_LABEL" description="PLG_SYSTEM_MERTOOLS_APPS_BACKUP_AUTO_DESC">
+                    <option value="daily">PLG_SYSTEM_MERTOOLS_APPS_BACKUP_AUTO_DAILY</option>
+                    <option value="weekly">PLG_SYSTEM_MERTOOLS_APPS_BACKUP_AUTO_WEEKLY</option>
+                    <option value="off">PLG_SYSTEM_MERTOOLS_APPS_BACKUP_AUTO_OFF</option>
+                </field>
+                <field name="apps_backup_keep" type="number" default="7" min="1" max="365" filter="integer" showon="apps_backup_auto!:off"
+                    label="PLG_SYSTEM_MERTOOLS_APPS_BACKUP_KEEP_LABEL" description="PLG_SYSTEM_MERTOOLS_APPS_BACKUP_KEEP_DESC" />
+                <field name="apps_backup_path" type="text" default="" filter="string" maxlength="255"
+                    hint="administrator/backups/mertools"
+                    label="PLG_SYSTEM_MERTOOLS_APPS_BACKUP_PATH_LABEL" description="PLG_SYSTEM_MERTOOLS_APPS_BACKUP_PATH_DESC" />
+                <field name="apps_panel" type="mtappsbackup" parentclass="stack"
+                    label="PLG_SYSTEM_MERTOOLS_APPS_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_APPS_PANEL_DESC" />
             </fieldset>
 
             <!-- ============================================================ Edit history -->

@@ -2,6 +2,16 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.2.0 — 2026-10-16
+
+### 🛡 Apps protection
+
+- **No app deleted by one click any more.** Gridbox deletes an app (a shop, a blog) with the X of its card and one “Delete”: the app, every product or post, its categories, fields, product data, tags, comments and reviews, past the trash and for good. Every app is now locked against it: the X shows a 🔒 and a click says how to unlock the app; the server refuses the deletion whatever sends it (the X of a card, the trash icon in a folder of apps, *Delete app* in the toolbar of a single page app, a request sent by hand). An app is deleted only after it is chosen under *Apps that may be deleted*.
+- **A copy before every deletion** that is allowed, of everything Gridbox deletes with the app (rows of its tables and the files that go with them); with *No copy, no deletion* (on by default) the app is not deleted when its copy cannot be written.
+- **Regular copies** of every app, daily or weekly (daily by default), after a visit to the site; an unchanged app gets no new copy; the newest 7 of each app are kept.
+- **Restore** brings back what is missing and changes nothing that exists: the app when it is gone, the missing categories, fields, tags and products or posts with their own ids, product data, fields, tags, comments, reviews and files. Checked before it starts, written in one transaction; restoring the same copy again changes nothing.
+- New tab *Apps protection* with the settings and a panel of the apps (state, *Copy now*) and of the copies (download, restore, delete). Copies are kept in `administrator/backups/mertools`, closed to the web, or in a folder of your own. The copies and their list stay when MerTools is uninstalled.
+
 ## 1.1.1 — 2026-10-16
 
 ### 📰 Blog feeds

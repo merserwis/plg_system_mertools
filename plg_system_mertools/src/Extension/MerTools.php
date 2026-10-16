@@ -51,6 +51,10 @@
  *  - Blog feeds (Feed): RSS 2.0 and Atom 1.0 feeds of the Gridbox blogs, their categories, tags and
  *    authors (?format=feed&type=rss|atom), sent in onAfterRoute before Gridbox (which has none), and
  *    the links to them in the head of the blog pages (onBeforeCompileHead).
+ *  - Apps against deletion (AppGuard): Gridbox's X on an app card deletes the app with all its products
+ *    or posts for good; each app is locked against it (onAfterRoute refuses the task, a script marks the
+ *    cards), and a copy of the app is written before a deletion that is allowed and once a day or a week
+ *    (onAfterRespond); the copies are listed, downloaded and restored on the tab "Apps protection".
  */
 
 namespace Merserwis\Plugin\System\MerTools\Extension;
@@ -72,6 +76,7 @@ use Joomla\Database\DatabaseInterface;
 use Joomla\Event\Priority;
 use Joomla\Event\SubscriberInterface;
 use Joomla\Registry\Registry;
+use Merserwis\Plugin\System\MerTools\Tool\AppGuard;
 use Merserwis\Plugin\System\MerTools\Tool\CartCleaner;
 use Merserwis\Plugin\System\MerTools\Tool\Categories;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
@@ -100,7 +105,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.0.11';
+    public const VERSION = '1.2.0';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
@@ -176,6 +181,10 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     public function onAfterRoute(): void
     {
         $app = $this->getApplication();
+        if ($app->isClient('administrator')) {
+            // first: a refused deletion must not reach anything else
+            $this->appDeleteGuard();
+        }
         if ($app->isClient('site')) {
             $this->editLock();
         }
@@ -1076,6 +1085,234 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $app->enqueueMessage(Text::sprintf('PLG_SYSTEM_MERTOOLS_LOCK_SETTINGS_REFUSED', preg_replace('/\s*\([^()]*\)$/', '', (string) $lock['user_name'])), 'error');
         $back = (string) $input->server->getString('HTTP_REFERER', '');
         $app->redirect($back !== '' && Uri::isInternal($back) ? $back : 'index.php?option=com_gridbox');
+    }
+
+    // ---------------------------------------------------------------- apps against deletion
+
+    private function appsProtected(): bool
+    {
+        return (bool) (int) $this->params->get('apps_protect', 1);
+    }
+
+    /** @return int[] the apps chosen as ones that may be deleted */
+    private function appsUnlocked(): array
+    {
+        $ids = $this->params->get('apps_unlocked', []);
+        if (\is_object($ids)) {
+            $ids = (array) $ids;
+        } elseif (!\is_array($ids)) {
+            $ids = (string) $ids === '' ? [] : explode(',', (string) $ids);
+        }
+
+        return array_values(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0));
+    }
+
+    private function appGuard(): AppGuard
+    {
+        $guard = new AppGuard(Factory::getContainer()->get(DatabaseInterface::class), JPATH_ROOT,
+            AppGuard::folder((string) $this->params->get('apps_backup_path', ''), JPATH_ROOT, JPATH_ADMINISTRATOR));
+        $guard->ensureTables();
+
+        return $guard;
+    }
+
+    /**
+     * Gridbox's deletion of an app (the X of its card, the trash icon in a folder of apps, Delete app in
+     * the toolbar of a single page app): refused for a locked app; an app that may be deleted is copied
+     * first and, by the setting, not deleted when the copy fails. Gridbox asks for no form token there,
+     * so every method is checked.
+     */
+    private function appDeleteGuard(): void
+    {
+        $app   = $this->getApplication();
+        $input = $app->getInput();
+        if ($input->getCmd('option') !== 'com_gridbox' || !AppGuard::isDeleteTask((string) $input->getString('task', ''))) {
+            return;
+        }
+        $id   = $input->getInt('blog', 0);
+        $user = $app->getIdentity();
+        if ($id <= 0 || !$user || $user->guest) {
+            return;
+        }
+        $this->loadLanguage();
+        $title = '#' . $id;
+        $guard = null;
+        try {
+            $guard = $this->appGuard();
+            $apps  = $guard->apps();
+            if (!isset($apps[$id])) {
+                // no such app: Gridbox has nothing to delete
+                return;
+            }
+            $title = $apps[$id]['title'];
+        } catch (\Throwable $e) {
+            // without the database the lock still holds; the copy below fails
+        }
+        if (!AppGuard::deletable($id, $this->appsProtected(), $this->appsUnlocked())) {
+            $this->appRefuse(Text::sprintf('PLG_SYSTEM_MERTOOLS_APPS_REFUSED', $title));
+        }
+        if (!(int) $this->params->get('apps_backup_delete', 1)) {
+            return;
+        }
+        try {
+            if (!$guard) {
+                throw new \RuntimeException(Text::_('PLG_SYSTEM_MERTOOLS_APPS_UI_ERROR'));
+            }
+            @set_time_limit(300);
+            $guard->backup($id, 'delete', (int) $user->id, self::userLabel($user), gmdate('Y-m-d H:i:s'));
+        } catch (\Throwable $e) {
+            if ((int) $this->params->get('apps_backup_required', 1)) {
+                $this->appRefuse(Text::sprintf('PLG_SYSTEM_MERTOOLS_APPS_BACKUP_FAILED', $title, $e->getMessage()));
+            }
+        }
+    }
+
+    /** The answer instead of Gridbox's: its scripts show the text of the answer as their notice. */
+    private function appRefuse(string $message): void
+    {
+        $app = $this->getApplication();
+        $app->setHeader('Content-Type', 'text/plain; charset=utf-8', true);
+        $app->setHeader('Cache-Control', 'no-store', true);
+        $app->sendHeaders();
+        echo $message;
+        $app->close();
+    }
+
+    /**
+     * The Gridbox administrator: the cards of locked apps show a lock instead of their X, and a click on
+     * it (or on Delete app in the toolbar) says how to unlock the app instead of opening Gridbox's
+     * question (mertools-apps.js). The server refuses the deletion all the same.
+     */
+    private function appsScript(): void
+    {
+        if (!$this->appsProtected()) {
+            return;
+        }
+        $app   = $this->getApplication();
+        $input = $app->getInput();
+        if ($input->getCmd('option') !== 'com_gridbox' || $input->getCmd('format', 'html') !== 'html' || $input->getCmd('tmpl', '') === 'component') {
+            return;
+        }
+        $user = $app->getIdentity();
+        if (!$user || !$user->authorise('core.manage', 'com_gridbox')) {
+            return;
+        }
+        $this->loadLanguage();
+        $titles = [];
+        try {
+            foreach ($this->appGuard()->apps() as $id => $row) {
+                $titles[$id] = $row['title'];
+            }
+        } catch (\Throwable $e) {
+        }
+        $cfg = [
+            'unlocked' => $this->appsUnlocked(),
+            'current'  => $input->getCmd('view') === 'single' ? $input->getInt('id', 0) : 0,
+            'titles'   => (object) $titles,
+            'texts'    => ['refused' => Text::_('PLG_SYSTEM_MERTOOLS_APPS_JS_REFUSED'), 'tip' => Text::_('PLG_SYSTEM_MERTOOLS_APPS_JS_TIP')],
+        ];
+        $tail = '<script type="application/json" id="mertools-apps-config">' . json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP)
+            . '</script><script src="' . Uri::root(true) . '/media/plg_system_mertools/js/mertools-apps' . (JDEBUG ? '' : '.min') . '.js?' . self::VERSION . '" defer></script>';
+        $body = (string) $app->getBody();
+        $pos  = strripos($body, '</body>');
+        $app->setBody($pos === false ? $body . $tail : substr($body, 0, $pos) . $tail . substr($body, $pos));
+    }
+
+    /** The panel of the copies (MtappsbackupField): list, copy now, restore, delete, download. */
+    private function handleAppsAction(string $action): void
+    {
+        $app   = $this->getApplication();
+        $input = $app->getInput();
+        $user  = $app->getIdentity();
+        try {
+            $guard = $this->appGuard();
+            if ($action === 'apps_download') {
+                $file = $input->post->getString('file', '');
+                $path = $guard->path($file);
+                if (!$path) {
+                    throw new \RuntimeException(Text::_('PLG_SYSTEM_MERTOOLS_APPS_UI_NO_FILE'));
+                }
+                while (ob_get_level() > 0) {
+                    @ob_end_clean();
+                }
+                $app->setHeader('Content-Type', 'application/gzip', true);
+                $app->setHeader('Content-Disposition', 'attachment; filename="' . $file . '"', true);
+                $app->setHeader('Content-Length', (string) filesize($path), true);
+                $app->setHeader('Cache-Control', 'no-store', true);
+                $app->sendHeaders();
+                readfile($path);
+                $app->close();
+            }
+            $extra = [];
+            if ($action === 'apps_backup') {
+                @set_time_limit(600);
+                $one  = $input->post->getInt('app', 0);
+                $ids  = $one > 0 ? [$one] : array_keys($guard->apps());
+                $now  = gmdate('Y-m-d H:i:s');
+                $made = 0;
+                foreach ($ids as $id) {
+                    $guard->backup((int) $id, 'manual', (int) $user->id, self::userLabel($user), $now);
+                    $made++;
+                }
+                $extra = ['made' => $made];
+            } elseif ($action === 'apps_restore') {
+                @set_time_limit(600);
+                $extra = ['result' => $guard->restore($input->post->getString('file', ''))];
+                // the pages kept for guests and Joomla's cache would not show what came back
+                $this->purgeKeptPages();
+            } elseif ($action === 'apps_delete') {
+                $guard->delete($input->post->getString('file', ''));
+            }
+            $folder = AppGuard::folder((string) $this->params->get('apps_backup_path', ''), JPATH_ROOT, JPATH_ADMINISTRATOR);
+            // a folder not made yet: what decides is the first folder above it that is there
+            $probe = $folder;
+            while (!is_dir($probe) && \dirname($probe) !== $probe) {
+                $probe = \dirname($probe);
+            }
+            $this->sendJson(['success' => true, 'apps' => array_values($guard->apps()), 'copies' => $guard->copies(),
+                'folder' => $folder, 'writable' => is_writable($probe),
+                'protect' => $this->appsProtected(), 'unlocked' => $this->appsUnlocked()] + $extra);
+        } catch (\Throwable $e) {
+            $this->sendJson(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * The regular copies: checked at most once an hour after a site response; each app whose last copy
+     * is older than a day (or a week) gets one, an unchanged app only a mark on its last copy. Only
+     * the newest copies of the setting stay.
+     */
+    private function appBackupTick(): void
+    {
+        $every = (string) $this->params->get('apps_backup_auto', 'daily');
+        if ($every !== 'daily' && $every !== 'weekly') {
+            return;
+        }
+        $gate = self::cacheBase() . '/mertools-apps-tick';
+        $now  = time();
+        if (is_file($gate) && (int) @filemtime($gate) > $now - 3600) {
+            return;
+        }
+        if (!@touch($gate)) {
+            return;
+        }
+        // where the visitor has to wait for it, one app per hour
+        $finished = $this->finishResponse();
+        try {
+            $guard = $this->appGuard();
+            $stamp = gmdate('Y-m-d H:i:s', $now);
+            $start = microtime(true);
+            @set_time_limit(300);
+            foreach ($guard->due($every === 'weekly' ? 7 * 86400 : 86400, $stamp) as $id) {
+                $guard->backup($id, 'auto', 0, '', $stamp);
+                if (!$finished || microtime(true) - $start > 30.0) {
+                    break;
+                }
+            }
+            $guard->prune(max(1, (int) $this->params->get('apps_backup_keep', 7)));
+        } catch (\Throwable $e) {
+            // tried again in an hour
+        }
     }
 
     // ---------------------------------------------------------------- edit lock
@@ -2126,6 +2363,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $this->dailyIndexCheck();
         $this->dailyIntroCheck();
         $this->hourlyOmnibus();
+        $this->appBackupTick();
         $this->imageWork();
         if (!$this->cartsOn()) {
             return;
@@ -2166,7 +2404,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $action = $input->getCmd('mertools_action', '');
         if (!\in_array($action, ['cart_stats', 'cart_check', 'cart_clean', 'speed_list', 'speed_save', 'speed_baseline', 'speed_delete',
             'pcache_stats', 'pcache_clear', 'dbidx_status', 'dbidx_fix', 'img_stats', 'img_run', 'img_clear', 'cache_clear_all', 'history_list',
-            'list_columns', 'list_edit', 'list_badges'], true)) {
+            'list_columns', 'list_edit', 'list_badges', 'apps_list', 'apps_backup', 'apps_restore', 'apps_delete', 'apps_download'], true)) {
             return;
         }
         $this->loadLanguage();
@@ -2211,6 +2449,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
 
         if (str_starts_with($action, 'speed_')) {
             $this->handleSpeedAction($action);
+        }
+        if (str_starts_with($action, 'apps_')) {
+            $this->handleAppsAction($action);
         }
         if (str_starts_with($action, 'dbidx_')) {
             try {
@@ -2472,6 +2713,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if ($app->isClient('administrator')) {
             $this->listColumns();
             $this->historyInLists();
+            $this->appsScript();
 
             return;
         }
