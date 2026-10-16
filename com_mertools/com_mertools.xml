@@ -3,10 +3,10 @@
     <name>com_mertools</name>
     <author>Merserwis</author>
     <authorUrl>https://github.com/merserwis/</authorUrl>
-    <creationDate>2026-10-15</creationDate>
+    <creationDate>2026-10-16</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.0.14</version>
+    <version>1.1.0</version>
     <description>MerTools for Gridbox — administrator menu entry that opens the plugin settings.</description>
     <namespace path="src">Merserwis\Component\MerTools</namespace>
     <administration>

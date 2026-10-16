@@ -3,10 +3,10 @@
     <name>plg_system_mertools</name>
     <author>Merserwis</author>
     <authorUrl>https://github.com/merserwis/</authorUrl>
-    <creationDate>2026-10-15</creationDate>
+    <creationDate>2026-10-16</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.0.14</version>
+    <version>1.1.0</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -243,6 +243,47 @@
                     <option value="stack">PLG_SYSTEM_MERTOOLS_TABS_SLIDERS_STACK</option>
                     <option value="off">PLG_SYSTEM_MERTOOLS_TABS_SLIDERS_OFF</option>
                 </field>
+            </fieldset>
+
+            <!-- ============================================================ Blog feeds (RSS / Atom) -->
+            <fieldset name="feed" label="PLG_SYSTEM_MERTOOLS_FIELDSET_FEED">
+                <field name="feed_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_ENABLED_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_ENABLED_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="feed_format" type="list" default="both" showon="feed_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_FORMAT_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_FORMAT_DESC">
+                    <option value="both">PLG_SYSTEM_MERTOOLS_FEED_FORMAT_BOTH</option>
+                    <option value="rss">PLG_SYSTEM_MERTOOLS_FEED_FORMAT_RSS</option>
+                    <option value="atom">PLG_SYSTEM_MERTOOLS_FEED_FORMAT_ATOM</option>
+                </field>
+                <field name="feed_apps" type="mtfeedapps" multiple="true" layout="joomla.form.field.list-fancy-select" showon="feed_enabled:1"
+                    hint="PLG_SYSTEM_MERTOOLS_FEED_APPS_HINT"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_APPS_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_APPS_DESC" />
+                <field name="feed_limit" type="number" default="20" min="1" max="100" filter="integer" showon="feed_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_LIMIT_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_LIMIT_DESC" />
+                <field name="feed_text" type="list" default="intro" showon="feed_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_TEXT_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_TEXT_DESC">
+                    <option value="intro">PLG_SYSTEM_MERTOOLS_FEED_TEXT_INTRO</option>
+                    <option value="meta">PLG_SYSTEM_MERTOOLS_FEED_TEXT_META</option>
+                    <option value="none">PLG_SYSTEM_MERTOOLS_FEED_TEXT_NONE</option>
+                </field>
+                <field name="feed_image" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="feed_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_IMAGE_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_IMAGE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="feed_head" type="list" default="blog" showon="feed_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_HEAD_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_HEAD_DESC">
+                    <option value="blog">PLG_SYSTEM_MERTOOLS_FEED_HEAD_BLOG</option>
+                    <option value="all">PLG_SYSTEM_MERTOOLS_FEED_HEAD_ALL</option>
+                    <option value="none">PLG_SYSTEM_MERTOOLS_FEED_HEAD_NONE</option>
+                </field>
+                <field name="feed_ttl" type="number" default="60" min="0" max="1440" filter="integer" showon="feed_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_TTL_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_TTL_DESC" />
+                <field name="feed_panel" type="mtfeed" showon="feed_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_PANEL_DESC" />
             </fieldset>
 
             <!-- ============================================================ Shop -->

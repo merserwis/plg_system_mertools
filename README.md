@@ -83,6 +83,23 @@ Off by default, tab *Shop*.
 
 What a separate Omnibus plugin did for the shop's category pages besides prices, so that plugin can be removed: the **category description** put where the category layout holds the placeholder “Category Description” (on merserwis.pl the description block was moved out of Gridbox's category intro element, so Gridbox does not fill it), a click on a whole category row in Gridbox's Categories element opens and closes its subcategories (highlighted on hover), 25 px above the description and clicks through the background overlay of the category pages. Off by default, tab *Page layout*.
 
+### 📰 Blog feeds — RSS and Atom
+
+Gridbox has no feeds. MerTools gives every Gridbox blog an **RSS 2.0** and an **Atom 1.0** feed of its newest posts, for feed readers, RSS-to-email newsletters and aggregators: the address of a blog page with Joomla's usual feed parameters.
+
+```
+/blog?format=feed&type=rss
+/blog?format=feed&type=atom
+/blog/poradniki?format=feed&type=rss      ← a category and its subcategories
+```
+
+- **What is in it:** only what a guest sees — published, public, already started and not ended posts, not in the trash; on a multilingual site those of the page's language. Newest first, each with its title, address, the introduction (or the meta description), the intro image (also as the item's picture: RSS `enclosure` / `media:content`, Atom enclosure link), the date, the authors and the category. A category page gives the posts of that category and its subcategories, a tag or author page the posts of that tag or author.
+- **Found by readers:** the blog pages and their posts get `<link rel="alternate" type="application/rss+xml">` (and Atom) in the head — a category, tag or author page its own feed and the blog's; or every page the feeds of all blogs; or none.
+- **Light:** the feed is sent before Gridbox runs (Gridbox's own answer to `format=feed` would be an error page). An `ETag` and `Cache-Control` let readers and Cloudflare keep it; a reader asking again gets **304 Not Modified** while nothing changed. Dates are given in UTC (Gridbox keeps them in the site's time zone).
+- A blog without a feed (not chosen, unpublished, not public) and a format not offered answer **404**; with the tool off, nothing changes.
+
+**Settings:** tab *Blog feeds (RSS / Atom)* — on/off (off by default), the formats (both, RSS or Atom only), which Gridbox apps have a feed (none chosen: every blog; a portfolio or the shop can be chosen too), the number of posts (20), the text of a post (introduction, meta description, or title only), the intro image, the links in the head (blog pages, every page, none) and the refresh time in minutes (60). The panel *Feed addresses* lists every blog with a feed and its addresses.
+
 ### 🧹 Shop — tidy up old carts
 
 Gridbox never removes a cart, so its cart tables only grow. **Clean and optimise** (tab *Shop*) removes the carts nobody can open any more — empty carts at once, carts with products unused for N days (default 30, at least 8, since Gridbox's cart cookie lives 7 days) — and rebuilds the tables so the database shrinks; **Check** shows what would go. Orders and their data, carts with attached files and carts in use are never touched. Can also run automatically once a day or above a cart limit (default: by hand only).

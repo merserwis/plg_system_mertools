@@ -2,6 +2,15 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.1.0 — 2026-10-16
+
+### 📰 Blog feeds: RSS and Atom
+
+- **Every Gridbox blog has an RSS 2.0 and an Atom 1.0 feed** (Gridbox has none): the address of a blog page with `?format=feed&type=rss` or `&type=atom`, e.g. `/blog?format=feed&type=rss`. A category page gives the posts of that category and its subcategories, a tag or author page those of that tag or author. Only what a guest sees (published, public, started and not ended, not in the trash; the page's language on a multilingual site), newest first, with the title, the introduction or the meta description, the intro image, the date, the authors and the category.
+- **Links in the head** of the blog pages and their posts (`<link rel="alternate">`), so feed readers and browsers find the feeds — or on every page, or none.
+- `ETag` and `Cache-Control` for readers and Cloudflare, **304** while nothing changed; dates in UTC.
+- New tab *Blog feeds (RSS / Atom)*, off by default: the formats, the blogs with a feed (none chosen: every blog), the number of posts, the text of a post, the intro image, the links in the head, the refresh time, and a panel with the address of each feed.
+
 ## 1.0.14 — 2026-10-15
 
 ### 🐞 Fixes
