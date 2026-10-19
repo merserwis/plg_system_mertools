@@ -2,6 +2,13 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.3.1 — 2026-10-19
+
+### 🧰 Inside the plugin
+
+- **Nothing changes in what MerTools does.** The plugin's main class had grown to almost 3 500 lines; it now only listens to Joomla's events and hands the work to one class per setting tab (`src/Feature`: blog feeds, Gridbox lists, apps protection, edit lock, edit history, page speed, database, carts, 404 pages, shop), each made only when a request needs it. Easier to read, review and change, with less risk for the next tools.
+- Checked on a copy of the shop with Gridbox 2.20: 63 requests — pages, product pages with Omnibus lines, feeds, missing addresses, moved pages, kept pages, the settings panels and their requests, saves and list actions in Gridbox, a refused app deletion, the editor lock — gave the same answers and left the same data with 1.3.0 and 1.3.1.
+
 ## 1.3.0 — 2026-10-19
 
 ### 🧭 404 pages: moved pages followed, missing addresses logged
