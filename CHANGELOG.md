@@ -2,6 +2,20 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.3.0 — 2026-10-19
+
+### 🧭 404 pages: moved pages followed, missing addresses logged
+
+- **A renamed or moved page keeps its links.** A Gridbox address ends with the alias of its page or category; a product or post given another alias, or put in another category, answered its old address with 404 (Gridbox redirects nothing). MerTools now keeps the aliases of every Gridbox page and category, notes each one that changes (after a save in Gridbox, once an hour, at installation — and takes over the alias changes of the edit history), and sends such an address with a **301** to where the page or category is now; of several with that alias, the one in the same app and category. Setting *Follow renamed and moved pages*, on by default.
+- **Log of missing addresses**: each address that answered 404 with its visits, the first and the last one, where the last visitor came from and what was done with it (no IP addresses). A panel on the tab lists them with search, filters and order, a field for a **redirect of its own** (301) and a suggestion of a page with a similar alias; under it the old aliases of renamed pages and categories. Settings *Log missing addresses* (on by default) and *Keep for (days)* (90).
+- A redirect of its own comes first, then a moved page, then the general target (home page, menu item or address) — which can now be switched off with the rest still working; its description says why the error page plus redirects of their own are better for search engines than sending every missing page to the home page (“soft 404”). Excluded addresses are not logged.
+
+### 🏷 Omnibus: Gridbox's own sales
+
+- **Gridbox's sales** (*Gridbox → Discounts*: a percentage or an amount off every product, chosen categories or chosen products and versions) lowered the price shown without the line “lowest price of the 30 days before the reduction” — MerTools read only the sale prices of the products themselves. A product or version without a sale price of its own now gets, in the price history, the price such a sale makes of it, worked out as Gridbox does it (the first sale that is for it, the access levels of guests); the line follows it on the product page and in the lists.
+- The prices are compared again **the moment a Gridbox sale starts or ends** (at the first visit after it), not only once an hour.
+- The Omnibus panel lists Gridbox's sales with their discount, what they are for, dates and state, and whether the line follows them — not for a cart discount (it lowers the order, not a product's price) or a sale for some users only.
+
 ## 1.2.0 — 2026-10-16
 
 ### 🛡 Apps protection

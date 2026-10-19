@@ -69,7 +69,9 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
     {
         try {
             $db = Factory::getContainer()->get(DatabaseInterface::class);
-            foreach (['#__mertools_cart_seen', '#__mertools_cart_marks', '#__mertools_cart_queue', '#__mertools_state', '#__mertools_speed', '#__mertools_history', '#__mertools_locks'] as $table) {
+            // the redirects (#__mertools_moved, #__mertools_notfound) stay, like the price history: links out there still need them
+            foreach (['#__mertools_cart_seen', '#__mertools_cart_marks', '#__mertools_cart_queue', '#__mertools_state', '#__mertools_speed', '#__mertools_history', '#__mertools_locks',
+                '#__mertools_aliases'] as $table) {
                 $db->setQuery('DROP TABLE IF EXISTS ' . $db->quoteName($table))->execute();
             }
         } catch (\Throwable $e) {
@@ -144,6 +146,22 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
                 // created later, at the first use
             }
             // the indexes of Gridbox's tables (also checked daily and after Gridbox updates)
+            try {
+                // the aliases of Gridbox's pages and categories noted at once (and the alias changes of the edit history taken over),
+                // so a page renamed from now on is followed
+                foreach (['History', 'Redirects'] as $tool) {
+                    if (!class_exists('Merserwis\\Plugin\\System\\MerTools\\Tool\\' . $tool) && is_file(__DIR__ . '/src/Tool/' . $tool . '.php')) {
+                        require_once __DIR__ . '/src/Tool/' . $tool . '.php';
+                    }
+                }
+                $db       = Factory::getContainer()->get(DatabaseInterface::class);
+                $settings = json_decode((string) $db->setQuery('SELECT params FROM ' . $db->quoteName('#__extensions') . ' WHERE type = ' . $db->quote('plugin')
+                    . ' AND folder = ' . $db->quote('system') . ' AND element = ' . $db->quote('mertools'))->loadResult(), true);
+                if ((string) ($settings['notfound_moved'] ?? '1') !== '0' && \in_array($db->replacePrefix('#__gridbox_pages'), $db->getTableList(), true)) {
+                    (new \Merserwis\Plugin\System\MerTools\Tool\Redirects($db))->sync(gmdate('Y-m-d H:i:s'));
+                }
+            } catch (\Throwable $e) {
+            }
             try {
                 if (!class_exists(\Merserwis\Plugin\System\MerTools\Tool\DbIndexes::class) && is_file(__DIR__ . '/src/Tool/DbIndexes.php')) {
                     require_once __DIR__ . '/src/Tool/DbIndexes.php';

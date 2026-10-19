@@ -16,7 +16,10 @@
  *    with a toggle button in the header, several palettes and the option to keep the Gridbox accent.
  *    Added in onBeforeCompileHead (CSS + a no-flash inline script + the toggle script).
  *  - Page not found (404): redirect to a chosen page (home by default) instead of the error page,
- *    without editing the template's error.php. Runs on onError, after System - Redirect.
+ *    without editing the template's error.php. Runs on onError, after System - Redirect. Before that,
+ *    a redirect typed for the address in the log of missing addresses, then the page or category the
+ *    last part of the address is the alias of — today or before it was renamed (Redirects: the aliases
+ *    are compared after each change sent to Gridbox and hourly). Every missing address is logged.
  *  - Old shop carts: Gridbox never removes a cart; this removes the carts nobody can open any more
  *    (empty ones at once, abandoned ones after N days without use) — by hand, daily or above a limit.
  *    Watching in onAfterInitialise, the hourly job in onAfterRespond, the buttons in onAfterRoute.
@@ -36,7 +39,9 @@
  *  - Omnibus (Omnibus + OmnibusStore): the lowest price of the 30 days before a reduction, as the law
  *    asks for it — a price history of every product and version (after each change sent to Gridbox,
  *    hourly in onAfterRespond, at the settings save), the line on the product page and in the lists
- *    (onAfterRender); a separate Omnibus plugin's lines and script are taken off the pages.
+ *    (onAfterRender); a separate Omnibus plugin's lines and script are taken off the pages. Gridbox's
+ *    own sales (Gridbox → Discounts) count as the products' sale prices; the prices are compared again when
+ *    such a sale starts or ends.
  *  - Gridbox lists (ListColumns): each user chooses, orders and adds the columns of the product and
  *    post lists, and edits prices, sale prices, stock and SKU right in the list.
  *  - Edit lock (EditLock): one person at a time in the Gridbox editor of a page; the others see who
@@ -61,6 +66,7 @@ namespace Merserwis\Plugin\System\MerTools\Extension;
 
 \defined('_JEXEC') or die;
 
+use Joomla\CMS\Access\Access;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Event\ErrorEvent;
 use Joomla\CMS\Factory;
@@ -97,6 +103,7 @@ use Merserwis\Plugin\System\MerTools\Tool\PostRows;
 use Merserwis\Plugin\System\MerTools\Tool\Phones;
 use Merserwis\Plugin\System\MerTools\Tool\PriceRequest;
 use Merserwis\Plugin\System\MerTools\Tool\ProductLinks;
+use Merserwis\Plugin\System\MerTools\Tool\Redirects;
 use Merserwis\Plugin\System\MerTools\Tool\Speed;
 use Merserwis\Plugin\System\MerTools\Tool\Speedup;
 use Merserwis\Plugin\System\MerTools\Tool\StoreCurrency;
@@ -105,7 +112,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.2.0';
+    public const VERSION = '1.3.0';
 
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
@@ -192,6 +199,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             // before the history: it then notes the introduction as it is kept
             $this->introGuard();
             $this->omnibusWatch();
+            $this->movedWatch();
             $this->trackHistory();
             $this->purgeOnChange();
         }
@@ -2363,6 +2371,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $this->dailyIndexCheck();
         $this->dailyIntroCheck();
         $this->hourlyOmnibus();
+        $this->hourlyMoved();
         $this->appBackupTick();
         $this->imageWork();
         if (!$this->cartsOn()) {
@@ -2404,7 +2413,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $action = $input->getCmd('mertools_action', '');
         if (!\in_array($action, ['cart_stats', 'cart_check', 'cart_clean', 'speed_list', 'speed_save', 'speed_baseline', 'speed_delete',
             'pcache_stats', 'pcache_clear', 'dbidx_status', 'dbidx_fix', 'img_stats', 'img_run', 'img_clear', 'cache_clear_all', 'history_list',
-            'list_columns', 'list_edit', 'list_badges', 'apps_list', 'apps_backup', 'apps_restore', 'apps_delete', 'apps_download'], true)) {
+            'list_columns', 'list_edit', 'list_badges', 'apps_list', 'apps_backup', 'apps_restore', 'apps_delete', 'apps_download',
+            'nf_list', 'nf_target', 'nf_delete', 'nf_clear', 'nf_moved', 'nf_moved_delete'], true)) {
             return;
         }
         $this->loadLanguage();
@@ -2452,6 +2462,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
         if (str_starts_with($action, 'apps_')) {
             $this->handleAppsAction($action);
+        }
+        if (str_starts_with($action, 'nf_')) {
+            $this->handleNotFoundAction($action);
         }
         if (str_starts_with($action, 'dbidx_')) {
             try {
@@ -2653,15 +2666,19 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * Page not found: redirect a missing page to the chosen target instead of showing the error page.
+     * Page not found: a redirect typed for the address in the log, else the page or category the address
+     * asks for when it was renamed or moved, else the chosen target (or the error page); the address is
+     * logged with what was done.
      */
     public function onError(ErrorEvent $event): void
     {
         $app = $event->getApplication();
-        if (!$app instanceof \Joomla\CMS\Application\CMSApplicationInterface || !$app->isClient('site')
-            || (int) $event->getError()->getCode() !== 404 || !(int) $this->params->get('notfound_redirect', 1)) {
+        if (!$app instanceof \Joomla\CMS\Application\CMSApplicationInterface || !$app->isClient('site') || (int) $event->getError()->getCode() !== 404) {
             return;
         }
+        $fallback = (bool) (int) $this->params->get('notfound_redirect', 1);
+        $moved    = (bool) (int) $this->params->get('notfound_moved', 1);
+        $log      = (bool) (int) $this->params->get('notfound_log', 1);
         // pages only: no form posts, AJAX or JSON (a redirect to the home page makes no sense there)
         $input = $app->getInput();
         if (!\in_array(strtoupper((string) $input->getMethod()), ['GET', 'HEAD'], true)
@@ -2669,15 +2686,315 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             || strtolower((string) $input->server->getString('HTTP_X_REQUESTED_WITH', '')) === 'xmlhttprequest') {
             return;
         }
-
-        $target = NotFound::absoluteTarget($this->notFoundTarget(), Uri::root());
-        $uri    = Uri::getInstance();
-        if ($target === null || !NotFound::shouldRedirect($uri->toString(['path', 'query']), $target, $uri->getHost(),
-            NotFound::excludes((string) $this->params->get('notfound_exclude', '')))) {
+        $uri     = Uri::getInstance();
+        $request = $uri->toString(['path', 'query']);
+        if (NotFound::excluded($request, NotFound::excludes((string) $this->params->get('notfound_exclude', '')))) {
             return;
         }
 
-        $app->redirect($target, (int) $this->params->get('notfound_code', 301) === 302 ? 302 : 301);
+        $path   = Redirects::logPath((string) $uri->getPath(), (string) $uri->getQuery());
+        $store  = new Redirects(Factory::getContainer()->get(DatabaseInterface::class));
+        $host   = $uri->getHost();
+        // never to the missing address itself (a missing target page shows the error page)
+        $usable = static fn (?string $url): ?string => $url !== null && NotFound::shouldRedirect($request, $url, $host, []) ? $url : null;
+        $result = 'none';
+        $target = null;
+        $code   = 301;
+        try {
+            $typed = $store->manualTarget($path);
+        } catch (\Throwable $e) {
+            $typed = null;
+        }
+        if ($typed !== null && ($target = $usable(NotFound::absoluteTarget($typed, Uri::root()))) !== null) {
+            $result = 'manual';
+        }
+        if ($target === null && $moved) {
+            try {
+                $target = $usable($this->movedTarget($store, (string) $uri->getPath()));
+            } catch (\Throwable $e) {
+                $target = null;
+            }
+            $result = $target !== null ? 'moved' : $result;
+        }
+        if ($target === null && $fallback && ($target = $usable(NotFound::absoluteTarget($this->notFoundTarget(), Uri::root()))) !== null) {
+            $result = 'fallback';
+            $code   = (int) $this->params->get('notfound_code', 301) === 302 ? 302 : 301;
+        }
+        if ($log) {
+            $now = gmdate('Y-m-d H:i:s');
+            try {
+                $store->record($path, (string) $input->server->getString('HTTP_REFERER', ''), $result, (string) $target, $now);
+                // once a day: addresses not visited for the set days go
+                $gate = self::cacheBase() . '/mertools-notfound-tick';
+                if ((!is_file($gate) || (int) @filemtime($gate) < time() - 86400) && @touch($gate)) {
+                    $store->prune(max(0, (int) $this->params->get('notfound_log_days', 90)), $now);
+                }
+            } catch (\Throwable $e) {
+                // the visitor gets the page anyway
+            }
+        }
+        if ($target !== null) {
+            $app->redirect($target, $code);
+        }
+    }
+
+    /**
+     * Moved pages: the page or category whose alias — of today, or one it had before — is the last part
+     * of the missing address, at the address it has now; of several, the one sharing the longest
+     * beginning with the missing address (the same app and category). Only what a guest may see.
+     */
+    private function movedTarget(Redirects $store, string $path): ?string
+    {
+        $slug = Redirects::slug($path, Uri::root(true), (bool) $this->getApplication()->get('sef_suffix', 0));
+        if ($slug === null) {
+            return null;
+        }
+        // the aliases are noted for the first time (an update installed by hand, without the installer)
+        $gate = self::cacheBase() . '/mertools-moved-tick';
+        if (!is_file($gate) && @touch($gate)) {
+            $store->sync(gmdate('Y-m-d H:i:s'));
+        }
+        $candidates = $store->candidates($slug);
+        if (!$candidates) {
+            return null;
+        }
+        $levels = self::guestLevels();
+        $ids    = ['p' => [], 'c' => []];
+        foreach ($candidates as $c) {
+            $ids[$c['kind']][] = $c['id'];
+        }
+        $pages = $store->livePages($ids['p'], $levels);
+        $cats  = $store->liveCategories($ids['c'], $levels);
+        $urls  = [];
+        $rows  = [];
+        foreach ($candidates as $c) {
+            $id = $c['id'];
+            if ($c['kind'] === 'p' && isset($pages[$id])) {
+                $url = $this->gridboxLink('getGridboxPageLinks', [$id, $pages[$id]['type'], $pages[$id]['app'], $pages[$id]['category']],
+                    self::pageLink($id, $pages[$id]));
+            } elseif ($c['kind'] === 'c' && isset($cats[$id])) {
+                $url = $this->gridboxLink('getGridboxCategoryLinks', [$id, $cats[$id]['app']], 'index.php?option=com_gridbox&view=blog&app=' . $cats[$id]['app'] . '&id=' . $id);
+            } else {
+                continue;
+            }
+            if (!isset($rows[$url])) {
+                $urls[]     = $url;
+                $rows[$url] = $c['moved'];
+            }
+        }
+        $best = Redirects::best($urls, $path);
+        if ($best !== null && $rows[$best] > 0) {
+            $store->hitMoved($rows[$best], gmdate('Y-m-d H:i:s'));
+        }
+
+        return $best;
+    }
+
+    /** The plain address of a Gridbox page (without its menu item). */
+    private static function pageLink(int $id, array $page): string
+    {
+        return $page['type'] === 'single' ? 'index.php?option=com_gridbox&view=page&id=' . $id
+            : 'index.php?option=com_gridbox&view=page&blog=' . $page['app'] . '&category=' . $page['category'] . '&id=' . $id;
+    }
+
+    /** @return int[] the access levels of a guest (Public and Guest on a usual site) */
+    private static function guestLevels(): array
+    {
+        try {
+            $levels = array_values(array_map('intval', Access::getAuthorisedViewLevels(0)));
+        } catch (\Throwable $e) {
+            $levels = [];
+        }
+
+        return $levels ?: [1];
+    }
+
+    /** Tasks of Gridbox that may give a page or category another alias: the aliases are compared after them. */
+    private const ALIAS_TASKS = ['editor.gridboxajaxsave', 'editor.gridboxsave', 'gridbox.updateparams', 'apps.updatecategory', 'apps.importcsv',
+        'apps.applysettings', 'pages.applysettings', 'pages.importcsv', 'trashed.restore', 'trashed.restoresingle'];
+
+    /** After a Gridbox save that may change an alias (by a logged-in user): the aliases compared at shutdown. */
+    private function movedWatch(): void
+    {
+        if (!(int) $this->params->get('notfound_moved', 1)) {
+            return;
+        }
+        $app   = $this->getApplication();
+        $input = $app->getInput();
+        $user  = $app->getIdentity();
+        if (strtoupper((string) $input->getMethod()) !== 'POST' || $input->getCmd('option') !== 'com_gridbox' || !$user || $user->guest
+            || !\in_array(strtolower((string) $input->getString('task', '')), self::ALIAS_TASKS, true)) {
+            return;
+        }
+        register_shutdown_function(static function (): void {
+            try {
+                (new Redirects(Factory::getContainer()->get(DatabaseInterface::class)))->sync(gmdate('Y-m-d H:i:s'));
+            } catch (\Throwable $e) {
+            }
+        });
+    }
+
+    /** Once an hour: aliases changed past the watched tasks (an import, the database directly). */
+    private function hourlyMoved(): void
+    {
+        if (!(int) $this->params->get('notfound_moved', 1)) {
+            return;
+        }
+        $gate = self::cacheBase() . '/mertools-moved-tick';
+        if ((is_file($gate) && (int) @filemtime($gate) > time() - 3600) || !@touch($gate)) {
+            return;
+        }
+        try {
+            (new Redirects(Factory::getContainer()->get(DatabaseInterface::class)))->sync(gmdate('Y-m-d H:i:s'));
+        } catch (\Throwable $e) {
+        }
+    }
+
+    /**
+     * The panel of the tab "Page not found": the log (list, a redirect typed or removed, an entry or
+     * all without a redirect deleted) and the old aliases of renamed pages (list, delete).
+     */
+    private function handleNotFoundAction(string $action): void
+    {
+        $input = $this->getApplication()->getInput();
+        $store = new Redirects(Factory::getContainer()->get(DatabaseInterface::class));
+        try {
+            if ($action === 'nf_target') {
+                $id     = $input->post->getInt('id', 0);
+                $target = trim((string) $input->post->getString('target', ''));
+                $row    = $store->logRow($id);
+                if (!$row) {
+                    $this->sendJson(['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_NF_UI_GONE')]);
+                }
+                if ($target !== '') {
+                    $absolute = NotFound::absoluteTarget($target, Uri::root());
+                    $host     = (string) parse_url(Uri::root(), PHP_URL_HOST);
+                    if ($absolute === null || !NotFound::shouldRedirect($row['path'], $absolute, $host, [])) {
+                        $this->sendJson(['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_NF_UI_BAD_TARGET')]);
+                    }
+                }
+                $store->setTarget($id, $target);
+                $this->sendJson(['success' => true]);
+            }
+            if ($action === 'nf_delete') {
+                $store->deleteLog($input->post->getInt('id', 0));
+                $this->sendJson(['success' => true]);
+            }
+            if ($action === 'nf_clear') {
+                $this->sendJson(['success' => true, 'removed' => $store->clearLog()]);
+            }
+            if ($action === 'nf_moved_delete') {
+                $store->deleteMoved($input->post->getInt('id', 0));
+                $this->sendJson(['success' => true]);
+            }
+            $limit  = max(1, min(200, $input->post->getInt('limit', 50)));
+            $offset = max(0, $input->post->getInt('offset', 0));
+            if ($action === 'nf_moved') {
+                // the panel shows what is true now: changes not compared yet are noted first
+                $store->sync(gmdate('Y-m-d H:i:s'));
+                $this->sendJson(['success' => true] + $this->movedRows($store, $limit, $offset));
+            }
+            $this->sendJson(['success' => true] + $this->notFoundRows($store, $limit, $offset));
+        } catch (\Throwable $e) {
+            $this->sendJson(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /** Rows of the log for the panel, with a suggestion for each address that is not redirected. */
+    private function notFoundRows(Redirects $store, int $limit, int $offset): array
+    {
+        $input = $this->getApplication()->getInput();
+        $show  = $input->post->getCmd('show', 'all');
+        $found = $store->logList(\in_array($show, ['open', 'redirected'], true) ? $show : 'all', mb_substr(trim($input->post->getString('q', '')), 0, 100),
+            $input->post->getCmd('order', 'last') === 'hits' ? 'hits' : 'last', $limit, $offset);
+        $aliases = null;
+        $levels  = self::guestLevels();
+        $rows    = [];
+        foreach ($found['rows'] as $row) {
+            $suggest = null;
+            $typed   = trim((string) $row['target']);
+            if ($typed === '' && $row['result'] !== 'moved') {
+                $slug = Redirects::slug((string) parse_url((string) $row['path'], PHP_URL_PATH), Uri::root(true), (bool) $this->getApplication()->get('sef_suffix', 0));
+                if ($slug !== null) {
+                    $aliases ??= $store->aliases();
+                    $best = Redirects::suggest($slug, $aliases);
+                    if ($best) {
+                        $suggest = $this->siteAddress($store, $best['kind'], $best['id'], $levels);
+                    }
+                }
+            }
+            $rows[] = [
+                'id'      => (int) $row['id'],
+                'path'    => (string) $row['path'],
+                'url'     => rtrim(Uri::root(), '/') . (string) $row['path'],
+                'hits'    => (int) $row['hits'],
+                'first'   => HTMLHelper::_('date', (string) $row['first_seen'], 'd.m.Y H:i'),
+                'last'    => HTMLHelper::_('date', (string) $row['last_seen'], 'd.m.Y H:i'),
+                'referer' => (string) $row['referer'],
+                'result'  => (string) $row['result'],
+                'sent'    => (string) $row['result_url'],
+                'target'  => $typed,
+                'suggest' => $suggest,
+            ];
+        }
+
+        return ['rows' => $rows, 'total' => $found['total']];
+    }
+
+    /** The old aliases for the panel, each with the address of its page today. */
+    private function movedRows(Redirects $store, int $limit, int $offset): array
+    {
+        $found  = $store->movedList($limit, $offset);
+        $levels = self::guestLevels();
+        $rows   = [];
+        foreach ($found['rows'] as $row) {
+            $rows[] = [
+                'id'      => (int) $row['id'],
+                'kind'    => (string) $row['kind'],
+                'item'    => (int) $row['item_id'],
+                'alias'   => (string) $row['alias'],
+                'title'   => (string) ($row['title'] ?? ''),
+                'now'     => (string) ($row['now_alias'] ?? ''),
+                'url'     => $this->siteAddress($store, (string) $row['kind'], (int) $row['item_id'], $levels),
+                'changed' => HTMLHelper::_('date', (string) $row['changed'], 'd.m.Y H:i'),
+                'hits'    => (int) $row['hits'],
+                'edit'    => $row['kind'] === 'p' ? 'index.php?option=com_gridbox&task=gridbox.edit&id=' . (int) $row['item_id'] : '',
+            ];
+        }
+
+        return ['rows' => $rows, 'total' => $found['total']];
+    }
+
+    /** The address of a Gridbox page or category on the site, from the administrator (null when a guest cannot see it). */
+    private function siteAddress(Redirects $store, string $kind, int $id, array $levels): ?string
+    {
+        if ($kind === 'p') {
+            $page = $store->livePages([$id], $levels)[$id] ?? null;
+            if (!$page) {
+                return null;
+            }
+            [$method, $args, $plain] = ['getGridboxPageLinks', [$id, $page['type'], $page['app'], $page['category']], self::pageLink($id, $page)];
+        } else {
+            $cat = $store->liveCategories([$id], $levels)[$id] ?? null;
+            if (!$cat) {
+                return null;
+            }
+            [$method, $args, $plain] = ['getGridboxCategoryLinks', [$id, $cat['app']], 'index.php?option=com_gridbox&view=blog&app=' . $cat['app'] . '&id=' . $id];
+        }
+        $link   = $plain;
+        $helper = 'Balbooa\\Component\\Gridbox\\Site\\Helper\\GridboxHelper';
+        try {
+            if (class_exists($helper) && method_exists($helper, $method)) {
+                $link = (string) $helper::$method(...$args);
+            }
+            $url = (string) Route::link('site', $link, false, Route::TLS_IGNORE, true);
+            if ($url !== '' && !str_contains($url, '/administrator/')) {
+                return $url;
+            }
+        } catch (\Throwable $e) {
+        }
+
+        return rtrim(Uri::root(), '/') . '/' . $plain;
     }
 
     /** The redirect target of missing pages from the settings: the home page, a menu item or an address. */
@@ -2813,7 +3130,36 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
 
     private function omnibusStore(): OmnibusStore
     {
-        return new OmnibusStore(Factory::getContainer()->get(DatabaseInterface::class));
+        return self::newOmnibusStore();
+    }
+
+    /** The price history, with the guest's access levels and the site's time zone (Gridbox's sales follow both). */
+    public static function newOmnibusStore(): OmnibusStore
+    {
+        try {
+            $zone = new \DateTimeZone((string) Factory::getApplication()->get('offset', 'UTC') ?: 'UTC');
+        } catch (\Throwable $e) {
+            $zone = new \DateTimeZone('UTC');
+        }
+
+        return new OmnibusStore(Factory::getContainer()->get(DatabaseInterface::class), self::guestLevels(), $zone);
+    }
+
+    /**
+     * The moment the next Gridbox sale starts or ends, kept as the time of a file in the cache folder:
+     * the prices are compared again at the first visit after it (one stat per request).
+     */
+    private static function omnibusNext(array $result): void
+    {
+        if (!empty($result['busy'])) {
+            return;
+        }
+        $file = self::cacheBase() . '/mertools-omnibus-next';
+        if (!empty($result['next'])) {
+            @touch($file, (int) $result['next']);
+        } elseif (is_file($file)) {
+            @unlink($file);
+        }
     }
 
     /**
@@ -2865,24 +3211,35 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
         register_shutdown_function(static function (): void {
             try {
-                (new OmnibusStore(Factory::getContainer()->get(DatabaseInterface::class)))->sync();
+                self::omnibusNext(self::newOmnibusStore()->sync());
             } catch (\Throwable $e) {
             }
         });
     }
 
-    /** Once an hour: prices changed past Gridbox (an import, the database directly); kept pages refreshed when they did. */
+    /**
+     * Once an hour, and when a Gridbox sale starts or ends: prices changed past Gridbox (an import, the
+     * database directly, a sale's dates); kept pages refreshed when they did.
+     */
     private function hourlyOmnibus(): void
     {
         if (!Omnibus::enabled($this->params)) {
             return;
         }
         $gate = self::cacheBase() . '/mertools-omnibus-tick';
-        if ((is_file($gate) && (int) @filemtime($gate) > time() - 3600) || !@touch($gate)) {
+        $next = self::cacheBase() . '/mertools-omnibus-next';
+        $due  = is_file($next) && (int) @filemtime($next) <= time();
+        if (!$due && ((is_file($gate) && (int) @filemtime($gate) > time() - 3600) || !@touch($gate))) {
             return;
+        }
+        if ($due) {
+            // the next visitors do not start the same work
+            @unlink($next);
+            @touch($gate);
         }
         try {
             $result = $this->omnibusStore()->sync();
+            self::omnibusNext($result);
             if (($result['changed'] ?? 0) > 0 && ($this->pageCacheOn() || $this->dataCacheOn())) {
                 $this->pageCache()->purge(false);
             }
@@ -3052,7 +3409,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         // Omnibus switched on (or on): the price history starts at once, with the Omnibus plugin's references
         if (Omnibus::enabled(new Registry((string) ($table->params ?? '')))) {
             try {
-                (new OmnibusStore(Factory::getContainer()->get(DatabaseInterface::class)))->sync();
+                self::omnibusNext(self::newOmnibusStore()->sync());
             } catch (\Throwable $e) {
                 // the hourly check starts it then
             }

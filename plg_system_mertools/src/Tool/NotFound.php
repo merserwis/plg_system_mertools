@@ -9,7 +9,8 @@
  * error.php, which every Gridbox update overwrites; here it is a setting that survives updates.
  *
  * Runs on Joomla's onError event, after the System - Redirect plugin, so redirects set for single
- * addresses in Joomla's Redirects component still win. Only pages are redirected (GET or HEAD of an
+ * addresses in Joomla's Redirects component still win; a redirect typed in MerTools' log of missing
+ * addresses and a moved page (Redirects) come before the target. Only pages are redirected (GET or HEAD of an
  * HTML page): not form posts, AJAX or JSON requests, and not the target page itself, so a missing
  * target can never loop.
  */
@@ -61,13 +62,10 @@ final class NotFound
      */
     public static function shouldRedirect(string $requestUri, string $target, string $siteHost, array $excludes): bool
     {
-        $path = (string) parse_url($requestUri, PHP_URL_PATH);
-        foreach ($excludes as $exclude) {
-            $exclude = trim($exclude);
-            if ($exclude !== '' && str_starts_with(strtolower($path), strtolower($exclude))) {
-                return false;
-            }
+        if (self::excluded($requestUri, $excludes)) {
+            return false;
         }
+        $path = (string) parse_url($requestUri, PHP_URL_PATH);
 
         // the target itself is missing: show the error page, never loop
         $targetHost = strtolower((string) parse_url($target, PHP_URL_HOST));
@@ -79,6 +77,25 @@ final class NotFound
         }
 
         return true;
+    }
+
+    /**
+     * Whether a request path begins with one of the excluded beginnings (it keeps the normal 404 and is
+     * not logged).
+     *
+     * @param string[] $excludes
+     */
+    public static function excluded(string $requestUri, array $excludes): bool
+    {
+        $path = strtolower((string) parse_url($requestUri, PHP_URL_PATH));
+        foreach ($excludes as $exclude) {
+            $exclude = trim($exclude);
+            if ($exclude !== '' && str_starts_with($path, strtolower($exclude))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

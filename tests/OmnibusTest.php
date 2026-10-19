@@ -62,9 +62,71 @@ $items = Omnibus::items([
     ['product_id' => '5', 'price' => '10', 'sale_price' => '', 'variations' => 'not json'],
 ]);
 $check('items: product and versions', array_map('strval', array_keys($items)), ['815', '1699006590350', '1699006590491', '4953', '5']);
-$check('items: a version with its prices and default', $items['1699006590491'], ['product' => 815, 'regular' => 7624.0, 'sale' => 7000.0, 'default' => true]);
-$check('items: the product without a price', $items['815'], ['product' => 815, 'regular' => null, 'sale' => null, 'default' => false]);
-$check('items: on sale without versions', $items['4953'], ['product' => 4953, 'regular' => 16450.0, 'sale' => 14312.0, 'default' => false]);
+$check('items: a version with its prices and default', $items['1699006590491'], ['product' => 815, 'regular' => 7624.0, 'sale' => 7000.0, 'default' => true, 'own' => true]);
+$check('items: the product without a price', $items['815'], ['product' => 815, 'regular' => null, 'sale' => null, 'default' => false, 'own' => false]);
+$check('items: on sale without versions', $items['4953'], ['product' => 4953, 'regular' => 16450.0, 'sale' => 14312.0, 'default' => false, 'own' => true]);
+$check('items: a version without a sale price of its own', $items['1699006590350']['own'], false);
+
+// Gridbox's own sales (Gridbox → Discounts)
+$sale = fn (array $over = []) => $over + ['id' => 1, 'title' => 'S', 'published' => '1', 'unit' => '%', 'discount' => '10', 'applies_to' => '*',
+    'publish_up' => '0000-00-00 00:00:00', 'publish_down' => '0000-00-00 00:00:00', 'access' => '1', 'map' => []];
+$now = '2026-10-19 12:00:00';
+$check('sale runs: no dates', Omnibus::saleRuns($sale(), $now), true);
+$check('sale runs: unpublished', Omnibus::saleRuns($sale(['published' => '0']), $now), false);
+$check('sale runs: no discount', Omnibus::saleRuns($sale(['discount' => '']), $now), false);
+$check('sale runs: discount 0', Omnibus::saleRuns($sale(['discount' => '0']), $now), false);
+$check('sale runs: a cart discount lowers no product price', Omnibus::saleRuns($sale(['applies_to' => 'cart']), $now), false);
+$check('sale runs: not started', Omnibus::saleRuns($sale(['publish_up' => '2026-10-20 00:00:00']), $now), false);
+$check('sale runs: started', Omnibus::saleRuns($sale(['publish_up' => '2026-10-19 12:00:00']), $now), true);
+$check('sale runs: in its last second', Omnibus::saleRuns($sale(['publish_down' => '2026-10-19 12:00:00']), $now), true);
+$check('sale runs: ended', Omnibus::saleRuns($sale(['publish_down' => '2026-10-19 11:59:59']), $now), false);
+$check('sale runs: NULL dates', Omnibus::saleRuns($sale(['publish_up' => null, 'publish_down' => null]), $now), true);
+$check('sale price: percent', Omnibus::salePrice(30000.0, $sale()), 27000.0);
+$check('sale price: amount', Omnibus::salePrice(100.0, $sale(['unit' => 'zł', 'discount' => '15.5'])), 84.5);
+$check('applies: every product', Omnibus::saleAppliesTo($sale(), 4, '', []), true);
+$check('applies: category of the product', Omnibus::saleAppliesTo($sale(['applies_to' => 'category', 'map' => [['item_id' => '15', 'variation' => '']]]), 4, '', [15, 14, 10]), true);
+$check('applies: a category above it', Omnibus::saleAppliesTo($sale(['applies_to' => 'category', 'map' => [['item_id' => '10', 'variation' => '']]]), 4, '', [15, 14, 10]), true);
+$check('applies: another category', Omnibus::saleAppliesTo($sale(['applies_to' => 'category', 'map' => [['item_id' => '12', 'variation' => '']]]), 4, '', [15, 14, 10]), false);
+$check('applies: the product', Omnibus::saleAppliesTo($sale(['applies_to' => 'product', 'map' => [['item_id' => '4', 'variation' => '']]]), 4, '', []), true);
+$check('applies: the product, not its version', Omnibus::saleAppliesTo($sale(['applies_to' => 'product', 'map' => [['item_id' => '4', 'variation' => '']]]), 4, 'k1', []), false);
+$check('applies: a chosen version', Omnibus::saleAppliesTo($sale(['applies_to' => 'product', 'map' => [['item_id' => '4', 'variation' => 'k1']]]), 4, 'k1', []), true);
+$check('applies: cart never', Omnibus::saleAppliesTo($sale(['applies_to' => 'cart']), 4, '', []), false);
+
+$items = Omnibus::items([
+    ['product_id' => '4', 'price' => '30000', 'sale_price' => '', 'variations' => json_encode(['k1' => ['price' => '100', 'sale_price' => ''], 'k2' => ['price' => '200', 'sale_price' => '150']])],
+    ['product_id' => '5', 'price' => '1000', 'sale_price' => '900', 'variations' => '{}'],
+    ['product_id' => '6', 'price' => '', 'sale_price' => '', 'variations' => '{}'],
+    ['product_id' => '7', 'price' => '500', 'sale_price' => '', 'variations' => '{}'],
+]);
+$cats  = [4 => [15, 14, 10], 5 => [15, 14, 10], 6 => [15], 7 => [12, 11, 10]];
+$cat15 = $sale(['id' => 3, 'applies_to' => 'category', 'map' => [['item_id' => '15', 'variation' => '']]]);
+$with  = Omnibus::withSales($items, [$cat15], $cats, [1, 5]);
+$check('with sales: product of the category', [$with['4']['sale'], $with['4']['via']], [27000.0, 3]);
+$check('with sales: its version too', $with['k1']['sale'], 90.0);
+$check('with sales: a version with its own sale price keeps it', [$with['k2']['sale'], isset($with['k2']['via'])], [150.0, false]);
+$check('with sales: a product with its own sale price keeps it', $with['5']['sale'], 900.0);
+$check('with sales: no price, nothing', $with['6']['sale'], null);
+$check('with sales: other category untouched', $with['7']['sale'], null);
+$all = $sale(['id' => 9, 'discount' => '50']);
+$with = Omnibus::withSales($items, [$all, $cat15], $cats, [1]);
+$check('with sales: the first sale (lowest number) wins', [$with['4']['sale'], $with['4']['via']], [27000.0, 3]);
+$check('with sales: the other one for the rest', [$with['7']['sale'], $with['7']['via']], [250.0, 9]);
+$check('with sales: a sale for registered users only is not public', Omnibus::withSales($items, [$sale(['access' => '2'])], $cats, [1, 5])['7']['sale'], null);
+$check('with sales: no sales, items as they were', Omnibus::withSales($items, [], $cats, [1]), $items);
+
+$zone = new DateTimeZone('Europe/Warsaw');
+$check('next change: a planned start (Warsaw time to UTC)', Omnibus::nextSaleChange([$sale(['publish_up' => '2026-10-20 08:00:00'])], $now, $zone), strtotime('2026-10-20 06:00:00 UTC'));
+$check('next change: the end, a second after its last one', Omnibus::nextSaleChange([$sale(['publish_down' => '2026-10-25 23:59:59'])], $now, $zone), strtotime('2026-10-25 23:00:00 UTC'));
+$check('next change: the sooner of several', Omnibus::nextSaleChange([$sale(['publish_up' => '2026-11-01 00:00:00']), $sale(['publish_down' => '2026-10-30 00:00:00'])], $now, $zone), strtotime('2026-10-29 23:00:01 UTC'));
+$check('next change: nothing planned', Omnibus::nextSaleChange([$sale(), $sale(['publish_down' => '2026-10-01 00:00:00'])], $now, $zone), null);
+$check('next change: cart and unpublished ignored', Omnibus::nextSaleChange([$sale(['applies_to' => 'cart', 'publish_up' => '2026-10-20 00:00:00']), $sale(['published' => '0', 'publish_up' => '2026-10-20 00:00:00'])], $now, $zone), null);
+
+$check('state: running', Omnibus::saleState($sale(), $now, [1, 5]), ['state' => 'running', 'covered' => true, 'reason' => '']);
+$check('state: planned', Omnibus::saleState($sale(['publish_up' => '2026-12-01 00:00:00']), $now, [1])['state'], 'planned');
+$check('state: ended', Omnibus::saleState($sale(['publish_down' => '2026-01-01 00:00:00']), $now, [1])['state'], 'ended');
+$check('state: off', Omnibus::saleState($sale(['published' => '0']), $now, [1])['state'], 'off');
+$check('state: cart not covered', Omnibus::saleState($sale(['applies_to' => 'cart']), $now, [1]), ['state' => 'running', 'covered' => false, 'reason' => 'cart']);
+$check('state: registered only not covered', Omnibus::saleState($sale(['access' => '2']), $now, [1, 5])['reason'], 'access');
 
 // format of the store
 $pl = ['symbol' => 'zł netto', 'position' => 'right-currency-position', 'thousand' => ' ', 'separator' => ',', 'decimals' => 2];

@@ -124,7 +124,8 @@ final class Omnibus
             if ($id <= 0) {
                 continue;
             }
-            $items[(string) $id] = ['product' => $id, 'regular' => self::amount($row['price'] ?? ''), 'sale' => self::amount($row['sale_price'] ?? ''), 'default' => false];
+            $items[(string) $id] = ['product' => $id, 'regular' => self::amount($row['price'] ?? ''), 'sale' => self::amount($row['sale_price'] ?? ''), 'default' => false,
+                'own' => trim((string) ($row['sale_price'] ?? '')) !== ''];
             $versions = json_decode((string) ($row['variations'] ?? ''), true);
             if (!\is_array($versions)) {
                 continue;
@@ -135,11 +136,183 @@ final class Omnibus
                     continue;
                 }
                 $items[$key] = ['product' => $id, 'regular' => self::amount($version['price'] ?? ''), 'sale' => self::amount($version['sale_price'] ?? ''),
-                    'default' => !empty($version['default'])];
+                    'default' => !empty($version['default']), 'own' => trim((string) ($version['sale_price'] ?? '')) !== ''];
             }
         }
 
         return $items;
+    }
+
+    // ---------------------------------------------------------------- Gridbox's own sales (Gridbox → Discounts)
+
+    /** A date of a Gridbox sale that is set (Gridbox writes 0000-00-00 00:00:00 for none). */
+    public static function saleDate($value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' || str_starts_with($value, '0000-00-00') || str_starts_with($value, '1000-01-01') ? null : $value;
+    }
+
+    /**
+     * Whether a Gridbox sale lowers the prices of products now, as Gridbox reads them
+     * (StoreHelper::getSales): published, with a discount, started and not ended — the dates in the
+     * site's time, like $localNow. A cart discount (applies to the cart above an amount) lowers no price
+     * of a product and does not count.
+     *
+     * @param array<string, mixed> $sale a row of #__gridbox_store_sales
+     */
+    public static function saleRuns(array $sale, string $localNow): bool
+    {
+        if (!(int) ($sale['published'] ?? 0) || empty($sale['discount']) || (string) ($sale['applies_to'] ?? '') === 'cart') {
+            return false;
+        }
+        $up   = self::saleDate($sale['publish_up'] ?? null);
+        $down = self::saleDate($sale['publish_down'] ?? null);
+
+        return ($up === null || $up <= $localNow) && ($down === null || $down >= $localNow);
+    }
+
+    /** The price a Gridbox sale makes of a regular price (BaseHelper::prepareSalePrice). */
+    public static function salePrice(float $price, array $sale): float
+    {
+        $discount = (float) $sale['discount'];
+
+        return round($price - ((string) ($sale['unit'] ?? '%') === '%' ? $price * ($discount / 100) : $discount), 4);
+    }
+
+    /**
+     * Whether a Gridbox sale is for an item: every product, products of a category (the product's own
+     * category or one above it — Gridbox's getCategoryId), or chosen products and versions.
+     *
+     * @param array<string, mixed>                $sale       with 'map': rows of #__gridbox_store_sales_map
+     * @param int[]                               $categories the product's category and those above it
+     */
+    public static function saleAppliesTo(array $sale, int $product, string $variation, array $categories): bool
+    {
+        switch ((string) ($sale['applies_to'] ?? '')) {
+            case '*':
+                return true;
+            case 'category':
+                foreach ((array) ($sale['map'] ?? []) as $map) {
+                    if (\in_array((int) ($map['item_id'] ?? 0), $categories, true)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            case 'product':
+                foreach ((array) ($sale['map'] ?? []) as $map) {
+                    if ((int) ($map['item_id'] ?? 0) === $product && (string) ($map['variation'] ?? '') === $variation) {
+                        return true;
+                    }
+                }
+
+                return false;
+        }
+
+        return false;
+    }
+
+    /**
+     * The items with the price Gridbox shows for them under its own sales: an item without a sale price
+     * of its own gets that of the first sale (the lowest number) that is for it and that a guest gets —
+     * as Gridbox does it. 'via' = the number of that sale.
+     *
+     * @param array<string, array<string, mixed>> $items      from items()
+     * @param array<int, array<string, mixed>>    $sales      running sales (saleRuns), with 'map'
+     * @param array<int, int[]>                   $categories product id => its category and those above it
+     * @param int[]                               $levels     the access levels of a guest
+     */
+    public static function withSales(array $items, array $sales, array $categories, array $levels): array
+    {
+        usort($sales, static fn ($a, $b) => (int) $a['id'] <=> (int) $b['id']);
+        $sales = array_values(array_filter($sales, static fn ($s) => \in_array((int) ($s['access'] ?? 1), array_map('intval', $levels), true)));
+        if (!$sales) {
+            return $items;
+        }
+        foreach ($items as $key => $item) {
+            if (!empty($item['own']) || $item['regular'] === null) {
+                continue;
+            }
+            $product   = (int) $item['product'];
+            $variation = (string) $key === (string) $product ? '' : (string) $key;
+            foreach ($sales as $sale) {
+                if (self::saleAppliesTo($sale, $product, $variation, $categories[$product] ?? [])) {
+                    $items[$key]['sale'] = self::amount(self::salePrice($item['regular'], $sale));
+                    $items[$key]['via']  = (int) $sale['id'];
+                    break;
+                }
+            }
+        }
+
+        return $items;
+    }
+
+    /**
+     * The next moment a Gridbox sale starts or ends (a UTC timestamp), so the prices are compared again
+     * right then; null when none is planned.
+     *
+     * @param array<int, array<string, mixed>> $sales every published sale
+     */
+    public static function nextSaleChange(array $sales, string $localNow, \DateTimeZone $zone): ?int
+    {
+        $next = null;
+        foreach ($sales as $sale) {
+            if (!(int) ($sale['published'] ?? 0) || empty($sale['discount']) || (string) ($sale['applies_to'] ?? '') === 'cart') {
+                continue;
+            }
+            $up   = self::saleDate($sale['publish_up'] ?? null);
+            $down = self::saleDate($sale['publish_down'] ?? null);
+            $when = [];
+            if ($up !== null && $up > $localNow) {
+                $when[] = $up;
+            }
+            if ($down !== null && $down >= $localNow) {
+                // Gridbox still runs the sale in its last second
+                $when[] = $down . ' +1 second';
+            }
+            foreach ($when as $local) {
+                try {
+                    $ts = (new \DateTimeImmutable($local, $zone))->getTimestamp();
+                } catch (\Throwable $e) {
+                    continue;
+                }
+                $next = $next === null ? $ts : min($next, $ts);
+            }
+        }
+
+        return $next;
+    }
+
+    /**
+     * The state of a Gridbox sale for the panel: running, planned, ended or off, and whether the Omnibus
+     * line follows it (not a cart discount, not a sale for some users only).
+     *
+     * @param int[] $levels the access levels of a guest
+     *
+     * @return array{state: string, covered: bool, reason: string}
+     */
+    public static function saleState(array $sale, string $localNow, array $levels): array
+    {
+        $up   = self::saleDate($sale['publish_up'] ?? null);
+        $down = self::saleDate($sale['publish_down'] ?? null);
+        if (!(int) ($sale['published'] ?? 0) || empty($sale['discount'])) {
+            $state = 'off';
+        } elseif ($down !== null && $down < $localNow) {
+            $state = 'ended';
+        } elseif ($up !== null && $up > $localNow) {
+            $state = 'planned';
+        } else {
+            $state = 'running';
+        }
+        $reason = '';
+        if ((string) ($sale['applies_to'] ?? '') === 'cart') {
+            $reason = 'cart';
+        } elseif (!\in_array((int) ($sale['access'] ?? 1), array_map('intval', $levels), true)) {
+            $reason = 'access';
+        }
+
+        return ['state' => $state, 'covered' => $reason === '', 'reason' => $reason];
     }
 
     /**

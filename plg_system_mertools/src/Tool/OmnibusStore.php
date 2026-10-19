@@ -37,7 +37,11 @@ final class OmnibusStore
     /** history older than this goes */
     private const KEEP_DAYS = 730;
 
-    public function __construct(private DatabaseInterface $db)
+    /**
+     * @param int[]              $levels the access levels of a guest: Gridbox's sales for other levels change no public price
+     * @param \DateTimeZone|null $zone   the site's time zone, in which Gridbox keeps the dates of its sales
+     */
+    public function __construct(private DatabaseInterface $db, private array $levels = [1], private ?\DateTimeZone $zone = null)
     {
     }
 
@@ -91,6 +95,14 @@ final class OmnibusStore
         $db    = $this->db;
         $stamp = gmdate('Y-m-d H:i:s', $now);
         $items = Omnibus::items($db->setQuery('SELECT product_id, price, sale_price, variations FROM ' . $db->quoteName('#__gridbox_store_product_data'))->loadAssocList() ?: []);
+        // Gridbox's own sales (Gridbox → Discounts) lower the prices of products without a sale price of their own
+        $local   = $this->localTime($now);
+        $sales   = $this->sales();
+        $running = array_values(array_filter($sales, static fn ($s) => Omnibus::saleRuns($s, $local)));
+        if ($running) {
+            $items = Omnibus::withSales($items, $running, $this->productCategories($items, $running), $this->levels);
+        }
+        $next  = Omnibus::nextSaleChange($sales, $local, $this->zone ?? new \DateTimeZone('UTC'));
         $state = [];
         foreach ($db->setQuery('SELECT * FROM ' . $db->quoteName(self::STATE))->loadAssocList() ?: [] as $row) {
             $state[(string) $row['item']] = $row;
@@ -164,7 +176,88 @@ final class OmnibusStore
             $db->setQuery('DELETE FROM ' . $db->quoteName(self::LOG) . ' WHERE changed < ' . $db->quote(gmdate('Y-m-d H:i:s', $now - self::KEEP_DAYS * 86400)))->execute();
         }
 
-        return ['items' => \count($items), 'changed' => $changed + \count($inserts) * (int) !$start, 'reductions' => $reduced, 'started' => $start];
+        return ['items' => \count($items), 'changed' => $changed + \count($inserts) * (int) !$start, 'reductions' => $reduced, 'started' => $start, 'next' => $next];
+    }
+
+    /** A UTC timestamp as the site's local time, in which Gridbox keeps and compares the dates of its sales. */
+    private function localTime(int $now): string
+    {
+        return (new \DateTimeImmutable('@' . $now))->setTimezone($this->zone ?? new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+    }
+
+    /**
+     * Every published sale of Gridbox's store with its products or categories ('map'); none when
+     * Gridbox has no store tables.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function sales(bool $all = false): array
+    {
+        $db = $this->db;
+        try {
+            $sales = $db->setQuery('SELECT * FROM ' . $db->quoteName('#__gridbox_store_sales') . ($all ? '' : ' WHERE published = 1') . ' ORDER BY id')->loadAssocList() ?: [];
+            if (!$sales) {
+                return [];
+            }
+            $maps = [];
+            foreach ($db->setQuery('SELECT sale_id, item_id, variation FROM ' . $db->quoteName('#__gridbox_store_sales_map') . ' WHERE sale_id IN ('
+                . implode(',', array_map(static fn ($s) => (int) $s['id'], $sales)) . ')')->loadAssocList() ?: [] as $map) {
+                $maps[(int) $map['sale_id']][] = $map;
+            }
+        } catch (\Throwable $e) {
+            return [];
+        }
+        foreach ($sales as $i => $sale) {
+            $sales[$i]['map'] = $maps[(int) $sale['id']] ?? [];
+        }
+
+        return $sales;
+    }
+
+    /**
+     * For the sales of categories: each product's category and the categories above it.
+     *
+     * @return array<int, int[]>
+     */
+    private function productCategories(array $items, array $sales): array
+    {
+        if (!array_filter($sales, static fn ($s) => (string) $s['applies_to'] === 'category')) {
+            return [];
+        }
+        $db     = $this->db;
+        $parent = [];
+        foreach ($db->setQuery('SELECT id, parent FROM ' . $db->quoteName('#__gridbox_categories'))->loadRowList() ?: [] as [$id, $up]) {
+            $parent[(int) $id] = (int) $up;
+        }
+        $ids = array_values(array_unique(array_map(static fn ($i) => (int) $i['product'], $items)));
+        $out = [];
+        foreach (array_chunk($ids, 1000) as $chunk) {
+            foreach ($db->setQuery('SELECT id, page_category FROM ' . $db->quoteName('#__gridbox_pages') . ' WHERE id IN (' . implode(',', $chunk) . ')')->loadRowList() ?: [] as [$id, $category]) {
+                $path = [];
+                for ($c = (int) $category, $guard = 0; $c > 0 && $guard < 50; $c = $parent[$c] ?? 0, $guard++) {
+                    $path[] = $c;
+                }
+                $out[(int) $id] = $path;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Gridbox's sales for the panel, each with its state and whether the Omnibus line follows it.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function salesOverview(int $now): array
+    {
+        $local = $this->localTime($now);
+        $out   = [];
+        foreach ($this->sales(true) as $sale) {
+            $out[] = $sale + Omnibus::saleState($sale, $local, $this->levels);
+        }
+
+        return $out;
     }
 
     /**
