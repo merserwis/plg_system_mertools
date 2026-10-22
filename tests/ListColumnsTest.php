@@ -20,6 +20,10 @@ $head  = ListColumns::headCells($table);
 $check('head keys', array_column($head, 'key'), ['select', 'published', 'title', 'price', 'stock', 'sku', 'page_category', 'hits', 'id']);
 $check('labels without tooltip', array_column($head, 'label')[3], 'Price');
 $check('status label without filter', array_column($head, 'label')[1], 'Status');
+$authorHead = ListColumns::headCells('<table><thead><tr><th><span data-sorting="author">Autor<span class="ba-tooltip ba-top">Sortuj</span></span>'
+    . '<div class="author-filter"><div class="ba-custom-select"><ul><li data-value="">Autor</li><li data-value="3">Jan</li></ul></div></div></th></tr></thead></table>');
+$check('author label without filter', $authorHead[0]['label'] ?? null, 'Autor');
+$check('author key', $authorHead[0]['key'] ?? null, 'author');
 
 $builtin = array_column($head, 'key');
 $check('no prefs = Gridbox order', ListColumns::visible($builtin, ['sale_price'], null), $builtin);

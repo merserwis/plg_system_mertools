@@ -48,7 +48,9 @@ final class History
         'pages.moveto', 'pages.pagemoveto',
         'trashed.delete', 'trashed.contextdelete', 'trashed.restoresingle', 'trashed.restore',
         // the Settings window of a page in the Gridbox lists
-        'gridbox.updateparams'];
+        'gridbox.updateparams',
+        // a new page: the window "Create" of the editor opened without a page (the button of a list)
+        'gridbox.createpage'];
 
     public const ACTIONS = ['created', 'duplicated', 'edited', 'saved', 'published', 'unpublished', 'trashed', 'restored', 'deleted'];
 
@@ -66,6 +68,12 @@ final class History
 
     /** The task creates pages (their numbers are not in the request): the new rows are looked for after it. */
     public static function creates(string $task): bool
+    {
+        return (bool) preg_match('/\.(?:(?:context)?duplicate|createpage)$/', strtolower($task));
+    }
+
+    /** The task copies pages (the new rows are "duplicated", else "created"). */
+    public static function duplicates(string $task): bool
     {
         return (bool) preg_match('/\.(?:context)?duplicate$/', strtolower($task));
     }
@@ -284,6 +292,34 @@ final class History
         $out = [];
         foreach ($rows as $row) {
             $out[(int) $row['page_id']] = $row;
+        }
+
+        return $out;
+    }
+
+    /**
+     * Who made each page: its entry "created" or "duplicated" (known), or else its first entry (a page
+     * made before the history was kept: only the first person who changed it is known).
+     *
+     * @param int[] $ids
+     *
+     * @return array<int, array{user_id: int, user_name: string, created: string, known: bool}>
+     */
+    public function creators(array $ids): array
+    {
+        $ids = array_values(array_filter(array_map('intval', $ids), static fn ($id) => $id > 0));
+        if (!$ids) {
+            return [];
+        }
+        $db   = $this->db;
+        $t    = $db->quoteName(self::TABLE);
+        $rows = $db->setQuery('SELECT h.page_id, h.user_id, h.user_name, h.action, h.created FROM ' . $t . ' AS h INNER JOIN (SELECT page_id,'
+            . ' COALESCE(MIN(CASE WHEN action IN (\'created\', \'duplicated\') THEN id END), MIN(id)) AS id FROM ' . $t . ' WHERE page_id IN ('
+            . implode(',', $ids) . ') GROUP BY page_id) AS f ON f.id = h.id')->loadAssocList() ?: [];
+        $out = [];
+        foreach ($rows as $row) {
+            $out[(int) $row['page_id']] = ['user_id' => (int) $row['user_id'], 'user_name' => (string) $row['user_name'], 'created' => (string) $row['created'],
+                'known' => \in_array($row['action'], ['created', 'duplicated'], true)];
         }
 
         return $out;

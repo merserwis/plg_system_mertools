@@ -64,7 +64,8 @@ final class ListColumns
                 $key = $i === 0 && str_contains($cell, 'checkall') ? 'select' : 'col' . $i;
             }
             // the label without the tooltip ("Sort by this column") and the state filter of Status
-            $label = preg_replace('#<span class="ba-tooltip.*?</span>|<div class="state-filter.*$#s', '', $cell) ?? $cell;
+            // without the tooltip and the filter Gridbox keeps in some heads (state, author, language: its list repeats the label)
+            $label = preg_replace('#<span class="ba-tooltip.*?</span>|<div class="[a-z]+-filter\b.*$#s', '', $cell) ?? $cell;
             $label = trim(html_entity_decode(preg_replace('/\s+/u', ' ', strip_tags($label)) ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'));
             $out[] = ['key' => $key, 'label' => $label, 'html' => $cell];
         }

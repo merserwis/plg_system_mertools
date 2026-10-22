@@ -59,6 +59,7 @@ final class EditHistory extends Feature
             'cid'          => $input->get('cid', [], 'array'),
         ]);
         $creates = History::creates($task);
+        $copies  = History::duplicates($task);
         if (!$ids && !$creates) {
             return;
         }
@@ -77,7 +78,7 @@ final class EditHistory extends Feature
         $username = (string) $user->username;
         $toLog    = (int) $this->plugin->params->get('history_actionlog', 1) === 1;
         $days     = max(0, (int) $this->plugin->params->get('history_days', 365));
-        register_shutdown_function(function () use ($history, $ids, $before, $creates, $max, $editor, $client, $userId, $userName, $username, $toLog, $days): void {
+        register_shutdown_function(function () use ($history, $ids, $before, $creates, $copies, $max, $editor, $client, $userId, $userName, $username, $toLog, $days): void {
             try {
                 $new   = $creates ? $history->newPages($max) : [];
                 $after = $history->snapshot(array_merge($ids, $new));
@@ -87,7 +88,7 @@ final class EditHistory extends Feature
                     if (!$diff) {
                         continue;
                     }
-                    if (\in_array($id, $new, true)) {
+                    if ($copies && \in_array($id, $new, true)) {
                         $diff = ['action' => 'duplicated', 'changes' => \count($ids) === 1 ? [['f' => 'source', 'to' => (string) $ids[0]]] : []];
                     }
                     $row   = $after[$id] ?? $before[$id];

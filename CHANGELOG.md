@@ -2,6 +2,16 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.4.1 — 2026-10-22
+
+### 👤 Gridbox lists: who created the page
+
+- **The column *Author* of the blog lists shows the Joomla user who created the post.** Gridbox shows there only its own authors (the profiles of Gridbox → Authors), as avatars without names, so for posts without such an author the column was empty. MerTools adds the name of the user who made the page — from the edit history, or the user who sent the post from the site; the date is in the tooltip.
+- **Pages older than the edit history**: who made them is not kept anywhere (Gridbox does not keep it), so the column shows, in grey italics, the first person the history knows changed the page, and its tooltip says so.
+- **The lists without Gridbox's column *Author*** (products, pages) can add it in the window *Columns*.
+- **New pages are now in the edit history as “Created”**: a page made with Gridbox's button for a new item (the window *Create* of the editor) was not noted at all; only duplicated pages were.
+- The column *Author* in the window *Columns* is no longer called “Author Author” (its label took in the text of Gridbox's author filter).
+
 ## 1.4.0 — 2026-10-22
 
 ### 🗂 Category pages: now in Better Categories

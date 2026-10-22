@@ -20,6 +20,10 @@ $check('trash delete tracked', History::tracked('trashed.delete'), true);
 $check('duplicate creates', History::creates('apps.duplicate'), true);
 $check('context duplicate creates', History::creates('pages.contextDuplicate'), true);
 $check('publish does not create', History::creates('apps.publish'), false);
+$check('new page creates', History::creates('gridbox.createPage'), true);
+$check('new page tracked', History::tracked('gridbox.createPage'), true);
+$check('new page is no copy', History::duplicates('gridbox.createPage'), false);
+$check('duplicate is a copy', History::duplicates('apps.contextDuplicate'), true);
 
 // pages named by a request
 $check('editor obj page', History::requestIds(['obj' => json_encode(['page' => ['id' => 1021], 'items' => []])]), [1021]);

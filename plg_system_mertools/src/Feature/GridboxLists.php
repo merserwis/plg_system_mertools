@@ -119,6 +119,10 @@ final class GridboxLists extends Feature
                 $extra['badges']     = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_BADGES');
                 $extra['variants']   = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_VARIANTS');
             }
+            // the Joomla user who made the page: in Gridbox's column "Author" where the list has it (blogs), else as a column of its own
+            if ($columnsOn && !\in_array('author', $builtin, true)) {
+                $extra['creator'] = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_CREATOR');
+            }
             foreach ($columnsOn ? ['created' => 'CREATED', 'end_publishing' => 'END_PUBLISHING'] : [] as $key => $label) {
                 if (!\in_array($key, $builtin, true)) {
                     $extra[$key] = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_' . $label);
@@ -147,9 +151,10 @@ final class GridboxLists extends Feature
             $ghostIds = $lastPage ? array_keys($ghosts) : [];
             $in       = implode(',', array_merge($ids, $ghostIds) ?: [0]);
             $pages = [];
-            foreach ($db->setQuery('SELECT id, created, end_publishing, featured, language FROM ' . $db->quoteName('#__gridbox_pages') . ' WHERE id IN (' . $in . ')')->loadAssocList() ?: [] as $row) {
+            foreach ($db->setQuery('SELECT id, created, end_publishing, featured, language, user_id FROM ' . $db->quoteName('#__gridbox_pages') . ' WHERE id IN (' . $in . ')')->loadAssocList() ?: [] as $row) {
                 $pages[(int) $row['id']] = $row;
             }
+            $creators = (isset($shown['author']) || isset($shown['creator'])) && $columnsOn ? $this->creators($pages) : [];
             $products = [];
             if ($product) {
                 foreach ($db->setQuery('SELECT product_id, price, sale_price, stock, sku, min, variations FROM ' . $db->quoteName('#__gridbox_store_product_data')
@@ -189,9 +194,12 @@ final class GridboxLists extends Feature
         $esc      = static fn ($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
         $date     = static fn ($v) => ($v === '' || $v === null || str_starts_with((string) $v, '0000')) ? '' : HTMLHelper::_('date', (string) $v, 'd.m.Y H:i', false);
 
-        $extraCell = function (string $key, int $id) use ($pages, $products, $badges, $allBadges, $values, $fields, $currency, $esc, $date): string {
+        $creator   = static fn (array $c) => '<span class="mt-author' . ($c['known'] ? '' : ' mt-author-guess') . '" title="' . $esc($c['tip']) . '">' . $esc($c['name']) . '</span>';
+        $extraCell = function (string $key, int $id) use ($pages, $products, $badges, $allBadges, $values, $fields, $currency, $esc, $date, $creators, $creator): string {
             $page = $pages[$id] ?? [];
             switch ($key) {
+                case 'creator':
+                    return isset($creators[$id]) ? $creator($creators[$id]) : '';
                 case 'sale_price':
                     return $esc(ListColumns::money((string) ($products[$id]['sale_price'] ?? ''), $currency));
                 case 'min':
@@ -217,7 +225,11 @@ final class GridboxLists extends Feature
             return '';
         };
         $ghostSet = array_flip($ghostIds);
-        $decorate = function (string $key, string $cell, int $id) use ($products, $badges, $edit, $ghostSet): string {
+        $decorate = function (string $key, string $cell, int $id) use ($products, $badges, $edit, $ghostSet, $creators, $creator): string {
+            if ($key === 'author' && isset($creators[$id])) {
+                // after Gridbox's own authors (avatars only): the Joomla user who made the page
+                return preg_replace('#</td>$#', $creator($creators[$id]) . '</td>', $cell, 1) ?? $cell;
+            }
             if (isset($ghostSet[$id])) {
                 return $cell;
             }
@@ -292,7 +304,8 @@ final class GridboxLists extends Feature
         . 'padding:3px 6px;font:inherit;border:1px solid #1d4ed8;border-radius:4px}[data-mt-variants]::after{content:"ⓘ";font-size:11px;color:#b45309;margin-left:4px}'
         . '[data-mt-badges]{cursor:pointer;min-width:60px}[data-mt-badges]:hover{outline:1px dashed #93c5fd;outline-offset:-3px}'
         . '.mt-badge{display:inline-block;color:#fff;font-size:11px;font-weight:600;padding:1px 7px;border-radius:10px;margin:1px 2px 1px 0;white-space:nowrap}'
-        . '.mt-col{font-size:13px}.mt-col small{color:#6b7280}';
+        . '.mt-col{font-size:13px}.mt-col small{color:#6b7280}.mt-author{display:inline-block;vertical-align:middle;margin-left:4px;font-size:13px}'
+        . '.mt-author:first-child{margin-left:0}.mt-author-guess{color:#9ca3af;font-style:italic}';
 
     public const GHOST_CSS = 'tbody.mt-ghosts tr.mt-ghost td{color:#9ca3af!important;background:#fafafa}tbody.mt-ghosts tr.mt-ghost .post-intro-image{filter:grayscale(1);opacity:.45}'
         . 'tbody.mt-ghosts tr.mt-ghost .mt-badge{opacity:.5}.mt-ghost-title{display:flex;align-items:center;line-height:18px;font-style:italic}'
@@ -300,6 +313,51 @@ final class GridboxLists extends Feature
         . '.mt-ghost-note{margin:4px 0 0 65px;font-size:12px;line-height:16px;color:#6b7280}'
         . '.mt-ghost-note a{display:inline!important;color:#1d4ed8!important;text-decoration:underline}.mt-ghost-mark{font-size:15px;color:#9ca3af}'
         . 'tbody.mt-ghosts tr.mt-ghost-head td{background:#f3f4f6;color:#4b5563;font-size:12px;font-weight:600;padding:8px 14px;text-align:left!important;border-top:2px dashed #d1d5db}';
+
+    /**
+     * The Joomla user who made each page, for the column "Author" (Gridbox shows there only its own
+     * authors, which most pages have none of): the user who sent the page from the site (Gridbox's
+     * user_id), else the history of MerTools — its entry "created"/"duplicated", or for a page older
+     * than the history its first change, marked as a guess.
+     *
+     * @param array<int, array<string, mixed>> $pages  id => row with user_id
+     *
+     * @return array<int, array{name: string, tip: string, known: bool}>
+     */
+    private function creators(array $pages): array
+    {
+        $db      = Factory::getContainer()->get(DatabaseInterface::class);
+        try {
+            $history = (new History($db))->creators(array_keys($pages));
+        } catch (\Throwable $e) {
+            $history = [];
+        }
+        $userIds = array_unique(array_filter(array_map('intval', array_merge(array_column($pages, 'user_id'), array_column($history, 'user_id')))));
+        $names   = $userIds ? ($db->setQuery('SELECT id, name FROM ' . $db->quoteName('#__users') . ' WHERE id IN (' . implode(',', $userIds) . ')')
+            ->loadAssocList('id', 'name') ?: []) : [];
+        $out = [];
+        foreach ($pages as $id => $page) {
+            $userId = (int) ($page['user_id'] ?? 0);
+            if ($userId > 0 && isset($names[$userId])) {
+                $out[$id] = ['name' => (string) $names[$userId], 'tip' => Text::sprintf('PLG_SYSTEM_MERTOOLS_LIST_AUTHOR_SUBMITTED', $names[$userId]), 'known' => true];
+                continue;
+            }
+            if (!isset($history[$id])) {
+                continue;
+            }
+            $entry = $history[$id];
+            // the name the user has now; a deleted user by the name kept in the history ("Name (username)")
+            $name = (string) ($names[$entry['user_id']] ?? preg_replace('/\s*\([^()]*\)$/', '', $entry['user_name']));
+            if ($name === '') {
+                continue;
+            }
+            $when     = HTMLHelper::_('date', $entry['created'], Text::_('DATE_FORMAT_LC4'));
+            $out[$id] = ['name' => $name, 'tip' => Text::sprintf($entry['known'] ? 'PLG_SYSTEM_MERTOOLS_LIST_AUTHOR_MADE' : 'PLG_SYSTEM_MERTOOLS_LIST_AUTHOR_GUESS', $name, $when),
+                'known' => $entry['known']];
+        }
+
+        return $out;
+    }
 
     /**
      * The items of other folders added to this one (Gridbox keeps the extra folders of an item in
