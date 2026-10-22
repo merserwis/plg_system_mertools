@@ -297,6 +297,29 @@ final class GridboxLists extends Feature
         $app->setBody($pos === false ? $body . $tail : substr($body, 0, $pos) . $tail . substr($body, $pos));
     }
 
+    /**
+     * Gridbox's media manager (in the panel and in the editor): files dropped on it from the computer
+     * are uploaded to the folder open in it, through Gridbox's own upload field.
+     */
+    public function mediaDropScript(): void
+    {
+        $app = $this->plugin->app();
+        if (!(int) $this->plugin->params->get('media_drop', 1) || $app->getInput()->getCmd('option') !== 'com_gridbox') {
+            return;
+        }
+        $user = $app->getIdentity();
+        $body = (string) $app->getBody();
+        if (!$user || $user->guest || !str_contains($body, 'com_gridbox/assets/js/ba-uploader.js')) {
+            return;
+        }
+        $this->plugin->loadLanguage();
+        $cfg  = ['texts' => ['DROP' => Text::_('PLG_SYSTEM_MERTOOLS_MEDIA_DROP'), 'FOLDER' => Text::_('PLG_SYSTEM_MERTOOLS_MEDIA_DROP_FOLDER')]];
+        $tail = '<script type="application/json" id="mertools-media-config">' . json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP)
+            . '</script><script src="' . Uri::root(true) . '/media/plg_system_mertools/js/mertools-media' . (JDEBUG ? '' : '.min') . '.js?' . MerTools::VERSION . '" defer></script>';
+        $pos  = strripos($body, '</body>');
+        $app->setBody($pos === false ? $body . $tail : substr($body, 0, $pos) . $tail . substr($body, $pos));
+    }
+
     public const LIST_CSS = '.mt-list-tools{display:flex;align-items:center;gap:12px;margin:0 0 8px}.mt-cols-btn{border:1px solid #d1d5db;background:#fff;border-radius:6px;'
         . 'padding:6px 12px;cursor:pointer;font-size:13px}.mt-cols-btn:hover{border-color:#1d4ed8;color:#1d4ed8}.mt-list-hint{font-size:12px;color:#6b7280}'
         . '[data-mt-edit]{cursor:pointer;position:relative}[data-mt-edit]:hover{outline:1px dashed #93c5fd;outline-offset:-3px}[data-mt-edit].mt-saving{opacity:.5}'

@@ -2,6 +2,15 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.5.0 — 2026-10-22
+
+### 🖼 Media manager: drag and drop
+
+- **Files dragged from the computer and dropped on Gridbox's media manager are uploaded** to the folder open in it — in the panel and in the editor (images for posts, products, sections). Until now only the button *Upload* and the file window could add them.
+- While the files are over it, the media manager says where they go (“Drop the files to upload them — to the folder: …”).
+- The files go through Gridbox's own upload: the same allowed types (others are left out, as with the button), the count of uploaded files, the folder reloaded. Moving files between folders by dragging them in the list works as before.
+- Setting *Drag files into the media manager* on the tab *Gridbox lists*, on by default.
+
 ## 1.4.1 — 2026-10-22
 
 ### 👤 Gridbox lists: who created the page
