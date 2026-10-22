@@ -11,7 +11,7 @@
  *
  * The line under a sale price in the lists is put in by the server; here it only gets the alignment
  * of the prices above it. (The click on a whole category row, the other thing the separate plugin's
- * script did, is in mertools-categories.js.)
+ * script did, is done by Better Categories for Gridbox since MerTools 1.4.0.)
  */
 (function () {
   'use strict';

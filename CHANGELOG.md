@@ -2,6 +2,15 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.4.0 — 2026-10-22
+
+### 🗂 Category pages: now in Better Categories
+
+- **The setting *Category pages* (tab *Page layout*) moved on to the plugin Better Categories for Gridbox 1.7.0**, which shows category pages anyway: the category description where the category layout holds the placeholder “Category Description”, and the click on a whole row of Gridbox's Categories element. There it has more settings — the place of the description, only its beginning with a “Read more” button, tidy spacing, only on the first page of a list — and works also on the store home page and without leaving the placeholder on tag and search pages.
+- **Nothing to set by hand:** Better Categories 1.7.0 switches both on at its update when this setting was on (MerTools keeps the saved value for it). The tab *Page layout* says where the setting is now.
+- **The update warns** when the setting was on and Better Categories is missing, switched off or older than 1.7.0 — until it is updated, the category pages show the placeholder instead of the description.
+- The files of the tool (`Tool/Categories.php`, `mertools-categories.js`) are removed at the update.
+
 ## 1.3.1 — 2026-10-19
 
 ### 🧰 Inside the plugin

@@ -4,8 +4,7 @@
  * @package     Merserwis.Plugin
  * @subpackage  System.mertools
  *
- * Shop: the Discount % field of the product editor, price on request in the lists, the category description of
- * category pages and Omnibus — the price history (after each change sent to Gridbox, hourly and when a Gridbox
+ * Shop: the Discount % field of the product editor, price on request in the lists and Omnibus — the price history (after each change sent to Gridbox, hourly and when a Gridbox
  * sale starts or ends) and the line of the lowest price before a reduction on the finished page.
  */
 
@@ -18,7 +17,6 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
 use Merserwis\Plugin\System\MerTools\Extension\MerTools;
-use Merserwis\Plugin\System\MerTools\Tool\Categories;
 use Merserwis\Plugin\System\MerTools\Tool\Omnibus;
 use Merserwis\Plugin\System\MerTools\Tool\OmnibusStore;
 use Merserwis\Plugin\System\MerTools\Tool\PriceRequest;
@@ -95,25 +93,6 @@ final class Shop extends Feature
         }
 
         return PriceRequest::markTiles($html, PriceRequest::chooseIds($rows));
-    }
-
-    /** A category page: the description of the category in the description block left as a placeholder. */
-    public function categoryDescription(string $html): string
-    {
-        $input = $this->plugin->app()->getInput();
-        $id    = $input->getInt('id');
-        if ($input->getCmd('option') !== 'com_gridbox' || $input->getCmd('view') !== 'blog' || $id <= 0) {
-            return $html;
-        }
-        try {
-            $db          = Factory::getContainer()->get(DatabaseInterface::class);
-            $description = (string) $db->setQuery('SELECT ' . $db->quoteName('description') . ' FROM ' . $db->quoteName('#__gridbox_categories')
-                . ' WHERE ' . $db->quoteName('id') . ' = ' . $id)->loadResult();
-        } catch (\Throwable $e) {
-            return $html;
-        }
-
-        return Categories::description($html, $description);
     }
 
     private function omnibusStore(): OmnibusStore

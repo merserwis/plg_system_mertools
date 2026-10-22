@@ -20,7 +20,7 @@
  * is shown by media/js/mertools-omnibus.js, only while Gridbox shows a sale price), and in the lists
  * and sliders under a sale price. The lines and the script of a separate Omnibus plugin are taken off
  * the pages, so that plugin can be removed; the line looks as that plugin's stylesheet made it. What the
- * plugin did for category pages is in Categories.
+ * plugin did for category pages moved on to Better Categories for Gridbox 1.7.0 (MerTools 1.4.0).
  *
  * This class: the rules and the HTML (no database), OmnibusStore: the history and the state.
  */

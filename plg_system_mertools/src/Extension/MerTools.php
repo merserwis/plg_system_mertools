@@ -17,10 +17,10 @@
  *    prices, aliases of moved pages, edit history, kept pages), the requests of the settings panels; on the
  *    site the blog feeds, kept pages and links to a product option.
  *  - onAfterRender: the Gridbox lists of the administrator (columns, history, apps); on the site the
- *    finished page — faster first view, introductions, post rows, price on request, Omnibus lines,
- *    category descriptions — and the page to keep.
+ *    finished page — faster first view, introductions, post rows, price on request, Omnibus lines —
+ *    and the page to keep.
  *  - onBeforeCompileHead: styles and scripts of the site (layout, tabs, phones, price on request,
- *    categories, feed links, Omnibus, dark mode).
+ *    feed links, Omnibus, dark mode).
  *  - onAfterRespond: the work after the response (kept pages, pictures, daily and hourly checks).
  *  - onError: missing pages (404). onAfterModuleList: the clear-cache button of the top bar.
  */
@@ -54,7 +54,6 @@ use Merserwis\Plugin\System\MerTools\Feature\GridboxLists;
 use Merserwis\Plugin\System\MerTools\Feature\MissingPages;
 use Merserwis\Plugin\System\MerTools\Feature\PageSpeed;
 use Merserwis\Plugin\System\MerTools\Feature\Shop;
-use Merserwis\Plugin\System\MerTools\Tool\Categories;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\Feed;
 use Merserwis\Plugin\System\MerTools\Tool\IntroText;
@@ -71,7 +70,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.3.1';
+    public const VERSION = '1.4.0';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -218,9 +217,6 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if (Omnibus::enabled($this->params)) {
             $new = $this->shop()->omnibusLines($new);
         }
-        if (Categories::enabled($this->params) && Categories::hasPlaceholder($new)) {
-            $new = $this->shop()->categoryDescription($new);
-        }
         if ($new !== $body) {
             $app->setBody($new);
         }
@@ -281,10 +277,6 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                 $document->addScriptOptions('plg_system_mertools', ['price' => PriceRequest::jsConfig($this->params, $default, $choose)]);
                 $wa->registerAndUseScript('plg_system_mertools.price', 'plg_system_mertools/mertools-price.js', [], ['defer' => true]);
             }
-        }
-        if (Categories::enabled($this->params)) {
-            $document->addStyleDeclaration(Categories::css());
-            $wa->registerAndUseScript('plg_system_mertools.categories', 'plg_system_mertools/mertools-categories.js', [], ['defer' => true]);
         }
         if (Feed::enabled($this->params) && Feed::headMode($this->params) !== 'none') {
             $this->feeds()->feedHeadLinks($document);

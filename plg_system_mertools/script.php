@@ -43,6 +43,38 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
         }
     }
 
+    /**
+     * 1.4.0: the setting "Category pages" (category descriptions, the rows of Gridbox's Categories element)
+     * moved on to Better Categories for Gridbox 1.7.0, which takes it over at its own update. Its files go
+     * (Joomla keeps the files of a folder on an update); when it was on and Better Categories is missing
+     * or older, a warning: until then the category pages show Gridbox's placeholder "Category Description".
+     */
+    private function categoryPagesMoved(): void
+    {
+        foreach (['/plugins/system/mertools/src/Tool/Categories.php', '/media/plg_system_mertools/js/mertools-categories.js',
+            '/media/plg_system_mertools/js/mertools-categories.min.js'] as $file) {
+            if (is_file(JPATH_ROOT . $file)) {
+                @unlink(JPATH_ROOT . $file);
+            }
+        }
+        try {
+            $db   = Factory::getContainer()->get(DatabaseInterface::class);
+            $rows = $db->setQuery('SELECT element, params, manifest_cache, enabled FROM ' . $db->quoteName('#__extensions') . ' WHERE type = ' . $db->quote('plugin')
+                . ' AND folder = ' . $db->quote('system') . ' AND element IN (' . $db->quote('mertools') . ', ' . $db->quote('bettercategories') . ')')->loadObjectList('element');
+            $own = json_decode((string) ($rows['mertools']->params ?? ''), true) ?: [];
+            if ((string) ($own['layout_categories'] ?? '0') !== '1') {
+                return;
+            }
+            $bc      = $rows['bettercategories'] ?? null;
+            $version = $bc ? (string) ((json_decode((string) $bc->manifest_cache, true) ?: [])['version'] ?? '') : '';
+            if (!$bc || !(int) $bc->enabled || version_compare($version, '1.7.0', '<')) {
+                Factory::getApplication()->getLanguage()->load('plg_system_mertools.sys', JPATH_ADMINISTRATOR);
+                Factory::getApplication()->enqueueMessage(\Joomla\CMS\Language\Text::_('PLG_SYSTEM_MERTOOLS_INSTALL_CATEGORIES_MOVED'), 'warning');
+            }
+        } catch (\Throwable $e) {
+        }
+    }
+
     /** Every PHP file of the plugin and its menu component dropped from OPcache (compiled again at the next request). */
     private function refreshOpcache(): void
     {
@@ -129,6 +161,7 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
         }
         if ($type === 'update') {
             $this->removeDroppedLanguages();
+            $this->categoryPagesMoved();
         }
         // the tables of the cart clean-up (also created when first needed)
         if ($type === 'install' || $type === 'update' || $type === 'discover_install') {
