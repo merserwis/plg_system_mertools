@@ -101,18 +101,20 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
     {
         try {
             $db = Factory::getContainer()->get(DatabaseInterface::class);
-            // the redirects (#__mertools_moved, #__mertools_notfound) stay, like the price history: links out there still need them
+            // the redirects (#__mertools_moved, #__mertools_notfound) stay, like the price history: links out there still need them;
+            // the dates of the sitemap (#__mertools_sitemap) stay too: without them every lastmod would start again as unknown
             foreach (['#__mertools_cart_seen', '#__mertools_cart_marks', '#__mertools_cart_queue', '#__mertools_state', '#__mertools_speed', '#__mertools_history', '#__mertools_locks',
                 '#__mertools_aliases'] as $table) {
                 $db->setQuery('DROP TABLE IF EXISTS ' . $db->quoteName($table))->execute();
             }
         } catch (\Throwable $e) {
         }
-        // the lighter copies of the site's pictures (media/mertools-img), the kept pages and the
-        // plugin's lists and time stamps in Joomla's cache folder
+        // the lighter copies of the site's pictures (media/mertools-img), the kept pages, the built
+        // sitemaps and the plugin's lists and time stamps in Joomla's cache folder
         $dirs = [JPATH_ROOT . '/media/mertools-img'];
         try {
             $dirs[] = self::cacheBase() . '/mertools_page';
+            $dirs[] = self::cacheBase() . '/mertools_sitemap';
         } catch (\Throwable $e) {
         }
         foreach ($dirs as $dir) {

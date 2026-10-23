@@ -37,6 +37,14 @@ $check('platform caching with System Cache on = bad', $state(Checks::evaluate($g
 $check('platform specific caching = bad', $state(Checks::evaluate($good, ['platform_prefix' => true], [], $srv), 'JM_PLATFORM'), 'bad');
 $check('old PHP = bad', $state(Checks::evaluate($good, [], [], ['php' => '8.1.2'] + $srv), 'SRV_PHP'), 'bad');
 $check('no WebP = warn', $state(Checks::evaluate($good, [], [], ['webp' => false] + $srv), 'SRV_WEBP'), 'warn');
+// OPcache after a save: may Joomla drop the written file, does PHP check the files itself
+$check('OPcache after a save: unknown flush = ok', Checks::opcacheFiles(['enabled' => true]), ['ok', ['OPC_FLUSH_OK']]);
+$check('OPcache after a save: Joomla may flush = ok', Checks::opcacheFiles(['enabled' => true, 'flush' => true, 'ini' => ['validate_timestamps' => 0]]), ['ok', ['OPC_FLUSH_OK']]);
+$check('OPcache after a save: no flush, files never checked = bad', Checks::opcacheFiles(['enabled' => true, 'flush' => false, 'ini' => ['validate_timestamps' => 0, 'revalidate_freq' => 2]]), ['bad', ['OPC_FLUSH_NEVER']]);
+$check('OPcache after a save: no flush, checked every 2 s = info', Checks::opcacheFiles(['enabled' => true, 'flush' => false, 'ini' => ['validate_timestamps' => 1, 'revalidate_freq' => 2]]), ['info', ['OPC_FLUSH_FREQ', 2]]);
+$check('OPcache after a save: no flush, checked every 300 s = warn', Checks::opcacheFiles(['enabled' => true, 'flush' => false, 'ini' => ['validate_timestamps' => 1, 'revalidate_freq' => 300]]), ['warn', ['OPC_FLUSH_FREQ', 300]]);
+$check('OPcache after a save: OPcache off = ok', Checks::opcacheFiles(['enabled' => false]), ['ok', ['OPC_NOT_ON']]);
+$check('OPcache after a save: a row of its own', $state(Checks::evaluate($good, [], [], ['opcache' => ['flush' => false, 'ini' => ['validate_timestamps' => 0]] + $opcOk] + $srv), 'SRV_OPC_FILES'), 'bad');
 // OPcache as on merserwis.pl before the fix: 128 MB, 12 KB free, hits < misses, 4376 of 5000 files
 $full = ['enabled' => true, 'ini' => ['memory_consumption' => 128, 'max_accelerated_files' => 5000],
     'status' => ['memory_usage' => ['used_memory' => 134e6, 'free_memory' => 12e3, 'wasted_memory' => 0], 'opcache_statistics' => ['hits' => 1390000, 'misses' => 2360000, 'num_cached_scripts' => 4376]]];

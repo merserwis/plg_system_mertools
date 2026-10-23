@@ -54,6 +54,7 @@ use Merserwis\Plugin\System\MerTools\Feature\GridboxLists;
 use Merserwis\Plugin\System\MerTools\Feature\MissingPages;
 use Merserwis\Plugin\System\MerTools\Feature\PageSpeed;
 use Merserwis\Plugin\System\MerTools\Feature\Shop;
+use Merserwis\Plugin\System\MerTools\Feature\Sitemaps;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\Feed;
 use Merserwis\Plugin\System\MerTools\Tool\IntroText;
@@ -70,7 +71,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.5.0';
+    public const VERSION = '1.6.0';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -102,12 +103,15 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * Canonical URL: redirect a request whose path has runs of slashes to the single clean address.
+     * The sitemaps (before the router), then the canonical URL: redirect a request whose path has runs of
+     * slashes to the single clean address.
      */
     public function onAfterInitialise(): void
     {
         $app = $this->getApplication();
         if ($app->isClient('site')) {
+            // the sitemaps: answered before the router, from the kept files
+            $this->sitemaps()->serveSitemap();
             $this->carts()->trackCart();
         }
 
@@ -153,6 +157,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $this->missing()->movedWatch();
             $this->history()->trackHistory();
             $this->speed()->purgeOnChange();
+            $this->sitemaps()->watchChanges();
         }
         if ($app->isClient('administrator')) {
             $this->locks()->adminLockGuard();
@@ -394,7 +399,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if (!\in_array($action, ['cart_stats', 'cart_check', 'cart_clean', 'speed_list', 'speed_save', 'speed_baseline', 'speed_delete',
             'pcache_stats', 'pcache_clear', 'dbidx_status', 'dbidx_fix', 'img_stats', 'img_run', 'img_clear', 'cache_clear_all', 'history_list',
             'list_columns', 'list_edit', 'list_badges', 'apps_list', 'apps_backup', 'apps_restore', 'apps_delete', 'apps_download',
-            'nf_list', 'nf_target', 'nf_delete', 'nf_clear', 'nf_moved', 'nf_moved_delete'], true)) {
+            'nf_list', 'nf_target', 'nf_delete', 'nf_clear', 'nf_moved', 'nf_moved_delete',
+            'sm_status', 'sm_rebuild', 'sm_takeover', 'sm_undo', 'sm_compare', 'sm_why'], true)) {
             return;
         }
         $this->loadLanguage();
@@ -445,6 +451,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
         if (str_starts_with($action, 'nf_')) {
             $this->missing()->handleNotFoundAction($action);
+        }
+        if (str_starts_with($action, 'sm_')) {
+            $this->sitemaps()->handleAction($action);
         }
         if (str_starts_with($action, 'dbidx_')) {
             $this->database()->handleAction($action);
@@ -644,6 +653,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     public function missing(): MissingPages
     {
         return $this->features[MissingPages::class] ??= new MissingPages($this);
+    }
+
+    public function sitemaps(): Sitemaps
+    {
+        return $this->features[Sitemaps::class] ??= new Sitemaps($this);
     }
 
     public function shop(): Shop

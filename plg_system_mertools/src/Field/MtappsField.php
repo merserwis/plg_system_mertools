@@ -8,7 +8,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\ListField;
 use Joomla\Database\DatabaseInterface;
 
-/** The apps of the Gridbox dashboard, for "Apps that may be deleted". */
+/** The apps of the Gridbox dashboard, for "Apps that may be deleted" and the apps left out of the sitemap. */
 final class MtappsField extends ListField
 {
     protected $type = 'Mtapps';

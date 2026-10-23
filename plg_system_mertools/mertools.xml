@@ -3,10 +3,10 @@
     <name>plg_system_mertools</name>
     <author>Merserwis</author>
     <authorUrl>https://github.com/merserwis/</authorUrl>
-    <creationDate>2026-10-22</creationDate>
+    <creationDate>2026-10-23</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.5.0</version>
+    <version>1.6.0</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -208,6 +208,93 @@
                     label="PLG_SYSTEM_MERTOOLS_NOTFOUND_LOG_DAYS_LABEL" description="PLG_SYSTEM_MERTOOLS_NOTFOUND_LOG_DAYS_DESC" />
                 <field name="notfound_panel" type="mtnotfound" parentclass="stack"
                     label="PLG_SYSTEM_MERTOOLS_NOTFOUND_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_NOTFOUND_PANEL_DESC" />
+            </fieldset>
+
+            <!-- ============================================================ Sitemap -->
+            <fieldset name="sitemap" label="PLG_SYSTEM_MERTOOLS_FIELDSET_SITEMAP">
+                <field name="sitemap_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_ENABLED_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_ENABLED_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_split" type="list" default="app" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_SPLIT_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_SPLIT_DESC">
+                    <option value="app">PLG_SYSTEM_MERTOOLS_SITEMAP_SPLIT_APP</option>
+                    <option value="single">PLG_SYSTEM_MERTOOLS_SITEMAP_SPLIT_SINGLE</option>
+                </field>
+                <field name="sitemap_part_limit" type="number" default="10000" min="1000" max="50000" filter="integer" showon="sitemap_enabled:1[AND]sitemap_split:app"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_PART_LIMIT_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_PART_LIMIT_DESC" />
+                <field name="sitemap_types_spacer" type="spacer" hr="true" showon="sitemap_enabled:1" />
+                <field name="sitemap_type_menu" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_MENU_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_MENU_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_type_page" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_PAGE_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_PAGE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_type_category" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_CATEGORY_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_CATEGORY_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_type_app" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_APP_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_APP_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_type_tag" type="radio" layout="joomla.form.field.radio.switcher" default="0" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_TAG_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_TAG_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_type_author" type="radio" layout="joomla.form.field.radio.switcher" default="0" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_AUTHOR_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_AUTHOR_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_filters_spacer" type="spacer" hr="true" showon="sitemap_enabled:1" />
+                <field name="sitemap_flags" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_FLAGS_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_FLAGS_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_noindex" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_NOINDEX_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_NOINDEX_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_robots" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_ROBOTS_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_ROBOTS_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_apps" type="mtapps" multiple="true" layout="joomla.form.field.list-fancy-select" showon="sitemap_enabled:1"
+                    hint="PLG_SYSTEM_MERTOOLS_SITEMAP_APPS_HINT"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_APPS_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_APPS_DESC" />
+                <field name="sitemap_paths" type="textarea" default="" rows="4" filter="string" showon="sitemap_enabled:1"
+                    hint="PLG_SYSTEM_MERTOOLS_SITEMAP_PATHS_HINT"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_PATHS_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_PATHS_DESC" />
+                <field name="sitemap_titles" type="textarea" default="" rows="3" filter="string" showon="sitemap_enabled:1"
+                    hint="PLG_SYSTEM_MERTOOLS_SITEMAP_TITLES_HINT"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TITLES_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TITLES_DESC" />
+                <field name="sitemap_dates_spacer" type="spacer" hr="true" showon="sitemap_enabled:1" />
+                <field name="sitemap_prices" type="radio" layout="joomla.form.field.radio.switcher" default="0" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_PRICES_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_PRICES_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_unknown_date" type="list" default="omit" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_UNKNOWN_DATE_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_UNKNOWN_DATE_DESC">
+                    <option value="omit">PLG_SYSTEM_MERTOOLS_SITEMAP_UNKNOWN_DATE_OMIT</option>
+                    <option value="created">PLG_SYSTEM_MERTOOLS_SITEMAP_UNKNOWN_DATE_CREATED</option>
+                </field>
+                <field name="sitemap_ttl" type="number" default="360" min="5" max="1440" filter="integer" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TTL_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TTL_DESC" />
+                <field name="sitemap_panel" type="mtsitemap" parentclass="stack"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_PANEL_DESC" />
             </fieldset>
 
             <!-- ============================================================ Page layout -->

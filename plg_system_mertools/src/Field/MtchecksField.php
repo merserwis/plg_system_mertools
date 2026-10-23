@@ -38,7 +38,12 @@ final class MtchecksField extends FormField
         $plugin = PluginHelper::getPlugin('system', 'mertools');
         $params = new Registry(\is_object($plugin) ? $plugin->params : '');
         $opc    = ['enabled' => \function_exists('opcache_get_status') && (bool) (int) ini_get('opcache.enable'), 'status' => null,
-            'ini' => ['memory_consumption' => (int) ini_get('opcache.memory_consumption'), 'max_accelerated_files' => (int) ini_get('opcache.max_accelerated_files')]];
+            'ini' => ['memory_consumption' => (int) ini_get('opcache.memory_consumption'), 'max_accelerated_files' => (int) ini_get('opcache.max_accelerated_files'),
+                'validate_timestamps' => (int) ini_get('opcache.validate_timestamps'), 'revalidate_freq' => (int) ini_get('opcache.revalidate_freq')]];
+        // the same test as Joomla's File::invalidateFileCache: may this request drop a written file from OPcache?
+        $restrict     = (string) ini_get('opcache.restrict_api');
+        $opc['flush'] = \function_exists('opcache_invalidate')
+            && ($restrict === '' || str_starts_with((string) realpath((string) ($_SERVER['SCRIPT_FILENAME'] ?? '')), $restrict));
         if ($opc['enabled']) {
             $st            = @opcache_get_status(false);
             $opc['status'] = \is_array($st) ? $st : null;

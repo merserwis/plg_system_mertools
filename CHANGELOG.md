@@ -2,6 +2,22 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.6.0 — 2026-10-23
+
+### 🗺 Sitemap
+
+- **A sitemap of MerTools in place of Gridbox's**: `/sitemap.xml` as an index and one map per Gridbox app (`sitemap-products-2.xml`, `sitemap-blog-4.xml`, `sitemap-pages.xml`; parts over 10 000 addresses), or all in one file. Off by default; tab *Sitemap*.
+- **Only the addresses worth indexing**: pages and categories with `noindex` and addresses blocked by robots.txt (the tags) are left out — on merserwis.pl 4510 of Gridbox's 4655 addresses stay, the 145 others each with its reason. Tags and authors off by default; excluded apps, paths (`/blog/regulamin/*`) and titles (`[ZAKOŃCZONE]`).
+- **True dates**: `lastmod` is the moment the content of a page changed (a hash of its texts, fields, title, address and picture), not its `saved_time`, which Gridbox renews for every page after any save in its editor. Categories, apps, tags and authors take the newest date of their pages. No `changefreq` or `priority`.
+- The addresses are built by Gridbox's own functions, so they are the same as in its sitemap; the maps are kept as files in Joomla's cache folder and sent before the router, with `ETag` and 304, a real 404 for a map that does not exist, and built again after a change (Gridbox, menus, robots.txt, settings) or the refresh time — after the answer, so nobody waits.
+- **Take over from Gridbox** (its `sitemap.xml` copied aside, its sitemap switched off, the file deleted) and **Undo**; **Compare with Gridbox's sitemap**; the panel shows who answers `/sitemap.xml`, the maps, what is left out and why, and answers *Why is this address not in the map?*.
+- New table `#__mertools_sitemap` (the dates; it stays when MerTools is uninstalled).
+
+### 🛠 Fixes
+
+- The check of Joomla's *Platform Specific Caching* (tab *Page speed*) names the option as Joomla's Polish translation does — *Platforma pamięci podręcznej*, not “Buforowanie zależne od platformy”, which is nowhere in the Global Configuration — with the exact names of the cache levels it shows under.
+- **New check *OPcache after a save*** (tab *Page speed*, *Recommended settings*): whether Joomla may clear OPcache after a save of the Global Configuration or an update. Where the hosting forbids it (`opcache.restrict_api`) and PHP does not check the files (`opcache.validate_timestamps` off), a saved setting seems to come back — e.g. *Platform Specific Caching* switched off and on again after *Save* — because the site keeps running the old `configuration.php` until OPcache is reset; the check says so (red), or how often PHP checks the files (amber over 5 s).
+
 ## 1.5.0 — 2026-10-22
 
 ### 🖼 Media manager: drag and drop

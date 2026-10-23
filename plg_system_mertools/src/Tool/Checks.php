@@ -64,6 +64,7 @@ final class Checks
         $add('SRV_PHP', 'server', version_compare($php, '8.2', '>=') ? self::OK : self::BAD, ['TEXT', $php]);
         $add('SRV_WEBP', 'server', !empty($server['webp']) ? self::OK : self::WARN, [!empty($server['webp']) ? 'YES' : 'NO']);
         $add('SRV_OPCACHE', 'server', ...self::opcache($server['opcache'] ?? []));
+        $add('SRV_OPC_FILES', 'server', ...self::opcacheFiles($server['opcache'] ?? []));
 
         $add('CF_ROCKET', 'cloudflare', self::INFO, ['CHECKING']);
 
@@ -71,6 +72,33 @@ final class Checks
     }
 
     /** @return array{0: string, 1: array} state and value of the OPcache check */
+    /**
+     * Whether a changed PHP file is used at once: Joomla drops a file it has just written (configuration.php
+     * after a save of the Global Configuration, the files of an update) from OPcache, unless the hosting
+     * forbids it (opcache.restrict_api, opcache_invalidate disabled); then only PHP's own check of the files
+     * (opcache.validate_timestamps, every revalidate_freq seconds) brings the new file, or a reset of OPcache.
+     *
+     * @param array $o ['enabled' => bool, 'flush' => bool (Joomla may drop files; unknown: true), 'ini' => ['validate_timestamps' => int, 'revalidate_freq' => int]]
+     *
+     * @return array{0: string, 1: array} state and value
+     */
+    public static function opcacheFiles(array $o): array
+    {
+        if (empty($o['enabled'])) {
+            return [self::OK, ['OPC_NOT_ON']];
+        }
+        if ($o['flush'] ?? true) {
+            return [self::OK, ['OPC_FLUSH_OK']];
+        }
+        $ini = $o['ini'] ?? [];
+        if (!(int) ($ini['validate_timestamps'] ?? 1)) {
+            return [self::BAD, ['OPC_FLUSH_NEVER']];
+        }
+        $freq = (int) ($ini['revalidate_freq'] ?? 2);
+
+        return [$freq <= 5 ? self::INFO : self::WARN, ['OPC_FLUSH_FREQ', $freq]];
+    }
+
     public static function opcache(array $o): array
     {
         if (empty($o['enabled'])) {
