@@ -65,13 +65,14 @@ use Merserwis\Plugin\System\MerTools\Tool\Phones;
 use Merserwis\Plugin\System\MerTools\Tool\PostRows;
 use Merserwis\Plugin\System\MerTools\Tool\PriceRequest;
 use Merserwis\Plugin\System\MerTools\Tool\ProductLinks;
+use Merserwis\Plugin\System\MerTools\Tool\ProductSchema;
 use Merserwis\Plugin\System\MerTools\Tool\StoreCurrency;
 use Merserwis\Plugin\System\MerTools\Tool\Tabs;
 use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.6.2';
+    public const VERSION = '1.6.3';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -206,6 +207,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $new   = $body;
         if ((int) $this->params->get('shop_option_links', 1) && $input->getCmd('option') === 'com_gridbox' && $input->getCmd('view') === 'page') {
             $new = ProductLinks::markChosenRadios($new);
+        }
+        if (ProductSchema::enabled($this->params)) {
+            $new = $this->shop()->productSchema($new);
         }
         $new = $this->speed()->speedup($new);
         if ($this->database()->introLtOn()) {

@@ -2,6 +2,13 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.6.3 — 2026-10-23
+
+### 🔎 Product data for search engines (JSON-LD)
+
+- **New tool *Product data for search engines*** (tab *Shop*, off by default): the schema.org Product block of a product page is made by MerTools from the product, in place of the one Gridbox fills from a template. Fixes what the SEO audit of merserwis.pl found on most product pages: `"price": "0"` with “in stock” on products without a price (now no offer; a price range when only the versions have prices), `UsedCondition` and an empty description from Gridbox's default template (now `NewCondition` and the introduction or meta description), a brand that was a link (`index.php?option=com_gridbox…`, now the producer's name), and blocks broken by a line break or a quotation mark in the introduction (now always valid JSON).
+- Also: every picture of the product's gallery, `mpn` from the SKU (setting: whole SKU or the part after the last `/`), the VAT status of the prices from the store's settings, the sale price as Gridbox shows it; other keys of Gridbox's block are kept, other blocks (FAQ) untouched.
+
 ## 1.6.2 — 2026-10-23
 
 ### 🧭 404 pages: no more soft 404

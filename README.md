@@ -67,6 +67,17 @@ Gridbox works out the discount badge from the regular and the sale price, but th
 
 A product without a price (0 or empty in Gridbox) shows a text such as **“On request”** where its price would be — on the product page and in the product lists and sliders (Gridbox leaves the place empty). A product without a price of its own whose **models (a Gridbox option list) have prices** shows **“Choose a model from the list”** instead, until a model is chosen; then the price of that model is shown, or “On request” when that model has no price either. On the product page the script reads the models and the chosen one from Gridbox's own data; in the lists, which carry no models, the server marks those products (one query for the products of the page). The texts use Gridbox's price classes, so they look like the prices of that element, in a size of their own (18 px by default, `0` = the price size). Only lists and sliders that show prices get them: one whose prices are switched off in its Gridbox settings has an empty price for every product and stays as it is. Lists loaded later (filters, more products, search) and a model chosen on the product page are followed too. A “lowest price of the last 30 days” line of an Omnibus plugin that says 0,00 is hidden. The texts and the size are set on tab *Shop*; off by default. It replaces a separate script for the same task, which is taken off the pages (`plugins/system/omnibus/assets/scprice.js`).
 
+### 🔎 Shop — product data for search engines (JSON-LD)
+
+Gridbox fills the Product data Google reads from a schema template, and on merserwis.pl that went wrong on most product pages: a product without a price said `"price": "0"` and “in stock” (42% of a sample), the default template called every product *used* and gave it an empty description (73%), a brand from a link field came out as `index.php?option=com_gridbox&…`, and a line break or a quotation mark in an introduction broke the whole block, which Google then drops. With *Product data for search engines* on (tab *Shop*, off by default), MerTools makes the block of a product page from the product itself with `json_encode`, in place of Gridbox's:
+
+- no offer for a product without a price (price on request), a price range (`AggregateOffer`) when only its versions have prices, the sale price when there is one — as Gridbox shows it;
+- a new product (`NewCondition`), the VAT status of the store's prices (`priceSpecification`, from *Gridbox → Store → Tax*);
+- the introduction, or the meta description, as the description; the brand from the product's field named *Producer*/*Brand* (the name, not the link); every picture of the product's gallery; `mpn` from the SKU (setting: the whole SKU or the part after its last `/`);
+- keys of Gridbox's block that MerTools does not make (`gtin`, `aggregateRating`…) are kept; other blocks (FAQ) are not touched.
+
+On a copy of merserwis.pl, 61 product pages had one valid Product block each, no price 0, brand, description and mpn on all of them.
+
 ### 🏷 Shop — Omnibus: lowest price before a reduction
 
 The lowest price of the 30 days before a price reduction, shown next to the reduced price as the law asks for it (EU Omnibus directive; in Poland art. 4 of the act on informing about the prices of goods and services) — no separate Omnibus plugin needed.
