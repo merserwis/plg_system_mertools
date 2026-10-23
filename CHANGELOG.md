@@ -2,6 +2,14 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.6.4 — 2026-10-23
+
+### 🔎 Product data: availability
+
+- **Availability from a field of the product** (tab *Shop*, under *Product data for search engines*): Gridbox gives every product with an empty stock “in stock”. A field that says how soon the product ships (*Delivery time*, filled by an import) can now decide it, by rules `text = Value`, one per line, the first that matches wins (`Brak na magazynie = BackOrder`, `tygodni = BackOrder`, `W magazynie = InStock`); the values Google reads: InStock, BackOrder, OutOfStock, PreOrder, MadeToOrder, LimitedAvailability.
+- **Availability without a rule**: the value of the products whose field is empty or matches no rule — Gridbox's by default (no change), or e.g. *Back order* when the goods are mostly ordered from the producer after a sale.
+- The list of fields shows the label of the page and the field's own name (*Termin dostawy / Dostawa*).
+
 ## 1.6.3 — 2026-10-23
 
 ### 🔎 Product data for search engines (JSON-LD)

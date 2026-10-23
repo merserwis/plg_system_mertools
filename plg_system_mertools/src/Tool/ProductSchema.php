@@ -13,8 +13,9 @@
  * a link field becomes "index.php?option=com_gridbox&…". Here the block is made with json_encode from
  * the product's data: no offer without a price (a price range when only its versions have prices),
  * NewCondition, the introduction (or the meta description) as the description, the brand from the
- * product's field, mpn from the SKU, all the pictures of its gallery, and the VAT status of the store's
- * prices. Keys this tool does not make (gtin, aggregateRating…) are kept from Gridbox's block when it
+ * product's field, mpn from the SKU, all the pictures of its gallery, the VAT status of the store's
+ * prices, and the availability from a field of the product (its delivery time) by the rules of the
+ * settings. Keys this tool does not make (gtin, aggregateRating…) are kept from Gridbox's block when it
  * could be read.
  */
 
@@ -32,6 +33,9 @@ final class ProductSchema
     /** labels of a field that holds the brand, when no field is chosen */
     private const BRAND_LABEL = '/producent|producer|manufacturer|marka|brand|hersteller/i';
 
+    /** the availability values of schema.org that Google reads */
+    public const AVAILABILITY = ['InStock', 'BackOrder', 'OutOfStock', 'PreOrder', 'MadeToOrder', 'LimitedAvailability'];
+
     /** at most this many characters of the description */
     private const MAX_DESCRIPTION = 5000;
 
@@ -48,6 +52,61 @@ final class ProductSchema
         $mode = (string) $params->get('shop_jsonld_mpn', 'none');
 
         return \in_array($mode, ['none', 'sku', 'after_slash'], true) ? $mode : 'none';
+    }
+
+    /** The field the availability is read from (its id), 0 for none */
+    public static function availabilityField(Registry $params): int
+    {
+        return max(0, (int) $params->get('shop_jsonld_avail_field', 0));
+    }
+
+    /**
+     * The rules of availability: "text = Value" per line, the text found in the field (letter case
+     * ignored) gives the value; the first rule that matches wins. Lines with an unknown value are left out.
+     *
+     * @return array<int, array{0: string, 1: string}>
+     */
+    public static function availabilityRules(Registry $params): array
+    {
+        $rules = [];
+        foreach (preg_split('/\R/', (string) $params->get('shop_jsonld_avail_rules', '')) ?: [] as $line) {
+            if (!preg_match('/^\s*(.+?)\s*=>?\s*([A-Za-z]+)\s*$/u', $line, $m)) {
+                continue;
+            }
+            foreach (self::AVAILABILITY as $value) {
+                if (strcasecmp($value, $m[2]) === 0) {
+                    $rules[] = [$m[1], $value];
+                }
+            }
+        }
+
+        return $rules;
+    }
+
+    /** The availability of a product no rule matched: one of AVAILABILITY, or '' to keep Gridbox's */
+    public static function availabilityDefault(Registry $params): string
+    {
+        $value = (string) $params->get('shop_jsonld_avail_default', '');
+
+        return \in_array($value, self::AVAILABILITY, true) ? $value : '';
+    }
+
+    /**
+     * The availability of a product: the value of the first rule whose text is in the field's text, else
+     * the default, else Gridbox's.
+     */
+    public static function availability(string $text, array $rules, string $default, string $gridbox): string
+    {
+        foreach ($rules as [$needle, $value]) {
+            if ($text !== '' && mb_stripos($text, $needle) !== false) {
+                return 'https://schema.org/' . $value;
+            }
+        }
+        if ($default !== '') {
+            return 'https://schema.org/' . $default;
+        }
+
+        return $gridbox !== '' ? $gridbox : 'https://schema.org/InStock';
     }
 
     // ---------------------------------------------------------------- the values

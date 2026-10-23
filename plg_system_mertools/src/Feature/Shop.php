@@ -29,7 +29,8 @@ final class Shop extends Feature
     /**
      * Product data (JSON-LD): on a product page of a Gridbox shop app, the Product block made from the
      * product (ProductSchema) in place of Gridbox's — no offer without a price, NewCondition, the brand of
-     * the product's producer field, the description, the pictures of its gallery, mpn, the VAT status.
+     * the product's producer field, the description, the pictures of its gallery, mpn, the VAT status, the
+     * availability from a field of the product by the rules of the settings.
      */
     public function productSchema(string $html): string
     {
@@ -53,6 +54,7 @@ final class Shop extends Feature
             }
             $values = (array) $db->setQuery('SELECT field_id, field_type, value FROM ' . $db->quoteName('#__gridbox_page_fields') . ' WHERE page_id = ' . $id)->loadAssocList('field_id');
             $brand  = ProductSchema::brandField($fields, 'auto');
+            $field  = ProductSchema::availabilityField($this->plugin->params);
             $root   = rtrim(Uri::root(), '/');
             $abs    = static fn (string $src): string => $src === '' || preg_match('#^(https?:)?//#i', $src) ? $src : $root . '/' . ltrim($src, '/');
             $images = [$abs((string) $row['intro_image'])];
@@ -86,7 +88,8 @@ final class Shop extends Feature
                     'variations'   => json_decode((string) $row['variations'], true) ?: [],
                     'currency'     => (string) ($store['currencies']['list'][0]['code'] ?? 'PLN'),
                     'url'          => $url,
-                    'availability' => (string) ($original['offers']['availability'] ?? 'https://schema.org/InStock'),
+                    'availability' => ProductSchema::availability($field > 0 && isset($values[$field]) ? ProductSchema::fieldText((string) $values[$field]['field_type'], (string) $values[$field]['value']) : '',
+                        ProductSchema::availabilityRules($this->plugin->params), ProductSchema::availabilityDefault($this->plugin->params), (string) ($original['offers']['availability'] ?? '')),
                     'vat'          => $tax === 'excl' ? false : ($tax === 'incl' ? true : null),
                 ]),
             ], $original);

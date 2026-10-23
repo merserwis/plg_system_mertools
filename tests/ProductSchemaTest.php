@@ -81,5 +81,18 @@ $page = ProductSchema::replace("<head>$good</head><body>$faq$broken</body>", '<s
 $check('replace: the first Product replaced, the second removed, FAQ kept', $page, "<head><script>NEW</script></head><body>$faq</body>");
 $check('replace: no Product, added before </head>', ProductSchema::replace('<html><head><title>t</title></head></html>', '<s/>'), "<html><head><title>t</title><s/>\n</head></html>");
 
+// availability from a field
+$rulesText = "Brak na magazynie = BackOrder\n  tygodni => backorder \nW magazynie = InStock\nzła reguła\nX = Sold";
+$rules = ProductSchema::availabilityRules(new Registry(['shop_jsonld_avail_rules' => $rulesText]));
+$check('rules: read, value names fixed, bad lines out', $rules, [['Brak na magazynie', 'BackOrder'], ['tygodni', 'BackOrder'], ['W magazynie', 'InStock']]);
+$check('availability field: none by default', ProductSchema::availabilityField(new Registry()), 0);
+$check('default: keep Gridbox\'s, or a known value', [ProductSchema::availabilityDefault(new Registry()), ProductSchema::availabilityDefault(new Registry(['shop_jsonld_avail_default' => 'BackOrder'])), ProductSchema::availabilityDefault(new Registry(['shop_jsonld_avail_default' => 'Sold']))], ['', 'BackOrder', '']);
+$g = 'https://schema.org/InStock';
+$check('rule: out of stock → BackOrder', ProductSchema::availability('3288: Brak na magazynie. Zapytaj o dostępność.', $rules, 'BackOrder', $g), 'https://schema.org/BackOrder');
+$check('rule: European warehouse → InStock', ProductSchema::availability('L2001: W magazynie europejskim: ok. 1 tydzień', $rules, 'BackOrder', $g), 'https://schema.org/InStock');
+$check('rule: weeks → BackOrder, letter case ignored', ProductSchema::availability('OD 5 DO 9 TYGODNI', $rules, '', $g), 'https://schema.org/BackOrder');
+$check('no text: the default', ProductSchema::availability('', $rules, 'BackOrder', $g), 'https://schema.org/BackOrder');
+$check('no rule, no default: Gridbox\'s', ProductSchema::availability('cokolwiek', $rules, '', 'https://schema.org/OutOfStock'), 'https://schema.org/OutOfStock');
+
 echo $fail ? "$fail FAILED\n" : "ALL PASS\n";
 exit($fail ? 1 : 0);

@@ -74,6 +74,7 @@ Gridbox fills the Product data Google reads from a schema template, and on merse
 - no offer for a product without a price (price on request), a price range (`AggregateOffer`) when only its versions have prices, the sale price when there is one — as Gridbox shows it;
 - a new product (`NewCondition`), the VAT status of the store's prices (`priceSpecification`, from *Gridbox → Store → Tax*);
 - the introduction, or the meta description, as the description; the brand from the product's field named *Producer*/*Brand* (the name, not the link); every picture of the product's gallery; `mpn` from the SKU (setting: the whole SKU or the part after its last `/`);
+- the availability from a field of the product (setting *Availability from the field*, e.g. *Delivery time* filled by an import) by rules `text = Value` (`Brak na magazynie = BackOrder`, `W magazynie = InStock`…), and a value for the products no rule matches (Gridbox's “in stock”, or e.g. *Back order* when the goods are mostly ordered after a sale);
 - keys of Gridbox's block that MerTools does not make (`gtin`, `aggregateRating`…) are kept; other blocks (FAQ) are not touched.
 
 On a copy of merserwis.pl, 61 product pages had one valid Product block each, no price 0, brand, description and mpn on all of them.
