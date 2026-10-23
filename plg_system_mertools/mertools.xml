@@ -6,7 +6,7 @@
     <creationDate>2026-10-23</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.6.4</version>
+    <version>1.6.5</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -402,6 +402,17 @@
                     label="PLG_SYSTEM_MERTOOLS_FEED_TTL_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_TTL_DESC" />
                 <field name="feed_panel" type="mtfeed" showon="feed_enabled:1"
                     label="PLG_SYSTEM_MERTOOLS_FEED_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_PANEL_DESC" />
+                <field name="blog_jsonld_spacer" type="spacer" hr="true" />
+                <field name="blog_jsonld" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_LABEL" description="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="blog_jsonld_org" type="text" default="" filter="string" maxlength="200" showon="blog_jsonld:1"
+                    hint="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_ORG_HINT"
+                    label="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_ORG_LABEL" description="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_ORG_DESC" />
+                <field name="blog_jsonld_logo" type="media" default="" showon="blog_jsonld:1"
+                    label="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_LOGO_LABEL" description="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_LOGO_DESC" />
             </fieldset>
 
             <!-- ============================================================ Shop -->

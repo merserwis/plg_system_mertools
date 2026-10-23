@@ -271,56 +271,25 @@ final class ProductSchema
 
     // ---------------------------------------------------------------- the page
 
-    /** The JSON-LD of a Product, as it goes into the page (no "</" can end the script early) */
+    /** The JSON-LD of a Product, as it goes into the page */
     public static function script(array $product): string
     {
-        $json = json_encode($product, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT | JSON_HEX_TAG);
-
-        return '<script type="application/ld+json">' . "\n" . $json . "\n" . '</script>';
+        return JsonLd::script($product);
     }
 
     /**
      * The Product blocks of a page: [whole <script> tag, its Product or null when it could not be read].
-     * A block is a Product when its @type is Product, or, unreadable, when it says so in its text.
      *
      * @return array<int, array{0: string, 1: ?array}>
      */
     public static function find(string $html): array
     {
-        preg_match_all('#<script\b[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>#is', $html, $m, PREG_SET_ORDER);
-        $found = [];
-        foreach ($m as [$tag, $json]) {
-            $data = json_decode(trim($json), true);
-            if (\is_array($data)) {
-                if (($data['@type'] ?? null) === 'Product') {
-                    $found[] = [$tag, $data];
-                }
-            } elseif (preg_match('/"@type"\s*:\s*"Product"/', $json)) {
-                $found[] = [$tag, null];
-            }
-        }
-
-        return $found;
+        return JsonLd::find($html, ['Product']);
     }
 
     /** The page with its Product blocks replaced by the one of MerTools (added before </head> when it had none) */
     public static function replace(string $html, string $script): string
     {
-        $blocks = self::find($html);
-        if (!$blocks) {
-            $pos = stripos($html, '</head>');
-
-            return $pos === false ? $html : substr_replace($html, $script . "\n", $pos, 0);
-        }
-        $first = true;
-        foreach ($blocks as [$tag]) {
-            $pos = strpos($html, $tag);
-            if ($pos !== false) {
-                $html  = substr_replace($html, $first ? $script : '', $pos, \strlen($tag));
-                $first = false;
-            }
-        }
-
-        return $html;
+        return JsonLd::replace($html, $script, ['Product']);
     }
 }

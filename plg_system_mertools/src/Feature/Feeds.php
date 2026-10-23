@@ -18,10 +18,82 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Exception\RouteNotFoundException;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
+use Merserwis\Plugin\System\MerTools\Tool\ArticleSchema;
 use Merserwis\Plugin\System\MerTools\Tool\Feed;
+use Merserwis\Plugin\System\MerTools\Tool\History;
+use Merserwis\Plugin\System\MerTools\Tool\JsonLd;
+use Merserwis\Plugin\System\MerTools\Tool\ProductSchema;
+use Merserwis\Plugin\System\MerTools\Tool\SitemapSource;
 
 final class Feeds extends Feature
 {
+    /**
+     * Article data (JSON-LD): on a post of a Gridbox blog app, the BlogPosting block made from the post
+     * (ArticleSchema) in place of the one of its schema field or Gridbox's template — ISO 8601 dates, the
+     * date of the last change of its content, the authors or the organization, the publisher by @id.
+     */
+    public function articleSchema(string $html): string
+    {
+        $app   = $this->plugin->app();
+        $input = $app->getInput();
+        $id    = $input->getInt('id', 0);
+        if ($id <= 0 || $input->getCmd('option') !== 'com_gridbox' || $input->getCmd('view') !== 'page') {
+            return $html;
+        }
+        try {
+            $db  = Factory::getContainer()->get(DatabaseInterface::class);
+            $row = $db->setQuery('SELECT p.title, p.intro_text, p.meta_description, p.intro_image, p.created, a.type FROM ' . $db->quoteName('#__gridbox_pages', 'p')
+                . ' JOIN ' . $db->quoteName('#__gridbox_app', 'a') . ' ON a.id = p.app_id WHERE p.id = ' . $id, 0, 1)->loadAssoc();
+            if (!$row || $row['type'] !== 'blog') {
+                return $html;
+            }
+            $zone     = new \DateTimeZone((string) $app->get('offset', 'UTC') ?: 'UTC');
+            $blocks   = JsonLd::find($html, ArticleSchema::TYPES);
+            $original = $blocks[0][1] ?? null;
+            $root     = rtrim(Uri::root(), '/');
+            $abs      = static fn (string $src): string => $src === '' || preg_match('#^(https?:)?//#i', $src) ? $src : $root . '/' . ltrim($src, '/');
+            $logo     = trim((string) $this->plugin->params->get('blog_jsonld_logo', ''));
+            $logo     = $logo !== '' ? $abs(preg_replace('/#.*$/', '', $logo)) : ArticleSchema::originalLogo($original);
+            $authors  = (array) $db->setQuery('SELECT a.title FROM ' . $db->quoteName('#__gridbox_authors_map', 'm') . ' JOIN ' . $db->quoteName('#__gridbox_authors', 'a')
+                . ' ON a.id = m.author_id WHERE m.page_id = ' . $id . ' AND a.published = 1 ORDER BY m.id')->loadColumn();
+            $post = ArticleSchema::build([
+                'url'          => Uri::current(),
+                'headline'     => (string) $row['title'],
+                'images'       => [$abs((string) $row['intro_image'])],
+                'description'  => ProductSchema::text((string) $row['intro_text']) ?: ProductSchema::text((string) $row['meta_description']),
+                'published'    => ArticleSchema::iso((string) $row['created'], $zone),
+                'modified'     => ArticleSchema::isoTime($this->modified($db, $id), $zone),
+                'authors'      => $authors,
+                'organization' => ['id' => $root . '/#organization', 'url' => $root . '/',
+                    'name' => trim((string) $this->plugin->params->get('blog_jsonld_org', '')) ?: (string) $app->get('sitename', ''), 'logo' => $logo],
+                'language'     => $app->getLanguage()->getTag(),
+            ], $original);
+        } catch (\Throwable $e) {
+            return $html;
+        }
+
+        return JsonLd::replace($html, JsonLd::script($post), ArticleSchema::TYPES);
+    }
+
+    /** The last change of a post's content (UTC): the date of the sitemap's state, else the newest of the edit history */
+    private function modified($db, int $id): ?int
+    {
+        foreach (['SELECT lastmod FROM ' . $db->quoteName(SitemapSource::TABLE) . ' WHERE item_type = ' . $db->quote('page') . ' AND item_id = ' . $id,
+            'SELECT MAX(created) FROM ' . $db->quoteName(History::TABLE) . ' WHERE page_id = ' . $id . ' AND action IN (' . $db->quote('created') . ','
+                . $db->quote('edited') . ',' . $db->quote('published') . ',' . $db->quote('restored') . ')'] as $sql) {
+            try {
+                $time = $db->setQuery($sql)->loadResult();
+            } catch (\Throwable $e) {
+                continue;
+            }
+            if ($time) {
+                return (int) strtotime($time . ' UTC');
+            }
+        }
+
+        return null;
+    }
+
     /**
      * A feed of a Gridbox blog page (?format=feed&type=rss|atom): sent here, before Gridbox, which has
      * no feed view and would answer with an error. A blog without a feed (not chosen, not public, a

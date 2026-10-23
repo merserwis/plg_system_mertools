@@ -55,6 +55,7 @@ use Merserwis\Plugin\System\MerTools\Feature\MissingPages;
 use Merserwis\Plugin\System\MerTools\Feature\PageSpeed;
 use Merserwis\Plugin\System\MerTools\Feature\Shop;
 use Merserwis\Plugin\System\MerTools\Feature\Sitemaps;
+use Merserwis\Plugin\System\MerTools\Tool\ArticleSchema;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\Feed;
 use Merserwis\Plugin\System\MerTools\Tool\IntroText;
@@ -72,7 +73,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.6.4';
+    public const VERSION = '1.6.5';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -210,6 +211,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
         if (ProductSchema::enabled($this->params)) {
             $new = $this->shop()->productSchema($new);
+        }
+        if (ArticleSchema::enabled($this->params)) {
+            $new = $this->feeds()->articleSchema($new);
         }
         $new = $this->speed()->speedup($new);
         if ($this->database()->introLtOn()) {

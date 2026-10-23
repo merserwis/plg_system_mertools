@@ -95,6 +95,16 @@ Off by default, tab *Shop*.
 
 Since 1.4.0 the category descriptions (where the category layout holds the placeholder “Category Description”) and the click on a whole row of Gridbox's Categories element are done by **Better Categories for Gridbox 1.7.0**, with more settings (place of the description, only its beginning with a “Read more” button). Better Categories switches both on at its update when *Category pages* was on here.
 
+### 🔎 Blog — article data for search engines (JSON-LD)
+
+Gridbox writes the publishing date of a post's schema in words of the site's language (`12 czerwiec 2020`), which no search engine reads as a date — on merserwis.pl all 196 articles of the SEO audit — puts the values in unescaped, and a schema copied by hand into a post can be broken (two posts had a whole `<script>` pasted into `@id`, or a missing quotation mark). With *Article data for search engines* on (tab *Blog feeds*, off by default), MerTools makes the BlogPosting block of every post of a blog app from the post itself, in place of the one of its schema field or Gridbox's template:
+
+- the dates in ISO 8601 with the time zone (`2020-06-12T09:30:00+02:00`), and `dateModified` when MerTools knows the last change of the content (the dates of the sitemap, else the edit history) — never a date it does not know;
+- the post's Gridbox authors as people, else the organization; the publisher with the `@id` of the organization of the home page (`/#organization`), its name (setting, the site name by default) and logo (setting, else the one of the post's block);
+- the language, the introduction (or meta description) as the description, the intro image; other keys of the post's block are kept, other blocks (FAQ) are not touched.
+
+On a copy of merserwis.pl, 344 posts had one valid BlogPosting each, the two broken ones included.
+
 ### 📰 Blog feeds — RSS and Atom
 
 Gridbox has no feeds. MerTools gives every Gridbox blog an **RSS 2.0** and an **Atom 1.0** feed of its newest posts, for feed readers, RSS-to-email newsletters and aggregators: the address of a blog page with Joomla's usual feed parameters.

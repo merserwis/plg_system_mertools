@@ -2,6 +2,14 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.6.5 — 2026-10-23
+
+### 🔎 Article data for search engines (JSON-LD)
+
+- **New tool *Article data for search engines*** (tab *Blog feeds*, off by default): the BlogPosting block of a blog post is made by MerTools from the post, in place of the one of its schema field or Gridbox's template. Fixes what the SEO audit of merserwis.pl found on every article: the publishing date in words (`12 czerwiec 2020`, now ISO 8601 with the time zone), no `dateModified` (now the last change of the content when MerTools knows it), the author a “person” named after the company (now the post's Gridbox authors, else the organization), a publisher without `@id` (now the organization of the home page by `@id`), and two posts whose hand-copied schema was broken (a `<script>` pasted into `@id`, a missing quotation mark) — now always valid JSON.
+- Settings: the name of the organization (the site name by default) and the logo of the publisher (else the one of the post's block).
+- The product data and the article data share the code that finds and replaces the blocks (`JsonLd`); nothing changes for the product data.
+
 ## 1.6.4 — 2026-10-23
 
 ### 🔎 Product data: availability

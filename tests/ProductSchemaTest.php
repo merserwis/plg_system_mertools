@@ -1,6 +1,7 @@
 <?php
 
 define('_JEXEC', 1);
+require __DIR__ . '/../plg_system_mertools/src/Tool/JsonLd.php';
 require __DIR__ . '/../plg_system_mertools/src/Tool/ProductSchema.php';
 spl_autoload_register(function ($c) { if ($c === 'Joomla\\Registry\\Registry') { eval('namespace Joomla\\Registry; class Registry { public function __construct(private array $d = []) {} public function get($k, $def = null) { return $this->d[$k] ?? $def; } }'); } });
 
