@@ -2,6 +2,15 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.6.2 — 2026-10-23
+
+### 🧭 404 pages: no more soft 404
+
+- **Withdrawn pages answer 410 Gone** (new setting *Withdrawn pages*, 410 by default): a missing address whose alias belongs only to pages or categories that are unpublished, in the trash, past their end of publishing or deleted gets **410** with the same error page — search engines drop it sooner than after a 404 and no longer take it for a page sent elsewhere. On merserwis.pl withdrawn products are unpublished: 290 of the addresses in the log were such products, all sent to the home page until now. Or, by setting, the visitor goes to the category the page was in (301), when it is still there.
+- **The aliases of deleted pages and categories are kept** (`#__mertools_gone`, from now on; also right after Gridbox's *Delete* in the trash): their addresses answer 410 too, not a bare 404. A page restored with its number is taken off the list.
+- **Redirect missing pages is off by default** for new installations, with a description of why: Google counts a missing page sent to the home page as missing anyway (a “soft 404”), and agents and crawlers probing addresses (`/.well-known/security.txt`, `ai-catalog.json`…) took the home page for what they asked. A saved setting is not changed: on a site where it is on, switch it off on the tab *404 pages* to get real 404s.
+- The log shows the new answers (*Withdrawn page (410)*, *Category of a withdrawn page (301)*); the order is: a redirect typed in the log, a moved page, a withdrawn page, the general target, the error page.
+
 ## 1.6.1 — 2026-10-23
 
 ### 🗺 Sitemap: tidying up

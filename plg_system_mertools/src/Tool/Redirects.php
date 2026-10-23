@@ -14,6 +14,10 @@
  * part is the alias of a page or category today, or an old alias of one, is sent to where that page is
  * now with a 301. The alias changes of the edit history are taken over at the first run.
  *
+ * Gone pages: a missing address whose alias belongs to a page or category that is no longer there —
+ * unpublished, in the trash, past its end of publishing, or deleted (the aliases of deleted pages are
+ * kept in #__mertools_gone) — is answered 410 Gone instead of 404 (or sent to the page's category).
+ *
  * Log: every missing page address with the number of visits, the first and the last one, where the
  * last visitor came from and what MerTools did (#__mertools_notfound). A redirect typed for an address
  * of the log is followed from then on (a 301), before the moved pages and the general target.
@@ -30,9 +34,10 @@ final class Redirects
     public const ALIASES = '#__mertools_aliases';
     public const MOVED   = '#__mertools_moved';
     public const LOG     = '#__mertools_notfound';
+    public const GONE    = '#__mertools_gone';
 
-    /** what MerTools did with a missing address: sent to the page that moved, to a typed target, to the general target, nothing */
-    public const RESULTS = ['moved', 'manual', 'fallback', 'none'];
+    /** what MerTools did with a missing address: sent to the page that moved, to a typed target, answered 410, sent to the category of a gone page, to the general target, nothing */
+    public const RESULTS = ['moved', 'manual', 'gone', 'category', 'fallback', 'none'];
 
     /** the log never grows past this many addresses (those with a typed redirect are always kept) */
     public const MAX_LOG = 10000;
@@ -218,6 +223,8 @@ final class Redirects
         $db->setQuery('CREATE TABLE IF NOT EXISTS ' . $db->quoteName(self::MOVED) . ' (`id` INT UNSIGNED NOT NULL AUTO_INCREMENT, `kind` CHAR(1) NOT NULL,'
             . ' `item_id` INT UNSIGNED NOT NULL, `alias` VARCHAR(255) NOT NULL, `changed` DATETIME NOT NULL, `hits` INT UNSIGNED NOT NULL DEFAULT 0,'
             . ' `last_hit` DATETIME NULL, PRIMARY KEY (`id`), KEY `idx_alias` (`alias`), KEY `idx_item` (`kind`, `item_id`))' . $tail)->execute();
+        $db->setQuery('CREATE TABLE IF NOT EXISTS ' . $db->quoteName(self::GONE) . ' (`kind` CHAR(1) NOT NULL, `item_id` INT UNSIGNED NOT NULL,'
+            . ' `alias` VARCHAR(255) NOT NULL, `gone` DATETIME NOT NULL, PRIMARY KEY (`kind`, `item_id`), KEY `idx_alias` (`alias`))' . $tail)->execute();
         $db->setQuery('CREATE TABLE IF NOT EXISTS ' . $db->quoteName(self::LOG) . ' (`id` INT UNSIGNED NOT NULL AUTO_INCREMENT, `hash` CHAR(40) NOT NULL,'
             . ' `path` VARCHAR(1024) NOT NULL, `hits` INT UNSIGNED NOT NULL DEFAULT 1, `first_seen` DATETIME NOT NULL, `last_seen` DATETIME NOT NULL,'
             . ' `referer` VARCHAR(512) NOT NULL DEFAULT \'\', `result` VARCHAR(8) NOT NULL DEFAULT \'\', `result_url` VARCHAR(1024) NOT NULL DEFAULT \'\','
@@ -287,6 +294,16 @@ final class Redirects
         foreach (array_chunk($gone, 500) as $chunk) {
             $where = implode(' OR ', array_map(static fn ($k) => '(kind = ' . $db->quote($k[0]) . ' AND item_id = ' . (int) substr($k, 1) . ')', $chunk));
             $db->setQuery('DELETE FROM ' . $db->quoteName(self::ALIASES) . ' WHERE ' . $where)->execute();
+            // a deleted page or category: its alias is kept, its address answers 410
+            $db->setQuery('INSERT INTO ' . $db->quoteName(self::GONE) . ' (kind, item_id, alias, gone) VALUES '
+                . implode(',', array_map(static fn ($k) => '(' . $db->quote($k[0]) . ',' . (int) substr($k, 1) . ',' . $db->quote($known[$k]) . ',' . $db->quote($now) . ')', $chunk))
+                . ' ON DUPLICATE KEY UPDATE alias = VALUES(alias), gone = VALUES(gone)')->execute();
+        }
+        // an item seen again (restored from a backup with its number): no longer gone
+        $back = array_keys(array_diff_key($current, $known));
+        foreach (array_chunk($first ? [] : $back, 500) as $chunk) {
+            $where = implode(' OR ', array_map(static fn ($k) => '(kind = ' . $db->quote($k[0]) . ' AND item_id = ' . (int) substr($k, 1) . ')', $chunk));
+            $db->setQuery('DELETE FROM ' . $db->quoteName(self::GONE) . ' WHERE ' . $where)->execute();
         }
         if ($first) {
             $moved = array_merge($moved, $this->historyMoves());
@@ -364,6 +381,77 @@ final class Redirects
         }
 
         return $out;
+    }
+
+    /**
+     * Whether a page or category with this alias is gone for good: deleted (no row), unpublished, in the
+     * trash or past its end of publishing. Not gone: published (even not started yet, or for registered
+     * users only — it is there).
+     *
+     * @param array|null $row  published, page_category, end_publishing of a page; published of a category
+     * @param string     $kind p or c
+     * @param string     $now  the site's local time, as Gridbox keeps dates
+     */
+    public static function gone(?array $row, string $kind, string $now): bool
+    {
+        if ($row === null) {
+            return true;
+        }
+        if ((int) $row['published'] !== 1) {
+            return true;
+        }
+        if ($kind === 'c') {
+            return false;
+        }
+        $end = (string) ($row['end_publishing'] ?? '');
+
+        return (string) ($row['page_category'] ?? '') === 'trashed' || ($end !== '' && !str_starts_with($end, '0000-00-00') && $end < $now);
+    }
+
+    /**
+     * The page or category a missing alias belonged to, when everything with that alias — of today, an
+     * old one, or of a deleted item — is gone (self::gone). Null when nothing has that alias or something
+     * with it is still there.
+     *
+     * @return array{kind: string, id: int, category: int}|null the category of a page that still has a row, else 0
+     */
+    public function goneItem(string $slug, string $now): ?array
+    {
+        $this->ensureTables();
+        $db    = $this->db;
+        $items = [];
+        foreach ($this->candidates($slug) as $c) {
+            $items[$c['kind'] . $c['id']] = [$c['kind'], $c['id']];
+        }
+        foreach ($db->setQuery('SELECT kind, item_id FROM ' . $db->quoteName(self::GONE) . ' WHERE alias = ' . $db->quote($slug), 0, 20)->loadRowList() ?: [] as [$kind, $id]) {
+            $items[$kind . $id] = [(string) $kind, (int) $id];
+        }
+        if (!$items) {
+            return null;
+        }
+        $ids = ['p' => [], 'c' => []];
+        foreach ($items as [$kind, $id]) {
+            $ids[$kind][] = (int) $id;
+        }
+        $rows = ['p' => [], 'c' => []];
+        if ($ids['p']) {
+            $rows['p'] = $db->setQuery('SELECT id, published, page_category, end_publishing FROM ' . $db->quoteName('#__gridbox_pages')
+                . ' WHERE id IN (' . implode(',', $ids['p']) . ')')->loadAssocList('id') ?: [];
+        }
+        if ($ids['c']) {
+            $rows['c'] = $db->setQuery('SELECT id, published FROM ' . $db->quoteName('#__gridbox_categories')
+                . ' WHERE id IN (' . implode(',', $ids['c']) . ')')->loadAssocList('id') ?: [];
+        }
+        $found = null;
+        foreach ($items as [$kind, $id]) {
+            $row = $rows[$kind][$id] ?? null;
+            if (!self::gone($row, $kind, $now)) {
+                return null;
+            }
+            $found ??= ['kind' => $kind, 'id' => (int) $id, 'category' => $kind === 'p' && $row !== null ? (int) $row['page_category'] : 0];
+        }
+
+        return $found;
     }
 
     /**
@@ -507,7 +595,7 @@ final class Redirects
         if ($show === 'open') {
             $where[] = '(target IS NULL OR target = \'\') AND result IN (' . $db->quote('fallback') . ',' . $db->quote('none') . ')';
         } elseif ($show === 'redirected') {
-            $where[] = '((target IS NOT NULL AND target <> \'\') OR result = ' . $db->quote('moved') . ')';
+            $where[] = '((target IS NOT NULL AND target <> \'\') OR result IN (' . $db->quote('moved') . ',' . $db->quote('category') . '))';
         }
         if ($q !== '') {
             $like    = $db->quote('%' . str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $q) . '%');

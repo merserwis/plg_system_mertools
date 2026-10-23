@@ -81,5 +81,18 @@ $check('excluded', NotFound::excluded('/api/v1?x=1', ['/api/']), true);
 $check('not excluded', NotFound::excluded('/apis', ['/api/']), false);
 $check('excluded, case', NotFound::excluded('/IMAGES/a', ['/images/']), true);
 
+// withdrawn pages (410): deleted, unpublished, in the trash, past the end of publishing
+$now  = '2026-10-23 12:00:00';
+$page = fn (array $o = []) => $o + ['published' => 1, 'page_category' => '12', 'end_publishing' => '0000-00-00 00:00:00'];
+$check('gone: deleted (no row)', Redirects::gone(null, 'p', $now), true);
+$check('gone: unpublished', Redirects::gone($page(['published' => 0]), 'p', $now), true);
+$check('gone: in the trash', Redirects::gone($page(['page_category' => 'trashed']), 'p', $now), true);
+$check('gone: publishing ended', Redirects::gone($page(['end_publishing' => '2026-10-01 00:00:00']), 'p', $now), true);
+$check('not gone: published', Redirects::gone($page(), 'p', $now), false);
+$check('not gone: ends later', Redirects::gone($page(['end_publishing' => '2026-12-31 00:00:00']), 'p', $now), false);
+$check('not gone: empty end', Redirects::gone($page(['end_publishing' => '']), 'p', $now), false);
+$check('category: unpublished gone, published not', [Redirects::gone(['published' => 0], 'c', $now), Redirects::gone(['published' => 1], 'c', $now)], [true, false]);
+$check('results: gone and category before the general target', array_slice(Redirects::RESULTS, 2, 3), ['gone', 'category', 'fallback']);
+
 echo $fail === 0 ? "\nALL PASS\n" : "\n$fail FAILED\n";
 exit($fail === 0 ? 0 : 1);

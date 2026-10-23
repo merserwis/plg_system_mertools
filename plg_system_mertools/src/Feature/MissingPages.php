@@ -5,8 +5,8 @@
  * @subpackage  System.mertools
  *
  * Page not found (404): a redirect typed for the address in the log of missing addresses, else the page or
- * category the address asks for when it was renamed or moved (Redirects), else the chosen target or the error page;
- * every missing address logged. The aliases are compared after a Gridbox save that may change one and hourly.
+ * category the address asks for when it was renamed or moved (Redirects), else 410 Gone (or the page's
+ * category) for a page that was withdrawn, else the chosen target or the error page; every missing address logged. The aliases are compared after a Gridbox save that may change one and hourly.
  */
 
 namespace Merserwis\Plugin\System\MerTools\Feature;
@@ -28,8 +28,8 @@ final class MissingPages extends Feature
 {
     /**
      * Page not found: a redirect typed for the address in the log, else the page or category the address
-     * asks for when it was renamed or moved, else the chosen target (or the error page); the address is
-     * logged with what was done.
+     * asks for when it was renamed or moved, else 410 Gone (or its category) for a withdrawn page, else the
+     * chosen target (or the error page); the address is logged with what was done.
      */
     public function handle(ErrorEvent $event): void
     {
@@ -37,7 +37,8 @@ final class MissingPages extends Feature
         if (!$app instanceof \Joomla\CMS\Application\CMSApplicationInterface || !$app->isClient('site') || (int) $event->getError()->getCode() !== 404) {
             return;
         }
-        $fallback = (bool) (int) $this->plugin->params->get('notfound_redirect', 1);
+        $fallback = (bool) (int) $this->plugin->params->get('notfound_redirect', 0);
+        $gone     = (string) $this->plugin->params->get('notfound_gone', 'gone');
         $moved    = (bool) (int) $this->plugin->params->get('notfound_moved', 1);
         $log      = (bool) (int) $this->plugin->params->get('notfound_log', 1);
         // pages only: no form posts, AJAX or JSON (a redirect to the home page makes no sense there)
@@ -77,7 +78,17 @@ final class MissingPages extends Feature
             }
             $result = $target !== null ? 'moved' : $result;
         }
-        if ($target === null && $fallback && ($target = $usable(NotFound::absoluteTarget($this->notFoundTarget(), Uri::root()))) !== null) {
+        if ($target === null && $gone !== 'off') {
+            try {
+                [$result, $target] = $this->goneTarget($store, (string) $uri->getPath(), $gone === 'category') ?? [$result, null];
+                $target            = $usable($target);
+                // the category is the missing address itself: 410 all the same
+                $result = $result === 'category' && $target === null ? 'gone' : $result;
+            } catch (\Throwable $e) {
+                $target = null;
+            }
+        }
+        if ($target === null && $result !== 'gone' && $fallback && ($target = $usable(NotFound::absoluteTarget($this->notFoundTarget(), Uri::root()))) !== null) {
             $result = 'fallback';
             $code   = (int) $this->plugin->params->get('notfound_code', 301) === 302 ? 302 : 301;
         }
@@ -97,6 +108,40 @@ final class MissingPages extends Feature
         if ($target !== null) {
             $app->redirect($target, $code);
         }
+        if ($result === 'gone') {
+            // the same error page, with 410: the page was there and is not coming back
+            $this->plugin->loadLanguage();
+            $event->setError(new \RuntimeException(Text::_('PLG_SYSTEM_MERTOOLS_NOTFOUND_GONE_MESSAGE'), 410, $event->getError()));
+        }
+    }
+
+    /**
+     * A withdrawn page: everything with the alias of the missing address is unpublished, in the trash, past
+     * its end of publishing or deleted (Redirects::goneItem). With $toCategory, a page's category when a
+     * guest may see it (a 301), else 410.
+     *
+     * @return array{0: string, 1: ?string}|null [result, target]: ['gone', null] or ['category', url]; null when not gone
+     */
+    private function goneTarget(Redirects $store, string $path, bool $toCategory): ?array
+    {
+        $slug = Redirects::slug($path, Uri::root(true), (bool) $this->plugin->app()->get('sef_suffix', 0));
+        if ($slug === null) {
+            return null;
+        }
+        $zone = new \DateTimeZone((string) $this->plugin->app()->get('offset', 'UTC') ?: 'UTC');
+        $item = $store->goneItem($slug, (new \DateTimeImmutable('now', $zone))->format('Y-m-d H:i:s'));
+        if ($item === null) {
+            return null;
+        }
+        if ($toCategory && $item['category'] > 0) {
+            $cat = $store->liveCategories([$item['category']], MerTools::guestLevels())[$item['category']] ?? null;
+            if ($cat) {
+                return ['category', $this->plugin->gridboxLink('getGridboxCategoryLinks', [$item['category'], $cat['app']],
+                    'index.php?option=com_gridbox&view=blog&app=' . $cat['app'] . '&id=' . $item['category'])];
+            }
+        }
+
+        return ['gone', null];
     }
 
     /**
@@ -158,9 +203,11 @@ final class MissingPages extends Feature
             : 'index.php?option=com_gridbox&view=page&blog=' . $page['app'] . '&category=' . $page['category'] . '&id=' . $id;
     }
 
-    /** Tasks of Gridbox that may give a page or category another alias: the aliases are compared after them. */
+    /** Tasks of Gridbox that may give a page or category another alias, or delete one: the aliases are compared after them. */
     private const ALIAS_TASKS = ['editor.gridboxajaxsave', 'editor.gridboxsave', 'gridbox.updateparams', 'apps.updatecategory', 'apps.importcsv',
-        'apps.applysettings', 'pages.applysettings', 'pages.importcsv', 'trashed.restore', 'trashed.restoresingle'];
+        'apps.applysettings', 'pages.applysettings', 'pages.importcsv', 'trashed.restore', 'trashed.restoresingle',
+        // deleted for good: the alias is kept as gone (410)
+        'trashed.delete', 'trashed.contextdelete'];
 
     /** After a Gridbox save that may change an alias (by a logged-in user): the aliases compared at shutdown. */
     public function movedWatch(): void
