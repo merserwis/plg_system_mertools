@@ -487,6 +487,10 @@ final class Sitemaps extends Feature
         }
         $app->allowCache(true);
         $app->setBody($body);
+        // a map needs no session: Joomla started one before onAfterInitialise, its cookie is not sent
+        if (!headers_sent()) {
+            header_remove('Set-Cookie');
+        }
         echo $app->toString(false);
         // out of date: built now that the answer is out (close() ends the request, onAfterRespond never comes)
         if ($this->rebuild) {

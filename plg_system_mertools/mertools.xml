@@ -6,7 +6,7 @@
     <creationDate>2026-10-23</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.6.0</version>
+    <version>1.6.1</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -271,7 +271,7 @@
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
-                <field name="sitemap_apps" type="mtapps" multiple="true" layout="joomla.form.field.list-fancy-select" showon="sitemap_enabled:1"
+                <field name="sitemap_apps" type="mtapps" skip="system_apps" multiple="true" layout="joomla.form.field.list-fancy-select" showon="sitemap_enabled:1"
                     hint="PLG_SYSTEM_MERTOOLS_SITEMAP_APPS_HINT"
                     label="PLG_SYSTEM_MERTOOLS_SITEMAP_APPS_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_APPS_DESC" />
                 <field name="sitemap_paths" type="textarea" default="" rows="4" filter="string" showon="sitemap_enabled:1"

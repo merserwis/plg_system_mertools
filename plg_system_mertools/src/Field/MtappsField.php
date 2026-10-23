@@ -23,7 +23,12 @@ final class MtappsField extends ListField
         } catch (\Throwable $e) {
             return $options;
         }
+        // skip="system_apps": types not listed (Gridbox's own apps, never in the sitemap)
+        $skip = array_filter(array_map('trim', explode(',', (string) ($this->element['skip'] ?? ''))));
         foreach ($apps as $app) {
+            if (\in_array((string) $app['type'], $skip, true)) {
+                continue;
+            }
             $options[] = (object) ['value' => (string) $app['id'], 'text' => (string) $app['title'] . ' (' . $app['type'] . ', #' . (int) $app['id'] . ')', 'disable' => false];
         }
 

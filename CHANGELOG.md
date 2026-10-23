@@ -2,6 +2,13 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.6.1 — 2026-10-23
+
+### 🗺 Sitemap: tidying up
+
+- **Excluded apps** lists only the apps that can be in the sitemap: Gridbox's own system apps (canonical, code-editor, performance, sitemap) are left out of the list — they never have addresses in a map, so excluding them changed nothing and only confused. The list of *Apps protection* still shows them.
+- **No session cookie with the maps**: Joomla starts a session before any plugin runs, so every request of `/sitemap.xml` and `/sitemap-…xml` (Googlebot's too) got a session cookie it does not need; the maps are now sent without it. The pages of the site keep theirs.
+
 ## 1.6.0 — 2026-10-23
 
 ### 🗺 Sitemap
