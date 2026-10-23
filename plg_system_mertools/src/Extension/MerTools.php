@@ -51,6 +51,7 @@ use Merserwis\Plugin\System\MerTools\Feature\EditHistory;
 use Merserwis\Plugin\System\MerTools\Feature\EditLocks;
 use Merserwis\Plugin\System\MerTools\Feature\Feeds;
 use Merserwis\Plugin\System\MerTools\Feature\GridboxLists;
+use Merserwis\Plugin\System\MerTools\Feature\ListPages;
 use Merserwis\Plugin\System\MerTools\Feature\MissingPages;
 use Merserwis\Plugin\System\MerTools\Feature\PageSpeed;
 use Merserwis\Plugin\System\MerTools\Feature\Shop;
@@ -73,7 +74,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.6.5';
+    public const VERSION = '1.6.6';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -168,6 +169,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             return;
         }
         if ($app->isClient('site')) {
+            // first: a sorting Gridbox would put into its query unchecked never reaches it
+            $this->pages()->guardSort();
+            $this->pages()->redirectPage();
             $this->feeds()->serveFeed();
             $this->speed()->servePageCache();
             $this->shop()->optionLinks();
@@ -215,6 +219,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if (ArticleSchema::enabled($this->params)) {
             $new = $this->feeds()->articleSchema($new);
         }
+        $new = $this->pages()->listPage($new);
         $new = $this->speed()->speedup($new);
         if ($this->database()->introLtOn()) {
             $new = IntroText::fixMeta($new);
@@ -661,6 +666,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     public function missing(): MissingPages
     {
         return $this->features[MissingPages::class] ??= new MissingPages($this);
+    }
+
+    public function pages(): ListPages
+    {
+        return $this->features[ListPages::class] ??= new ListPages($this);
     }
 
     public function sitemaps(): Sitemaps

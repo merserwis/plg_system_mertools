@@ -55,6 +55,14 @@ Test by opening `https://your-site/////oferta` — it should return a **301** to
 
 How it works: `raw.http.request.uri` is the original address the visitor sent; `http.request.uri` is the address after Cloudflare's normalization (single slashes). When they differ, the rule sends a 301 to the clean one. A clean address has nothing to normalize, so the two are equal and no redirect loop happens.
 
+
+### 🔢 Pages of the lists (?page=N)
+
+Gridbox gives every page of a list of products or posts (a category, a blog, a tag: `?page=2`, `?page=3`…) the canonical of the first page and the same title and description, so search engines take them for copies of page 1 and the products further down are found only through the sitemap (on merserwis.pl `/oferta/akcesoria` has 144 pages). A page past the last one (`?page=999`) answered 200 with an empty list and links up to page 1000, and `?page=0` or `?page=abc` repeated page 1. With *Pages of the lists* on (tab *Canonical URL*, off by default): page 2 and further get their own canonical (`…?page=2`) and “– page 2” in the title and the description, a page whose list came out empty answers **404** with noindex, and a page number that is not one (0, 1, 01, abc) is redirected (301) to the list without it, the other parameters kept.
+
+### 🛡 Gridbox lists — guard of the sorting (security)
+
+Gridbox puts the sorting of a list from the address (`?sort-by=…`) into the `ORDER BY` of its database query without checking it, and its editor's task that lists posts (`editor.getBlogPosts`, which takes an order too) checks no rights — on Gridbox 2.20.4 an address with another value gave an error page and could reach the database. With *Guard the sorting of the lists* (**on by default**), a sorting other than the ones Gridbox offers (default, price low/high, newest, highest rated, most reviewed, most popular) is taken out of the address with a 301 (other requests: 400) before Gridbox runs, and that task needs the right to edit in Gridbox (403). Comments and reviews sort by a fixed list of their own and are not touched; nothing changes for visitors.
 ### 🛒 Shop — links to a product option
 
 A link to a chosen product option or set (Gridbox adds it to the address, e.g. `?Zestawy+Metrel+MI+3155=…`) opens the product with that option selected, with its price, SKU and images, so a customer can be sent a link to a specific set. Without it, Gridbox opened such links with nothing selected whenever the option group name had a space, a dot or a square bracket, because PHP renames those parameters, or when the option name had a symbol written as HTML code (e.g. a red dot `&#128308;`), because Joomla's input filter decodes it. Server side, Gridbox pages only, nothing in the Gridbox files is changed. Works with every kind of Gridbox option (drop-down list, tags, colours, images, radio buttons) and with several option groups in one product. On by default, tab *Shop*.

@@ -2,6 +2,16 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.6.6 — 2026-10-23
+
+### 🛡 Security: guard of Gridbox's sorting (on by default)
+
+- **Gridbox 2.20.4 puts the sorting of a list from the address (`?sort-by=…`) into the `ORDER BY` of its database query without checking it**, and its editor's task `editor.getBlogPosts` (which takes an order too) checks no rights; found while testing the pages of the lists (`?sort-by=price` gave an error 500). New setting *Guard the sorting of the lists* (tab *Canonical URL*, **on by default**): a sorting other than the ones Gridbox offers is taken out of the address with a 301 (other requests: 400) before Gridbox runs, and `editor.getBlogPosts` needs the right to edit in Gridbox (403). Comments and reviews are not touched; nothing changes for visitors. Worth reporting to Balbooa as well.
+
+### 🔢 Pages of the lists (?page=N)
+
+- **New setting *Pages of the lists*** (tab *Canonical URL*, off by default): page 2 and further of a Gridbox list get their own canonical (`…?page=2`, not the first page's) and “– page 2” in the title and the description; a page whose list came out empty (`?page=999`) answers **404** with noindex instead of 200 with links up to page 1000; a page number that is not one (`?page=0`, `1`, `01`, `abc`) is redirected (301) to the list without it, the other parameters kept.
+
 ## 1.6.5 — 2026-10-23
 
 ### 🔎 Article data for search engines (JSON-LD)
