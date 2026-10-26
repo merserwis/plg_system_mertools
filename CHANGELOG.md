@@ -2,6 +2,23 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.6.7 — 2026-10-26
+
+### 🧼 Site hygiene (new tab)
+
+Small things the SEO audit of merserwis.pl found. Each one is a switch in the new tab **Site hygiene**; they work on the pages kept by the page cache, too.
+
+- **No campaign tags in `og:url` (on by default).** `?srsltid=`, `?utm_*`, `?gclid=`, `?fbclid=` and the like are taken out of `og:url` and `twitter:url`. The cause was in the page cache: its key ignores the campaign tags (so a page is served to everybody), and a page kept for a visitor who came from Google Shopping carried the tag in its `og:url` to all the others (3 of 415 pages on merserwis.pl, with a clean canonical all the time). The pages kept before are cleared when the settings are saved.
+- **Secure and SameSite on the cookies (on by default).** `Secure` (on HTTPS) and `SameSite=Lax` are added to every cookie the site sets without them, the session cookie included. Lax is what current browsers assume anyway; turn it off if a payment or login service that sends the visitor back with a POST loses the session.
+- **No `X-XSS-Protection` (on by default).** The header is obsolete. Removed when Joomla or PHP sends it (the HTTP Headers plugin); a web server or a CDN has to drop it itself.
+- **Short language code (off by default).** `lang="pl-pl"` of the `<html>` tag becomes `lang="pl"` (`de-de`, `cs-cz` and the like: a region that repeats the language; `en-gb`, `pt-br` stay).
+- **Content-Security-Policy (off by default).** *Report only* (the browser lists in its console what the policy would block, nothing is blocked) or *Enforce*. The default policy cannot break a page: `upgrade-insecure-requests; object-src 'none'; base-uri 'self'` (it also upgrades the `http://` pictures and scripts of a few pages). A policy of Joomla's HTTP Headers plugin stays and is applied together with this one. A stricter `script-src` has to name every script source of the site: try it in *Report only* first.
+
+### ℹ️ What is not changed
+
+- The TermsFeed cookie banner's request to `…/cookie-consent.js/<host>` that the audit called a malformed URL is the banner's own usage ping (it is built so in TermsFeed's script); it is blocked by the other side's policy and harmless, so there is nothing to correct.
+- The session cookie is still set on every visit of an anonymous visitor (Joomla starts the session); not starting it, and the cache headers of the HTML, are outside what a plugin can change safely.
+
 ## 1.6.6 — 2026-10-23
 
 ### 🛡 Security: guard of Gridbox's sorting (on by default)

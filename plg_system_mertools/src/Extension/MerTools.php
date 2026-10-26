@@ -51,6 +51,7 @@ use Merserwis\Plugin\System\MerTools\Feature\EditHistory;
 use Merserwis\Plugin\System\MerTools\Feature\EditLocks;
 use Merserwis\Plugin\System\MerTools\Feature\Feeds;
 use Merserwis\Plugin\System\MerTools\Feature\GridboxLists;
+use Merserwis\Plugin\System\MerTools\Feature\Hygiene;
 use Merserwis\Plugin\System\MerTools\Feature\ListPages;
 use Merserwis\Plugin\System\MerTools\Feature\MissingPages;
 use Merserwis\Plugin\System\MerTools\Feature\PageSpeed;
@@ -204,7 +205,10 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $this->shop()->discountScript();
             $this->lists()->mediaDropScript();
         }
-        if (!$document || $document->getType() !== 'html' || $this->inBuilder()) {
+        $page = $document && $document->getType() === 'html' && !$this->inBuilder();
+        // the last listener: the headers other plugins have set are all there
+        $this->hygiene()->headers($page);
+        if (!$page) {
             return;
         }
         $input = $app->getInput();
@@ -221,6 +225,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
         $new = $this->pages()->listPage($new);
         $new = $this->speed()->speedup($new);
+        $new = $this->hygiene()->html($new);
         if ($this->database()->introLtOn()) {
             $new = IntroText::fixMeta($new);
         }
@@ -676,6 +681,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     public function sitemaps(): Sitemaps
     {
         return $this->features[Sitemaps::class] ??= new Sitemaps($this);
+    }
+
+    public function hygiene(): Hygiene
+    {
+        return $this->features[Hygiene::class] ??= new Hygiene($this);
     }
 
     public function shop(): Shop

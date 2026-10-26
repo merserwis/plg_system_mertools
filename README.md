@@ -63,6 +63,10 @@ Gridbox gives every page of a list of products or posts (a category, a blog, a t
 ### 🛡 Gridbox lists — guard of the sorting (security)
 
 Gridbox puts the sorting of a list from the address (`?sort-by=…`) into the `ORDER BY` of its database query without checking it, and its editor's task that lists posts (`editor.getBlogPosts`, which takes an order too) checks no rights — on Gridbox 2.20.4 an address with another value gave an error page and could reach the database. With *Guard the sorting of the lists* (**on by default**), a sorting other than the ones Gridbox offers (default, price low/high, newest, highest rated, most reviewed, most popular) is taken out of the address with a 301 (other requests: 400) before Gridbox runs, and that task needs the right to edit in Gridbox (403). Comments and reviews sort by a fixed list of their own and are not touched; nothing changes for visitors.
+### 🧼 Site hygiene — the small things audits find
+
+Campaign tags (`?srsltid=`, `?utm_*`…) out of `og:url` (the page cache kept them for everybody), `Secure` and `SameSite=Lax` on the cookies, no obsolete `X-XSS-Protection`, the language code `pl` instead of `pl-pl`, and an optional Content-Security-Policy (report only or enforced; the default policy cannot break a page).
+
 ### 🛒 Shop — links to a product option
 
 A link to a chosen product option or set (Gridbox adds it to the address, e.g. `?Zestawy+Metrel+MI+3155=…`) opens the product with that option selected, with its price, SKU and images, so a customer can be sent a link to a specific set. Without it, Gridbox opened such links with nothing selected whenever the option group name had a space, a dot or a square bracket, because PHP renames those parameters, or when the option name had a symbol written as HTML code (e.g. a red dot `&#128308;`), because Joomla's input filter decodes it. Server side, Gridbox pages only, nothing in the Gridbox files is changed. Works with every kind of Gridbox option (drop-down list, tags, colours, images, radio buttons) and with several option groups in one product. On by default, tab *Shop*.

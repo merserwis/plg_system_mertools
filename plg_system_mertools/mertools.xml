@@ -6,7 +6,7 @@
     <creationDate>2026-10-23</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.6.6</version>
+    <version>1.6.7</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -827,6 +827,40 @@
                 <field name="dark_c_border" type="color" default="#333e52" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_BORDER" description="PLG_SYSTEM_MERTOOLS_DARK_C_BORDER_DESC" />
                 <field name="dark_c_hover" type="color" default="#2a3447" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_HOVER" description="PLG_SYSTEM_MERTOOLS_DARK_C_HOVER_DESC" />
                 <field name="dark_c_shadow" type="text" default="rgba(0,0,0,.5)" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_SHADOW" description="PLG_SYSTEM_MERTOOLS_DARK_C_SHADOW_DESC" />
+            </fieldset>
+
+            <!-- ============================================================ Site hygiene -->
+            <fieldset name="hygiene" label="PLG_SYSTEM_MERTOOLS_FIELDSET_HYGIENE">
+                <field name="hygiene_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_HYGIENE_NOTE" />
+                <field name="hygiene_og_url" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_HYGIENE_OG_URL_LABEL" description="PLG_SYSTEM_MERTOOLS_HYGIENE_OG_URL_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="hygiene_lang" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_HYGIENE_LANG_LABEL" description="PLG_SYSTEM_MERTOOLS_HYGIENE_LANG_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="hygiene_cookies" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_HYGIENE_COOKIES_LABEL" description="PLG_SYSTEM_MERTOOLS_HYGIENE_COOKIES_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="hygiene_xss" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_HYGIENE_XSS_LABEL" description="PLG_SYSTEM_MERTOOLS_HYGIENE_XSS_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="hygiene_csp_mode" type="list" default="off"
+                    label="PLG_SYSTEM_MERTOOLS_HYGIENE_CSP_MODE_LABEL" description="PLG_SYSTEM_MERTOOLS_HYGIENE_CSP_MODE_DESC">
+                    <option value="off">PLG_SYSTEM_MERTOOLS_HYGIENE_CSP_OFF</option>
+                    <option value="report">PLG_SYSTEM_MERTOOLS_HYGIENE_CSP_REPORT</option>
+                    <option value="enforce">PLG_SYSTEM_MERTOOLS_HYGIENE_CSP_ENFORCE</option>
+                </field>
+                <field name="hygiene_csp" type="textarea" rows="3" filter="string" showon="hygiene_csp_mode!:off"
+                    default="upgrade-insecure-requests; object-src 'none'; base-uri 'self'"
+                    label="PLG_SYSTEM_MERTOOLS_HYGIENE_CSP_LABEL" description="PLG_SYSTEM_MERTOOLS_HYGIENE_CSP_DESC" />
             </fieldset>
         </fields>
     </config>

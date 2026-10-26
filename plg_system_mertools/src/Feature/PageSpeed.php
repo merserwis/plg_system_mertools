@@ -243,6 +243,8 @@ final class PageSpeed extends Feature
         $app->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0', true);
         $app->setHeader('Pragma', 'no-cache', true);
         $app->setHeader('X-MerTools-Cache', 'HIT', true);
+        // a kept page does not pass through onAfterRender: the headers of the hygiene tab are set here
+        $this->plugin->hygiene()->headers(true);
         // the no-store above stays (Joomla would add a bare no-cache to an uncachable answer)
         $app->allowCache(true);
         $app->setBody($html);
