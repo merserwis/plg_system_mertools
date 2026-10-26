@@ -14,6 +14,10 @@ Small things the SEO audit of merserwis.pl found. Each one is a switch in the ne
 - **Short language code (off by default).** `lang="pl-pl"` of the `<html>` tag becomes `lang="pl"` (`de-de`, `cs-cz` and the like: a region that repeats the language; `en-gb`, `pt-br` stay).
 - **Content-Security-Policy (off by default).** *Report only* (the browser lists in its console what the policy would block, nothing is blocked) or *Enforce*. The default policy cannot break a page: `upgrade-insecure-requests; object-src 'none'; base-uri 'self'` (it also upgrades the `http://` pictures and scripts of a few pages). A policy of Joomla's HTTP Headers plugin stays and is applied together with this one. A stricter `script-src` has to name every script source of the site: try it in *Report only* first.
 
+### 🗂 Finished items out of the lists (off by default)
+
+- **Promotions that are over no longer sit on the home page.** New setting **Leave finished items out of the lists** (tab *Page layout*): the words that mark an item as finished, one per line (e.g. `[ZAKOŃCZONE]` in the title of a promotion), any letter case. A card of a Gridbox list (a slider or a grid of recent posts, a blog, a category, products) with such a word in its title is taken out of the list. **The page itself stays**: it opens, is in the sitemap and in a search, so a visitor who comes from a search engine or an old mail still finds the conditions of the promotion (unpublishing it, or setting its end of publishing, would take it out of the index). The second setting says where: on the home page only (the default; the page of the promotions and the blog still list them as an archive) or in all the lists.
+
 ### ℹ️ What is not changed
 
 - The TermsFeed cookie banner's request to `…/cookie-consent.js/<host>` that the audit called a malformed URL is the banner's own usage ping (it is built so in TermsFeed's script); it is blocked by the other side's policy and harmless, so there is nothing to correct.

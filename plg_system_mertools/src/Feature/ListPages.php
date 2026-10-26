@@ -14,6 +14,7 @@ namespace Merserwis\Plugin\System\MerTools\Feature;
 \defined('_JEXEC') or die;
 
 use Joomla\CMS\Uri\Uri;
+use Merserwis\Plugin\System\MerTools\Tool\EndedItems;
 use Merserwis\Plugin\System\MerTools\Tool\Pagination;
 
 final class ListPages extends Feature
@@ -91,6 +92,29 @@ final class ListPages extends Feature
         $this->plugin->loadLanguage();
 
         return Pagination::texts(Pagination::canonical($html, $page), $page, $this->plugin->translate('PLG_SYSTEM_MERTOOLS_PAGINATION_TITLE') ?: '%1$s – %2$d');
+    }
+
+    /**
+     * Cards of the lists with a word of the setting in their title (e.g. "[ZAKOŃCZONE]") taken out: on the home page
+     * only, or on every page. The page of such a card stays open.
+     */
+    public function hideEnded(string $html): string
+    {
+        $words = EndedItems::words((string) $this->plugin->params->get('list_hide_words', ''));
+        if ($words === [] || !str_contains($html, 'ba-blog-post-title')) {
+            return $html;
+        }
+        if ((string) $this->plugin->params->get('list_hide_where', 'home') !== 'all') {
+            $active = $this->plugin->app()->getMenu()->getActive();
+            if (!$active || !(int) $active->home) {
+                return $html;
+            }
+        }
+        try {
+            return EndedItems::hide($html, $words);
+        } catch (\Throwable $e) {
+            return $html;
+        }
     }
 
     /** A page of a Gridbox list (GET or HEAD) */

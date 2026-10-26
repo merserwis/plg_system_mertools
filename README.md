@@ -63,6 +63,10 @@ Gridbox gives every page of a list of products or posts (a category, a blog, a t
 ### 🛡 Gridbox lists — guard of the sorting (security)
 
 Gridbox puts the sorting of a list from the address (`?sort-by=…`) into the `ORDER BY` of its database query without checking it, and its editor's task that lists posts (`editor.getBlogPosts`, which takes an order too) checks no rights — on Gridbox 2.20.4 an address with another value gave an error page and could reach the database. With *Guard the sorting of the lists* (**on by default**), a sorting other than the ones Gridbox offers (default, price low/high, newest, highest rated, most reviewed, most popular) is taken out of the address with a 301 (other requests: 400) before Gridbox runs, and that task needs the right to edit in Gridbox (403). Comments and reviews sort by a fixed list of their own and are not touched; nothing changes for visitors.
+### 🗂 Page layout — finished items out of the lists
+
+Cards of Gridbox lists (recent posts, a blog, a category, products) whose title has a word of your list in it (e.g. `[ZAKOŃCZONE]` of a promotion that is over) are left out of the home page or of all the lists, while the page itself stays open, in the sitemap and in a search.
+
 ### 🧼 Site hygiene — the small things audits find
 
 Campaign tags (`?srsltid=`, `?utm_*`…) out of `og:url` (the page cache kept them for everybody), `Secure` and `SameSite=Lax` on the cookies, no obsolete `X-XSS-Protection`, the language code `pl` instead of `pl-pl`, and an optional Content-Security-Policy (report only or enforced; the default policy cannot break a page).

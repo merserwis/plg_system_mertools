@@ -327,6 +327,13 @@
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
+                <field name="list_hide_words" type="textarea" rows="3" default="" filter="string"
+                    label="PLG_SYSTEM_MERTOOLS_LIST_HIDE_WORDS_LABEL" description="PLG_SYSTEM_MERTOOLS_LIST_HIDE_WORDS_DESC" hint="[ZAKOŃCZONE]" />
+                <field name="list_hide_where" type="list" default="home"
+                    label="PLG_SYSTEM_MERTOOLS_LIST_HIDE_WHERE_LABEL" description="PLG_SYSTEM_MERTOOLS_LIST_HIDE_WHERE_DESC">
+                    <option value="home">PLG_SYSTEM_MERTOOLS_LIST_HIDE_WHERE_HOME</option>
+                    <option value="all">PLG_SYSTEM_MERTOOLS_LIST_HIDE_WHERE_ALL</option>
+                </field>
                 <field name="layout_categories_moved" type="note" class="alert alert-info"
                     label="PLG_SYSTEM_MERTOOLS_LAYOUT_CATEGORIES_LABEL" description="PLG_SYSTEM_MERTOOLS_LAYOUT_CATEGORIES_MOVED" />
                 <field name="intro_lt" type="radio" layout="joomla.form.field.radio.switcher" default="1"

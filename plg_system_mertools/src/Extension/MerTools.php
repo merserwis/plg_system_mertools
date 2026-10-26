@@ -224,6 +224,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $new = $this->feeds()->articleSchema($new);
         }
         $new = $this->pages()->listPage($new);
+        // after the page of the list is judged: a page with every card taken out would look empty
+        $new = $this->pages()->hideEnded($new);
         $new = $this->speed()->speedup($new);
         $new = $this->hygiene()->html($new);
         if ($this->database()->introLtOn()) {
