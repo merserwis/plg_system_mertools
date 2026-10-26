@@ -11,7 +11,7 @@
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.6.7/pkg_mertools-1.6.7.zip</downloadurl>
         </downloads>
-        <sha256>1a24d39338d8802f20ce675e022567e5e5c254ea81ddcdf0c69d6f7eff566957</sha256>
+        <sha256>ce3182a95d3567c27ed2249130df13383aa63c21534d412f3e1a9e7e2a231f33</sha256>
         <tags>
             <tag>stable</tag>
         </tags>

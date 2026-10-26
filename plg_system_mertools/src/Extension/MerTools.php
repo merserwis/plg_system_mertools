@@ -57,6 +57,7 @@ use Merserwis\Plugin\System\MerTools\Feature\MissingPages;
 use Merserwis\Plugin\System\MerTools\Feature\PageSpeed;
 use Merserwis\Plugin\System\MerTools\Feature\Shop;
 use Merserwis\Plugin\System\MerTools\Feature\Sitemaps;
+use Merserwis\Plugin\System\MerTools\Feature\SiteSchema;
 use Merserwis\Plugin\System\MerTools\Tool\ArticleSchema;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\Feed;
@@ -69,6 +70,7 @@ use Merserwis\Plugin\System\MerTools\Tool\PostRows;
 use Merserwis\Plugin\System\MerTools\Tool\PriceRequest;
 use Merserwis\Plugin\System\MerTools\Tool\ProductLinks;
 use Merserwis\Plugin\System\MerTools\Tool\ProductSchema;
+use Merserwis\Plugin\System\MerTools\Tool\SiteSchema as SiteSchemaTool;
 use Merserwis\Plugin\System\MerTools\Tool\StoreCurrency;
 use Merserwis\Plugin\System\MerTools\Tool\Tabs;
 use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
@@ -222,6 +224,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
         if (ArticleSchema::enabled($this->params)) {
             $new = $this->feeds()->articleSchema($new);
+        }
+        if (SiteSchemaTool::enabled($this->params)) {
+            $new = $this->siteSchema()->html($new);
         }
         $new = $this->pages()->listPage($new);
         // after the page of the list is judged: a page with every card taken out would look empty
@@ -688,6 +693,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     public function hygiene(): Hygiene
     {
         return $this->features[Hygiene::class] ??= new Hygiene($this);
+    }
+
+    public function siteSchema(): SiteSchema
+    {
+        return $this->features[SiteSchema::class] ??= new SiteSchema($this);
     }
 
     public function shop(): Shop

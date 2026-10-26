@@ -4,6 +4,16 @@ All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta 
 
 ## 1.6.7 — 2026-10-26
 
+### 🗺 Structured data of the site (new tab, off by default; SEO audit, item 21)
+
+A skeleton to fill in yourself: **nothing is filled in for you**, every field is empty and an empty field is left out of the data (what the page already has stays). Switch **Structured data of the site** on in the new tab **Structured data**, then fill in what is true and the same as on the site.
+
+- **Organization on the home page.** One block with the `@id` `/#organization` (the one the blog posts and the products point to) instead of the thin Organization the home page had: the type (LocalBusiness, ProfessionalService, Store or Organization), name, legal name, description, logo, picture, phone, e-mail, map, NIP (`vatID`), KRS, year founded, the address and coordinates, **opening hours** (`Mo-Fr 08:00-16:00` or `Pn-Pt 08:00-16:00`), **contact points** (a kind for every number), **accreditations and certificates** (`name | issued by | address`; write only what the body confirms), membership, competence areas, profiles (`sameAs`). What the old block says and the fields do not stays in it. *Pages with the full organization too* (e.g. `firma/kontakt`) get the same block in place of their own, so the data do not differ between pages.
+- **WebSite on the home page**, in the same block (`@graph`), with the organization as publisher and, when you give the address of the search (`/szukaj?query={search_term_string}`), the search box.
+- **BreadcrumbList on every page but the home page**: the home page first, absolute addresses and **the page itself last** (Gridbox's breadcrumbs leave it out). Taken from the breadcrumbs Gridbox writes in the page, else from a BreadcrumbList the page already has, else from Joomla's path of the page; the page's own list is replaced, the visible breadcrumbs stay.
+- **Service for the pages of a service**: one line per page (`address | name | type | description`), the organization as provider, the area served and the audience when you give them; the main page of the services lists the others as an offer catalog. No price is written.
+- Not written on error pages. Switch each part off separately; the page cache is cleared when the settings are saved.
+
 ### 🧼 Site hygiene (new tab)
 
 Small things the SEO audit of merserwis.pl found. Each one is a switch in the new tab **Site hygiene**; they work on the pages kept by the page cache, too.

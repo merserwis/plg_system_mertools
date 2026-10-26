@@ -67,6 +67,10 @@ Gridbox puts the sorting of a list from the address (`?sort-by=…`) into the `O
 
 Cards of Gridbox lists (recent posts, a blog, a category, products) whose title has a word of your list in it (e.g. `[ZAKOŃCZONE]` of a promotion that is over) are left out of the home page or of all the lists, while the page itself stays open, in the sitemap and in a search.
 
+### 🗺 Structured data of the site (off by default)
+
+The organization (address, hours, NIP/KRS, contact points, accreditations), the WebSite with the search box, the BreadcrumbList of every page (with the page itself last) and the Service of the pages of a service, as JSON-LD. A skeleton to fill in yourself: every field is empty and an empty field is left out of the data.
+
 ### 🧼 Site hygiene — the small things audits find
 
 Campaign tags (`?srsltid=`, `?utm_*`…) out of `og:url` (the page cache kept them for everybody), `Secure` and `SameSite=Lax` on the cookies, no obsolete `X-XSS-Protection`, the language code `pl` instead of `pl-pl`, and an optional Content-Security-Policy (report only or enforced; the default policy cannot break a page).

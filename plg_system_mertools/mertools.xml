@@ -869,6 +869,109 @@
                     default="upgrade-insecure-requests; object-src 'none'; base-uri 'self'"
                     label="PLG_SYSTEM_MERTOOLS_HYGIENE_CSP_LABEL" description="PLG_SYSTEM_MERTOOLS_HYGIENE_CSP_DESC" />
             </fieldset>
+            <!-- ============================================================ Structured data -->
+            <fieldset name="schema" label="PLG_SYSTEM_MERTOOLS_FIELDSET_SCHEMA">
+                <field name="schema_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_SCHEMA_NOTE" />
+                <field name="schema_on" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_ON_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_ON_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="schema_sp_bc" type="spacer" label="PLG_SYSTEM_MERTOOLS_SCHEMA_SP_BC" showon="schema_on:1" />
+                <field name="schema_breadcrumbs" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="schema_on:1"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_BC_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_BC_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="schema_home_name" type="text" default="" showon="schema_on:1[AND]schema_breadcrumbs:1" hint="Start" maxlength="100"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_HOME_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_HOME_DESC" />
+                <field name="schema_sp_web" type="spacer" label="PLG_SYSTEM_MERTOOLS_SCHEMA_SP_WEB" showon="schema_on:1" />
+                <field name="schema_website" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="schema_on:1"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_WEB_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_WEB_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="schema_site_name" type="text" default="" showon="schema_on:1[AND]schema_website:1" maxlength="200"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_SITE_NAME_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_SITE_NAME_DESC" />
+                <field name="schema_search" type="text" default="" showon="schema_on:1[AND]schema_website:1" hint="/szukaj?query={search_term_string}" maxlength="300"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_SEARCH_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_SEARCH_DESC" />
+                <field name="schema_sp_org" type="spacer" label="PLG_SYSTEM_MERTOOLS_SCHEMA_SP_ORG" showon="schema_on:1" />
+                <field name="schema_org" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="schema_on:1"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_ORG_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_ORG_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="schema_org_pages" type="textarea" default="" showon="schema_on:1[AND]schema_org:1" rows="2" filter="string" hint="firma/kontakt"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_ORG_PAGES_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_ORG_PAGES_DESC" />
+                <field name="schema_org_type" type="list" default="LocalBusiness" showon="schema_on:1[AND]schema_org:1"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_TYPE_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_TYPE_DESC">
+                    <option value="LocalBusiness">LocalBusiness</option>
+                    <option value="ProfessionalService">ProfessionalService</option>
+                    <option value="Store">Store</option>
+                    <option value="Organization">Organization</option>
+                </field>
+                <field name="schema_org_name" type="text" default="" showon="schema_on:1[AND]schema_org:1" maxlength="200"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_NAME_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_NAME_DESC" />
+                <field name="schema_org_legal" type="text" default="" showon="schema_on:1[AND]schema_org:1" maxlength="200"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_LEGAL_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_LEGAL_DESC" />
+                <field name="schema_org_description" type="textarea" default="" showon="schema_on:1[AND]schema_org:1" rows="2" filter="string" maxlength="600"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_DESCRIPTION_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_DESCRIPTION_DESC" />
+                <field name="schema_org_logo" type="media" default="" showon="schema_on:1[AND]schema_org:1"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_LOGO_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_LOGO_DESC" />
+                <field name="schema_org_image" type="media" default="" showon="schema_on:1[AND]schema_org:1"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_IMAGE_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_IMAGE_DESC" />
+                <field name="schema_org_phone" type="text" default="" showon="schema_on:1[AND]schema_org:1" maxlength="40" hint="+48 22 000 00 00"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_PHONE_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_PHONE_DESC" />
+                <field name="schema_org_email" type="text" default="" showon="schema_on:1[AND]schema_org:1" maxlength="150"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_EMAIL_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_EMAIL_DESC" />
+                <field name="schema_org_map" type="text" default="" showon="schema_on:1[AND]schema_org:1" maxlength="500" hint="https://maps.google.com/?cid=…"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_MAP_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_MAP_DESC" />
+                <field name="schema_org_vat" type="text" default="" showon="schema_on:1[AND]schema_org:1" maxlength="30"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_VAT_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_VAT_DESC" />
+                <field name="schema_org_krs" type="text" default="" showon="schema_on:1[AND]schema_org:1" maxlength="30"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_KRS_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_KRS_DESC" />
+                <field name="schema_org_founded" type="text" default="" showon="schema_on:1[AND]schema_org:1" maxlength="10"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_FOUNDED_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_FOUNDED_DESC" />
+                <field name="schema_addr_street" type="text" default="" showon="schema_on:1[AND]schema_org:1" maxlength="150"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_STREET_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_STREET_DESC" />
+                <field name="schema_addr_postal" type="text" default="" showon="schema_on:1[AND]schema_org:1" maxlength="10" hint="00-000"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_POSTAL_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_POSTAL_DESC" />
+                <field name="schema_addr_city" type="text" default="" showon="schema_on:1[AND]schema_org:1" maxlength="100"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_CITY_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_CITY_DESC" />
+                <field name="schema_addr_region" type="text" default="" showon="schema_on:1[AND]schema_org:1" maxlength="100"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_REGION_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_REGION_DESC" />
+                <field name="schema_addr_country" type="text" default="" showon="schema_on:1[AND]schema_org:1" maxlength="2" hint="PL"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_COUNTRY_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_COUNTRY_DESC" />
+                <field name="schema_geo_lat" type="text" default="" showon="schema_on:1[AND]schema_org:1" maxlength="12"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_LAT_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_LAT_DESC" />
+                <field name="schema_geo_lng" type="text" default="" showon="schema_on:1[AND]schema_org:1" maxlength="12"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_LNG_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_LNG_DESC" />
+                <field name="schema_hours" type="textarea" default="" showon="schema_on:1[AND]schema_org:1" rows="3" filter="string" hint="Mo-Fr 08:00-16:00"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_HOURS_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_HOURS_DESC" />
+                <field name="schema_contacts" type="textarea" default="" showon="schema_on:1[AND]schema_org:1" rows="3" filter="string"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_CONTACTS_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_CONTACTS_DESC" />
+                <field name="schema_credentials" type="textarea" default="" showon="schema_on:1[AND]schema_org:1" rows="3" filter="string"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_CREDENTIALS_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_CREDENTIALS_DESC" />
+                <field name="schema_members" type="textarea" default="" showon="schema_on:1[AND]schema_org:1" rows="2" filter="string"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_MEMBERS_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_MEMBERS_DESC" />
+                <field name="schema_knows" type="textarea" default="" showon="schema_on:1[AND]schema_org:1" rows="3" filter="string"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_KNOWS_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_KNOWS_DESC" />
+                <field name="schema_same_as" type="textarea" default="" showon="schema_on:1[AND]schema_org:1" rows="3" filter="string"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_SAMEAS_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_SAMEAS_DESC" />
+                <field name="schema_sp_srv" type="spacer" label="PLG_SYSTEM_MERTOOLS_SCHEMA_SP_SRV" showon="schema_on:1" />
+                <field name="schema_services" type="textarea" default="" showon="schema_on:1" rows="5" filter="string"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_SERVICES_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_SERVICES_DESC" />
+                <field name="schema_services_hub" type="text" default="" showon="schema_on:1" maxlength="200"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_HUB_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_HUB_DESC" />
+                <field name="schema_services_catalog" type="text" default="" showon="schema_on:1" maxlength="200"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_CATALOG_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_CATALOG_DESC" />
+                <field name="schema_services_type" type="text" default="" showon="schema_on:1" maxlength="200"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_STYPE_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_STYPE_DESC" />
+                <field name="schema_services_area" type="text" default="" showon="schema_on:1" maxlength="100"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_AREA_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_AREA_DESC" />
+                <field name="schema_services_audience" type="text" default="" showon="schema_on:1" maxlength="200"
+                    label="PLG_SYSTEM_MERTOOLS_SCHEMA_AUDIENCE_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_AUDIENCE_DESC" />
+            </fieldset>
         </fields>
     </config>
 </extension>
