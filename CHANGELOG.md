@@ -12,11 +12,11 @@ Gridbox shows the pictures of a product slideshow as CSS backgrounds: no `<img>`
 - **Nothing else changes**: the background stays (Gridbox's zoom reads it), clicks, the zoom, the dots and swiping go to Gridbox's slide as before (the picture lets them through), and when another variation of the product with its own photos is chosen Gridbox builds the slideshow anew with backgrounds only, as today.
 - A product shown with a variation chosen beforehand (no slide marked active) gets its first photo fetched first too; the address is taken from `data-src`, so a `)` in a file name does not cut it.
 - **No photo is fetched twice**: with the lighter copies of the backgrounds the picture is a `<picture>` with the same screen rules (480 / 768 px), so each screen asks for the address of the background. The active slide's picture is fetched first, the others lazily.
-- Checked on merserwis.pl product pages (Metrel MI 3155, 3 photos, options): the same requests as without it, the zoom and the dots work, the phone view identical to the pixel, the desktop view the same but for the smoothing of edges. Product slideshows only. Switch: *Product photos for search engines* (tab *Page speed*).
+- Product slideshows only. Switch: *Product photos for search engines* (tab *Page speed*).
 
 ### 🔥 Page cache warm-up (on with the page cache)
 
-The page cache is filled by visitors, so the first one after a change, an expiry or an emptying paid for building the page (on merserwis.pl 1.4 s against 0.23 s from the cache). Now the pages are built before anybody asks.
+The page cache is filled by visitors, so the first one after a change, an expiry or an emptying paid for building the page. Now the pages are built before anybody asks.
 
 - **Once a minute, after the response has gone to the visitor** (only where PHP can close it early, as with the pictures: PHP-FPM, LiteSpeed; never while a visitor waits), the plugin asks for the next pages of the sitemap that have no kept copy, as a guest, and the usual page cache keeps them. **Pages per minute**: 5 by default (1–20).
 - **The home page and the main pages of the sections first**, then the deeper ones. The list is read from `/sitemap.xml` (an index is followed) and read again every 6 hours; only addresses of the site without a query are used.
@@ -24,7 +24,6 @@ The page cache is filled by visitors, so the first one after a change, an expiry
 - **The address of the site is never the visitor's.** The warm-up works on Joomla's `live_site`, else the domain of Gridbox's sitemap, else the address remembered when the MerTools settings are saved in the administrator: **save the settings once after updating**. A request with another `Host` header starts nothing, a sitemap index pointing elsewhere is not followed, and a download stops at its size limit while it runs.
 - **Not a visit:** the warm-up's requests are taken back from the hits of Gridbox pages (Gridbox counts every view) and are not written in the log of missing pages. Pages excluded from the page cache are not warmed.
 - Works with the setting *Page cache for guests* only; switch it off with **Warm up the page cache**. The requests introduce themselves as `MerTools-Warmup` and never start a warm-up themselves. Needs PHP cURL and a server that can reach its own address (a Cloudflare or firewall rule that blocks the server stops the warm-up quietly).
-- Not done here: the **edge cache of Cloudflare** (the pages carry `no-store` and a session cookie, so Cloudflare cannot keep them), the **169 KB of inline CSS** (Gridbox writes it) and `defer` of Gridbox's scripts.
 
 ### 🗺 Structured data of the site (new tab, off by default)
 
@@ -40,7 +39,7 @@ A skeleton to fill in yourself: **nothing is filled in for you**, every field is
 
 Small things that matter for search engines and security. Each one is a switch in the new tab **Site hygiene**; they work on the pages kept by the page cache, too.
 
-- **No campaign tags in `og:url` (on by default).** `?srsltid=`, `?utm_*`, `?gclid=`, `?fbclid=` and the like are taken out of `og:url` and `twitter:url`. The cause was in the page cache: its key ignores the campaign tags (so a page is served to everybody), and a page kept for a visitor who came from Google Shopping carried the tag in its `og:url` to all the others (3 of 415 pages on merserwis.pl, with a clean canonical all the time). The pages kept before are cleared when the settings are saved.
+- **No campaign tags in `og:url` (on by default).** `?srsltid=`, `?utm_*`, `?gclid=`, `?fbclid=` and the like are taken out of `og:url` and `twitter:url`. The cause was in the page cache: its key ignores the campaign tags (so a page is served to everybody), and a page kept for a visitor who came from Google Shopping carried the tag in its `og:url` to all the others. The pages kept before are cleared when the settings are saved.
 - **Secure and SameSite on the cookies (on by default).** `Secure` (on HTTPS) and `SameSite=Lax` are added to every cookie the site sets without them, the session cookie included. Lax is what current browsers assume anyway; turn it off if a payment or login service that sends the visitor back with a POST loses the session.
 - **No `X-XSS-Protection` (on by default).** The header is obsolete. Removed when Joomla or PHP sends it (the HTTP Headers plugin); a web server or a CDN has to drop it itself.
 - **Short language code (off by default).** `lang="pl-pl"` of the `<html>` tag becomes `lang="pl"` (`de-de`, `cs-cz` and the like: a region that repeats the language; `en-gb`, `pt-br` stay).
@@ -49,11 +48,6 @@ Small things that matter for search engines and security. Each one is a switch i
 ### 🗂 Finished items out of the lists (off by default)
 
 - **Promotions that are over no longer sit on the home page.** New setting **Leave finished items out of the lists** (tab *Page layout*): the words that mark an item as finished, one per line (e.g. `[ZAKOŃCZONE]` in the title of a promotion), any letter case. A card of a Gridbox list (a slider or a grid of recent posts, a blog, a category, products) with such a word in its title is taken out of the list. **The page itself stays**: it opens, is in the sitemap and in a search, so a visitor who comes from a search engine or an old mail still finds the conditions of the promotion (unpublishing it, or setting its end of publishing, would take it out of the index). The second setting says where: on the home page only (the default; the page of the promotions and the blog still list them as an archive) or in all the lists.
-
-### ℹ️ What is not changed
-
-- The TermsFeed cookie banner's request to `…/cookie-consent.js/<host>` that looks like a malformed URL is the banner's own usage ping (it is built so in TermsFeed's script); it is blocked by the other side's policy and harmless, so there is nothing to correct.
-- The session cookie is still set on every visit of an anonymous visitor (Joomla starts the session); not starting it, and the cache headers of the HTML, are outside what a plugin can change safely.
 
 ## 1.6.6 — 2026-10-23
 
