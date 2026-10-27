@@ -4,7 +4,7 @@ All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta 
 
 ## 1.6.7 — 2026-10-27
 
-### 🖼 Product photos for search engines (on by default; SEO audit, item 19)
+### 🖼 Product photos for search engines (on by default)
 
 Gridbox shows the pictures of a product slideshow as CSS backgrounds: no `<img>`, no alt, so the photos are not in Google Images.
 
@@ -14,7 +14,7 @@ Gridbox shows the pictures of a product slideshow as CSS backgrounds: no `<img>`
 - **No photo is fetched twice**: with the lighter copies of the backgrounds the picture is a `<picture>` with the same screen rules (480 / 768 px), so each screen asks for the address of the background. The active slide's picture is fetched first, the others lazily.
 - Checked on merserwis.pl product pages (Metrel MI 3155, 3 photos, options): the same requests as without it, the zoom and the dots work, the phone view identical to the pixel, the desktop view the same but for the smoothing of edges. Product slideshows only. Switch: *Product photos for search engines* (tab *Page speed*).
 
-### 🔥 Page cache warm-up (on with the page cache; SEO audit, item 12)
+### 🔥 Page cache warm-up (on with the page cache)
 
 The page cache is filled by visitors, so the first one after a change, an expiry or an emptying paid for building the page (on merserwis.pl 1.4 s against 0.23 s from the cache). Now the pages are built before anybody asks.
 
@@ -26,7 +26,7 @@ The page cache is filled by visitors, so the first one after a change, an expiry
 - Works with the setting *Page cache for guests* only; switch it off with **Warm up the page cache**. The requests introduce themselves as `MerTools-Warmup` and never start a warm-up themselves. Needs PHP cURL and a server that can reach its own address (a Cloudflare or firewall rule that blocks the server stops the warm-up quietly).
 - Not done here: the **edge cache of Cloudflare** (the pages carry `no-store` and a session cookie, so Cloudflare cannot keep them), the **169 KB of inline CSS** (Gridbox writes it) and `defer` of Gridbox's scripts.
 
-### 🗺 Structured data of the site (new tab, off by default; SEO audit, item 21)
+### 🗺 Structured data of the site (new tab, off by default)
 
 A skeleton to fill in yourself: **nothing is filled in for you**, every field is empty and an empty field is left out of the data (what the page already has stays). Switch **Structured data of the site** on in the new tab **Structured data**, then fill in what is true and the same as on the site.
 
@@ -38,7 +38,7 @@ A skeleton to fill in yourself: **nothing is filled in for you**, every field is
 
 ### 🧼 Site hygiene (new tab)
 
-Small things the SEO audit of merserwis.pl found. Each one is a switch in the new tab **Site hygiene**; they work on the pages kept by the page cache, too.
+Small things that matter for search engines and security. Each one is a switch in the new tab **Site hygiene**; they work on the pages kept by the page cache, too.
 
 - **No campaign tags in `og:url` (on by default).** `?srsltid=`, `?utm_*`, `?gclid=`, `?fbclid=` and the like are taken out of `og:url` and `twitter:url`. The cause was in the page cache: its key ignores the campaign tags (so a page is served to everybody), and a page kept for a visitor who came from Google Shopping carried the tag in its `og:url` to all the others (3 of 415 pages on merserwis.pl, with a clean canonical all the time). The pages kept before are cleared when the settings are saved.
 - **Secure and SameSite on the cookies (on by default).** `Secure` (on HTTPS) and `SameSite=Lax` are added to every cookie the site sets without them, the session cookie included. Lax is what current browsers assume anyway; turn it off if a payment or login service that sends the visitor back with a POST loses the session.
@@ -52,7 +52,7 @@ Small things the SEO audit of merserwis.pl found. Each one is a switch in the ne
 
 ### ℹ️ What is not changed
 
-- The TermsFeed cookie banner's request to `…/cookie-consent.js/<host>` that the audit called a malformed URL is the banner's own usage ping (it is built so in TermsFeed's script); it is blocked by the other side's policy and harmless, so there is nothing to correct.
+- The TermsFeed cookie banner's request to `…/cookie-consent.js/<host>` that looks like a malformed URL is the banner's own usage ping (it is built so in TermsFeed's script); it is blocked by the other side's policy and harmless, so there is nothing to correct.
 - The session cookie is still set on every visit of an anonymous visitor (Joomla starts the session); not starting it, and the cache headers of the HTML, are outside what a plugin can change safely.
 
 ## 1.6.6 — 2026-10-23
@@ -70,7 +70,7 @@ Small things the SEO audit of merserwis.pl found. Each one is a switch in the ne
 
 ### 🔎 Article data for search engines (JSON-LD)
 
-- **New tool *Article data for search engines*** (tab *Blog feeds*, off by default): the BlogPosting block of a blog post is made by MerTools from the post, in place of the one of its schema field or Gridbox's template. Fixes what the SEO audit of merserwis.pl found on every article: the publishing date in words (`12 czerwiec 2020`, now ISO 8601 with the time zone), no `dateModified` (now the last change of the content when MerTools knows it), the author a “person” named after the company (now the post's Gridbox authors, else the organization), a publisher without `@id` (now the organization of the home page by `@id`), and two posts whose hand-copied schema was broken (a `<script>` pasted into `@id`, a missing quotation mark) — now always valid JSON.
+- **New tool *Article data for search engines*** (tab *Blog feeds*, off by default): the BlogPosting block of a blog post is made by MerTools from the post, in place of the one of its schema field or Gridbox's template. Fixes what search engines got from Gridbox on every article: the publishing date in words (`12 czerwiec 2020`, now ISO 8601 with the time zone), no `dateModified` (now the last change of the content when MerTools knows it), the author a “person” named after the company (now the post's Gridbox authors, else the organization), a publisher without `@id` (now the organization of the home page by `@id`), and two posts whose hand-copied schema was broken (a `<script>` pasted into `@id`, a missing quotation mark) — now always valid JSON.
 - Settings: the name of the organization (the site name by default) and the logo of the publisher (else the one of the post's block).
 - The product data and the article data share the code that finds and replaces the blocks (`JsonLd`); nothing changes for the product data.
 
@@ -86,7 +86,7 @@ Small things the SEO audit of merserwis.pl found. Each one is a switch in the ne
 
 ### 🔎 Product data for search engines (JSON-LD)
 
-- **New tool *Product data for search engines*** (tab *Shop*, off by default): the schema.org Product block of a product page is made by MerTools from the product, in place of the one Gridbox fills from a template. Fixes what the SEO audit of merserwis.pl found on most product pages: `"price": "0"` with “in stock” on products without a price (now no offer; a price range when only the versions have prices), `UsedCondition` and an empty description from Gridbox's default template (now `NewCondition` and the introduction or meta description), a brand that was a link (`index.php?option=com_gridbox…`, now the producer's name), and blocks broken by a line break or a quotation mark in the introduction (now always valid JSON).
+- **New tool *Product data for search engines*** (tab *Shop*, off by default): the schema.org Product block of a product page is made by MerTools from the product, in place of the one Gridbox fills from a template. Fixes what search engines got from Gridbox on most product pages: `"price": "0"` with “in stock” on products without a price (now no offer; a price range when only the versions have prices), `UsedCondition` and an empty description from Gridbox's default template (now `NewCondition` and the introduction or meta description), a brand that was a link (`index.php?option=com_gridbox…`, now the producer's name), and blocks broken by a line break or a quotation mark in the introduction (now always valid JSON).
 - Also: every picture of the product's gallery, `mpn` from the SKU (setting: whole SKU or the part after the last `/`), the VAT status of the prices from the store's settings, the sale price as Gridbox shows it; other keys of Gridbox's block are kept, other blocks (FAQ) untouched.
 
 ## 1.6.2 — 2026-10-23
