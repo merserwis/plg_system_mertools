@@ -25,6 +25,7 @@ use Merserwis\Plugin\System\MerTools\Tool\ImageSize;
 use Merserwis\Plugin\System\MerTools\Tool\PageCache;
 use Merserwis\Plugin\System\MerTools\Tool\Speed;
 use Merserwis\Plugin\System\MerTools\Tool\Speedup;
+use Merserwis\Plugin\System\MerTools\Tool\Warmup;
 
 final class PageSpeed extends Feature
 {
@@ -84,6 +85,118 @@ final class PageSpeed extends Feature
         } catch (\Throwable $e) {
             // tried again with the next page
         }
+    }
+
+    public function warmupOn(): bool
+    {
+        return $this->pageCacheOn() && (int) $this->plugin->params->get('speed_warm', 1) === 1;
+    }
+
+    /**
+     * After the response, at most once a minute: pages of the sitemap that have no kept copy are asked
+     * for as a guest, a few at a time, so that the first visitor finds them kept. Only where the response
+     * is already closed (no visitor waits), never from a request of the warm-up itself. The list of
+     * addresses comes from the sitemap (read again every 6 hours); an address is left alone for a TTL
+     * after it was asked for, whatever the answer (a page that cannot be kept is not asked for again and again).
+     */
+    public function warmUp(): void
+    {
+        if (!$this->warmupOn() || !\function_exists('curl_init') || !$this->plugin->app()->isClient('site')) {
+            return;
+        }
+        $agent = (string) $this->plugin->app()->getInput()->server->getString('HTTP_USER_AGENT', '');
+        if (str_starts_with($agent, Warmup::AGENT)) {
+            return;
+        }
+        $base = MerTools::cacheBase();
+        $gate = $base . '/mertools-warm-tick';
+        if (is_file($gate) && (int) @filemtime($gate) > time() - Warmup::INTERVAL) {
+            return;
+        }
+        // one round at a time: the lock on the gate file is held for the whole round, a request that
+        // finds it taken leaves (the date check alone would let two requests at the same moment both start)
+        $lock = @fopen($gate, 'c');
+        if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
+            return;
+        }
+        $now = time();
+        clearstatcache(true, $gate);
+        // not where a visitor would wait for it
+        if ((int) @filemtime($gate) > $now - Warmup::INTERVAL || !$this->plugin->finishResponse()) {
+            fclose($lock);
+
+            return;
+        }
+        @touch($gate);
+        @set_time_limit(60);
+        ignore_user_abort(true);
+        try {
+            $warm  = new Warmup($base . '/mertools-warm.json');
+            $root  = Uri::root();
+            $host  = (string) parse_url($root, PHP_URL_HOST);
+            if ($warm->listDue($now)) {
+                $urls = $this->warmupList($root . 'sitemap.xml', $host);
+                // an empty answer (the sitemap is not there, a block) is tried again in a round, not in 6 hours
+                $warm->setUrls($urls, $urls ? $now : $now - Warmup::LIST_TTL + 300);
+                $warm->save();
+
+                return;
+            }
+            $cache  = $this->pageCache();
+            $ttl    = $this->cacheTtl();
+            $fresh  = fn (string $url): bool => $cache->fresh($cache->key('page', $url), $ttl, microtime(true));
+            $batch  = max(1, min(20, (int) $this->plugin->params->get('speed_warm_batch', 5)));
+            $purged = $cache->purgedAt();
+            $end    = microtime(true) + 25.0;
+            foreach (Warmup::next($warm->urls(), $fresh, $warm->skips($now, $purged), $now, $batch) as $url) {
+                if (microtime(true) > $end) {
+                    break;
+                }
+                $warm->tried($url, $now, $ttl, $purged);
+                $this->warmupFetch($url, 15);
+            }
+            $warm->save();
+        } catch (\Throwable $e) {
+            // tried again in a minute
+        } finally {
+            fclose($lock);
+        }
+    }
+
+    /** The addresses of the sitemap (an index is followed, up to 30 files). */
+    private function warmupList(string $sitemap, string $host): array
+    {
+        $files = [$sitemap];
+        $urls  = [];
+        for ($i = 0; $i < \count($files) && $i < 30; $i++) {
+            $xml = $this->warmupFetch($files[$i], 20, 8388608);
+            if ($xml === null) {
+                continue;
+            }
+            $found = Warmup::locs($xml);
+            if ($found['index']) {
+                $files = array_merge($files, $found['locs']);
+            } else {
+                $urls = array_merge($urls, $found['locs']);
+            }
+        }
+
+        return Warmup::order($urls, $host);
+    }
+
+    /** A guest's GET of an address of this site; the body of a 200, else null. */
+    private function warmupFetch(string $url, int $timeout, int $max = 1048576): ?string
+    {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => $timeout, CURLOPT_CONNECTTIMEOUT => 5, CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_USERAGENT      => Warmup::AGENT . '/' . MerTools::VERSION, CURLOPT_ENCODING => '', CURLOPT_HTTPHEADER => ['Accept: text/html,application/xml'],
+        ]);
+        $body = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        curl_close($ch);
+
+        return \is_string($body) && $code === 200 && \strlen($body) <= $max ? $body : null;
     }
 
     /** Pages kept by MerTools and by Joomla's page cache are emptied (they would offer old pictures). */
@@ -249,6 +362,8 @@ final class PageSpeed extends Feature
         $app->allowCache(true);
         $app->setBody($html);
         echo $app->toString((bool) $app->get('gzip'));
+        // a kept page ends the request here, onAfterRespond never comes: the warm-up has its turn now
+        $this->warmUp();
         $app->close();
     }
 

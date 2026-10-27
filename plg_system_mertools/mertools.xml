@@ -164,6 +164,13 @@
                     label="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_COOKIES_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_COOKIES_DESC" />
                 <field name="speed_cache_max" type="number" default="5000" min="100" max="100000" filter="integer" showon="speed_cache:1"
                     label="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_MAX_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_MAX_DESC" />
+                <field name="speed_warm" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="speed_cache:1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_WARM_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_WARM_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="speed_warm_batch" type="number" default="5" min="1" max="20" filter="integer" showon="speed_cache:1[AND]speed_warm:1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_WARM_BATCH_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_WARM_BATCH_DESC" />
                 <field name="speed_cache_panel" type="mtpagecache" showon="speed_cache:1[OR]speed_cache_data:1"
                     label="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_PANEL_DESC" />
                 <field name="admin_cache_button" type="radio" layout="joomla.form.field.radio.switcher" default="1"

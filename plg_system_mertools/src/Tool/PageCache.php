@@ -311,6 +311,19 @@ final class PageCache
         return $body === false ? null : ['meta' => $meta, 'body' => $body];
     }
 
+    /** Is there an entry that read() would serve (only its first line is read) */
+    public function fresh(string $key, int $ttl, float $now): bool
+    {
+        $handle = @fopen($this->path($key), 'rb');
+        if (!$handle) {
+            return false;
+        }
+        $meta = json_decode((string) fgets($handle, 65536), true);
+        fclose($handle);
+
+        return \is_array($meta) && isset($meta['time']) && (float) $meta['time'] >= $now - $ttl && (float) $meta['time'] > $this->purgedAt();
+    }
+
     /**
      * Keep an entry; not when the cache was emptied after the request began ($started). The time of
      * the last emptying is read anew: this instance may be older than the request (the output buffer

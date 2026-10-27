@@ -369,6 +369,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $this->missing()->hourlyMoved();
         $this->apps()->appBackupTick();
         $this->speed()->imageWork();
+        $this->speed()->warmUp();
         $this->carts()->hourly();
     }
 

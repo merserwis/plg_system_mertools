@@ -4,6 +4,16 @@ All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta 
 
 ## 1.6.7 — 2026-10-26
 
+### 🔥 Page cache warm-up (on with the page cache; SEO audit, item 12)
+
+The page cache is filled by visitors, so the first one after a change, an expiry or an emptying paid for building the page (on merserwis.pl 1.4 s against 0.23 s from the cache). Now the pages are built before anybody asks.
+
+- **Once a minute, after the response has gone to the visitor** (only where PHP can close it early, as with the pictures: PHP-FPM, LiteSpeed; never while a visitor waits), the plugin asks for the next pages of the sitemap that have no kept copy, as a guest, and the usual page cache keeps them. **Pages per minute**: 5 by default (1–20).
+- **The home page and the main pages of the sections first**, then the deeper ones. The list is read from `/sitemap.xml` (an index is followed) and read again every 6 hours; only addresses of the site without a query are used.
+- **A page is not asked for again and again**: an address that was asked for is left alone for the time a kept page stays valid, whatever the answer (a page that cannot be kept, a 403 from a firewall).
+- Works with the setting *Page cache for guests* only; switch it off with **Warm up the page cache**. The requests introduce themselves as `MerTools-Warmup` and never start a warm-up themselves. Needs PHP cURL and a server that can reach its own address (a Cloudflare or firewall rule that blocks the server stops the warm-up quietly).
+- Not done here: the **edge cache of Cloudflare** (the pages carry `no-store` and a session cookie, so Cloudflare cannot keep them), the **169 KB of inline CSS** (Gridbox writes it) and `defer` of Gridbox's scripts.
+
 ### 🗺 Structured data of the site (new tab, off by default; SEO audit, item 21)
 
 A skeleton to fill in yourself: **nothing is filled in for you**, every field is empty and an empty field is left out of the data (what the page already has stays). Switch **Structured data of the site** on in the new tab **Structured data**, then fill in what is true and the same as on the site.
