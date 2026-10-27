@@ -30,11 +30,34 @@ $check('garbage: nothing', Warmup::locs('<html>403</html>'), ['index' => false, 
 // ---------------------------------------------------------------- the list
 $urls = ['https://www.merserwis.pl/oferta/a/b', 'https://www.merserwis.pl/oferta', 'https://www.merserwis.pl/', 'https://www.merserwis.pl/oferta/a', 'https://other.pl/x',
     'https://www.merserwis.pl/szukaj?query=a', 'https://www.merserwis.pl/oferta', 'https://www.merserwis.pl/blog', 'https://WWW.merserwis.pl/kontakt'];
-$check('order: the home page without its slash = with it, once', Warmup::order(['https://www.merserwis.pl', 'https://www.merserwis.pl/', 'https://www.merserwis.pl/a'], 'www.merserwis.pl'),
+$check('order: the home page without its slash = with it, once', Warmup::order(['https://www.merserwis.pl', 'https://www.merserwis.pl/', 'https://www.merserwis.pl/a'], 'https://www.merserwis.pl'),
     ['https://www.merserwis.pl/', 'https://www.merserwis.pl/a']);
-$check('order: shallow first, this host only, no query, no repeats', Warmup::order($urls, 'www.merserwis.pl'), [
+$check('order: shallow first, this host only, no query, no repeats', Warmup::order($urls, 'https://www.merserwis.pl'), [
     'https://www.merserwis.pl/', 'https://www.merserwis.pl/oferta', 'https://www.merserwis.pl/blog', 'https://WWW.merserwis.pl/kontakt',
     'https://www.merserwis.pl/oferta/a', 'https://www.merserwis.pl/oferta/a/b']);
+
+// ---------------------------------------------------------------- the address of the site
+$check('base: live_site first, host lower case, folder kept without its slash', Warmup::siteBase('https://WWW.Merserwis.pl/joomla/', 'https://other.pl', 'https://x.pl'), 'https://www.merserwis.pl/joomla');
+$check('base: root = origin only', Warmup::siteBase('https://www.merserwis.pl/'), 'https://www.merserwis.pl');
+$check('same site: in the folder of the site', Warmup::sameSite('https://x.pl/joomla/oferta', 'https://x.pl/joomla'), true);
+$check('same site: the folder itself', Warmup::sameSite('https://x.pl/joomla', 'https://x.pl/joomla'), true);
+$check('same site: outside the folder', Warmup::sameSite('https://x.pl/sitemap.xml', 'https://x.pl/joomla'), false);
+$check('same site: a folder only beginning alike', Warmup::sameSite('https://x.pl/joomla2/a', 'https://x.pl/joomla'), false);
+$check('same site: a redirect to a local service', Warmup::sameSite('http://127.0.0.1:8080/', 'https://x.pl'), false);
+$check('base: empty ones skipped, a bare domain = https', Warmup::siteBase('', ' ', 'www.merserwis.pl'), 'https://www.merserwis.pl');
+$check('base: port kept', Warmup::siteBase('http://localhost:8080/'), 'http://localhost:8080');
+$check('base: not http(s) skipped', Warmup::siteBase('ftp://x.pl', 'javascript:alert(1)', 'https://ok.pl'), 'https://ok.pl');
+$check('base: none', Warmup::siteBase('', ''), null);
+$check('same site: yes, host case ignored', Warmup::sameSite('https://WWW.merserwis.pl/a', 'https://www.merserwis.pl'), true);
+$check('same site: default port written out', Warmup::sameSite('https://www.merserwis.pl:443/a', 'https://www.merserwis.pl'), true);
+$check('same site: other port', Warmup::sameSite('http://www.merserwis.pl:8080/', 'http://www.merserwis.pl'), false);
+$check('same site: other host', Warmup::sameSite('https://attacker.tld/sitemap.xml', 'https://www.merserwis.pl'), false);
+$check('same site: metadata address', Warmup::sameSite('http://169.254.169.254/latest/', 'https://www.merserwis.pl'), false);
+$check('same site: other scheme', Warmup::sameSite('http://www.merserwis.pl/a', 'https://www.merserwis.pl'), false);
+$check('same site: a host only looking alike', Warmup::sameSite('https://www.merserwis.pl.attacker.tld/', 'https://www.merserwis.pl'), false);
+$check('same site: user info trick', Warmup::sameSite('https://www.merserwis.pl@attacker.tld/', 'https://www.merserwis.pl'), false);
+$check('order: fragments dropped (one address), excluded paths out', Warmup::order(['https://s.pl/a#f', 'https://s.pl/a', 'https://s.pl/koszyk/x', 'https://s.pl/b'], 'https://s.pl', ['/koszyk']),
+    ['https://s.pl/a', 'https://s.pl/b']);
 
 // ---------------------------------------------------------------- what is next
 $list  = ['https://s/a', 'https://s/b', 'https://s/c', 'https://s/d', 'https://s/e'];
@@ -43,7 +66,6 @@ $check('next: kept ones skipped, count respected', Warmup::next($list, $fresh, [
 $check('next: a tried one is left alone until its time', Warmup::next($list, $fresh, ['https://s/b' => 1500], 1000, 2), ['https://s/c', 'https://s/d']);
 $check('next: ... and asked for again after it', Warmup::next($list, $fresh, ['https://s/b' => 900], 1000, 1), ['https://s/b']);
 $check('next: all kept = nothing to do', Warmup::next($list, fn () => true, [], 1000, 5), []);
-$check('figures', Warmup::figures($list, $fresh), ['total' => 5, 'kept' => 1]);
 
 // ---------------------------------------------------------------- state file
 $dir  = sys_get_temp_dir() . '/mt-warm-' . bin2hex(random_bytes(4));

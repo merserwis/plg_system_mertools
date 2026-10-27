@@ -2,7 +2,7 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
-## 1.6.7 — 2026-10-26
+## 1.6.7 — 2026-10-27
 
 ### 🖼 Product photos for search engines (on by default; SEO audit, item 19)
 
@@ -10,6 +10,7 @@ Gridbox shows the pictures of a product slideshow as CSS backgrounds: no `<img>`
 
 - **Every slide of a product slideshow gets a real picture** of the same address, with the **product's name as its alt** (from the title of the product, else `og:title`; the next ones `Name – picture 2`, `– zdjęcie 2` in Polish), laid exactly on the background (cover, centred, as Gridbox shows it; a slideshow set to *contain* is followed by a line of script).
 - **Nothing else changes**: the background stays (Gridbox's zoom reads it), clicks, the zoom, the dots and swiping go to Gridbox's slide as before (the picture lets them through), and when another variation of the product with its own photos is chosen Gridbox builds the slideshow anew with backgrounds only, as today.
+- A product shown with a variation chosen beforehand (no slide marked active) gets its first photo fetched first too; the address is taken from `data-src`, so a `)` in a file name does not cut it.
 - **No photo is fetched twice**: with the lighter copies of the backgrounds the picture is a `<picture>` with the same screen rules (480 / 768 px), so each screen asks for the address of the background. The active slide's picture is fetched first, the others lazily.
 - Checked on merserwis.pl product pages (Metrel MI 3155, 3 photos, options): the same requests as without it, the zoom and the dots work, the phone view identical to the pixel, the desktop view the same but for the smoothing of edges. Product slideshows only. Switch: *Product photos for search engines* (tab *Page speed*).
 
@@ -20,6 +21,8 @@ The page cache is filled by visitors, so the first one after a change, an expiry
 - **Once a minute, after the response has gone to the visitor** (only where PHP can close it early, as with the pictures: PHP-FPM, LiteSpeed; never while a visitor waits), the plugin asks for the next pages of the sitemap that have no kept copy, as a guest, and the usual page cache keeps them. **Pages per minute**: 5 by default (1–20).
 - **The home page and the main pages of the sections first**, then the deeper ones. The list is read from `/sitemap.xml` (an index is followed) and read again every 6 hours; only addresses of the site without a query are used.
 - **A page is not asked for again and again**: an address that was asked for is left alone for the time a kept page stays valid, whatever the answer (a page that cannot be kept, a 403 from a firewall).
+- **The address of the site is never the visitor's.** The warm-up works on Joomla's `live_site`, else the domain of Gridbox's sitemap, else the address remembered when the MerTools settings are saved in the administrator: **save the settings once after updating**. A request with another `Host` header starts nothing, a sitemap index pointing elsewhere is not followed, and a download stops at its size limit while it runs.
+- **Not a visit:** the warm-up's requests are taken back from the hits of Gridbox pages (Gridbox counts every view) and are not written in the log of missing pages. Pages excluded from the page cache are not warmed.
 - Works with the setting *Page cache for guests* only; switch it off with **Warm up the page cache**. The requests introduce themselves as `MerTools-Warmup` and never start a warm-up themselves. Needs PHP cURL and a server that can reach its own address (a Cloudflare or firewall rule that blocks the server stops the warm-up quietly).
 - Not done here: the **edge cache of Cloudflare** (the pages carry `no-store` and a session cookie, so Cloudflare cannot keep them), the **169 KB of inline CSS** (Gridbox writes it) and `defer` of Gridbox's scripts.
 
@@ -56,7 +59,8 @@ Small things the SEO audit of merserwis.pl found. Each one is a switch in the ne
 
 ### 🛡 Security: guard of Gridbox's sorting (on by default)
 
-- **Gridbox 2.20.4 puts the sorting of a list from the address (`?sort-by=…`) into the `ORDER BY` of its database query without checking it**, and its editor's task `editor.getBlogPosts` (which takes an order too) checks no rights; found while testing the pages of the lists (`?sort-by=price` gave an error 500). New setting *Guard the sorting of the lists* (tab *Canonical URL*, **on by default**): a sorting other than the ones Gridbox offers is taken out of the address with a 301 (other requests: 400) before Gridbox runs, and `editor.getBlogPosts` needs the right to edit in Gridbox (403). Comments and reviews are not touched; nothing changes for visitors. Worth reporting to Balbooa as well.
+- **Gridbox up to 2.20.4.1 puts the sorting of a list from the address (`?sort-by=…`) into the `ORDER BY` of its database query without checking it**, and its editor's task `editor.getBlogPosts` (which takes an order too) checks no rights; found while testing the pages of the lists (`?sort-by=price` gave an error 500). New setting *Guard the sorting of the lists* (tab *Canonical URL*, **on by default**): a sorting other than the ones Gridbox offers is taken out of the address with a 301 (other requests: 400) before Gridbox runs, and `editor.getBlogPosts` needs the right to edit in Gridbox (403). Comments and reviews are not touched; nothing changes for visitors.
+- **Fixed by Balbooa in Gridbox 2.20.4.2** (27.10.2026, a security hardening update): the sorting of a store list is checked against its list and `editor.getBlogPosts` needs the right to edit. **Update Gridbox.** The guard stays on: it protects sites with an older Gridbox, and it still takes a sorting that is not one out of the address (one address per list, no 500 or a second copy of the list for search engines).
 
 ### 🔢 Pages of the lists (?page=N)
 

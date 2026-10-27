@@ -23,6 +23,7 @@ use Joomla\Database\DatabaseInterface;
 use Merserwis\Plugin\System\MerTools\Extension\MerTools;
 use Merserwis\Plugin\System\MerTools\Tool\NotFound;
 use Merserwis\Plugin\System\MerTools\Tool\Redirects;
+use Merserwis\Plugin\System\MerTools\Tool\Warmup;
 
 final class MissingPages extends Feature
 {
@@ -40,7 +41,9 @@ final class MissingPages extends Feature
         $fallback = (bool) (int) $this->plugin->params->get('notfound_redirect', 0);
         $gone     = (string) $this->plugin->params->get('notfound_gone', 'gone');
         $moved    = (bool) (int) $this->plugin->params->get('notfound_moved', 1);
-        $log      = (bool) (int) $this->plugin->params->get('notfound_log', 1);
+        // the warm-up of the page cache asking for an address of an old sitemap is not a visitor's miss
+        $log      = (bool) (int) $this->plugin->params->get('notfound_log', 1)
+            && !str_starts_with((string) $event->getApplication()->getInput()->server->getString('HTTP_USER_AGENT', ''), Warmup::AGENT);
         // pages only: no form posts, AJAX or JSON (a redirect to the home page makes no sense there)
         $input = $app->getInput();
         if (!\in_array(strtoupper((string) $input->getMethod()), ['GET', 'HEAD'], true)

@@ -92,12 +92,47 @@ final class PageSpeed extends Feature
         return $this->pageCacheOn() && (int) $this->plugin->params->get('speed_warm', 1) === 1;
     }
 
+    /** Where the address of the site is kept when an administrator saves the settings (see siteBase()) */
+    private static function siteFile(): string
+    {
+        return MerTools::cacheBase() . '/mertools-site.txt';
+    }
+
+    /** The settings were saved in the administrator: the site's address as the administrator reaches it. */
+    public function rememberSite(): void
+    {
+        if (!$this->plugin->app()->isClient('administrator')) {
+            return;
+        }
+        $base = Warmup::siteBase(Uri::root());
+        if ($base !== null && @file_get_contents(self::siteFile()) !== $base) {
+            @file_put_contents(self::siteFile(), $base, LOCK_EX);
+        }
+    }
+
+    /** The address of the site for the warm-up (Warmup::siteBase()): never the Host header of a request. */
+    public function warmupBase(): ?string
+    {
+        $gridbox = '';
+        try {
+            $db      = Factory::getContainer()->get(DatabaseInterface::class);
+            $gridbox = (string) $db->setQuery($db->getQuery(true)->select($db->quoteName('sitemap_domain'))
+                ->from($db->quoteName('#__gridbox_website')))->loadResult();
+        } catch (\Throwable $e) {
+            // no Gridbox, or an older one
+        }
+
+        return Warmup::siteBase((string) $this->plugin->app()->get('live_site', ''), $gridbox, (string) @file_get_contents(self::siteFile()));
+    }
+
     /**
      * After the response, at most once a minute: pages of the sitemap that have no kept copy are asked
      * for as a guest, a few at a time, so that the first visitor finds them kept. Only where the response
-     * is already closed (no visitor waits), never from a request of the warm-up itself. The list of
-     * addresses comes from the sitemap (read again every 6 hours); an address is left alone for a TTL
-     * after it was asked for, whatever the answer (a page that cannot be kept is not asked for again and again).
+     * is already closed (no visitor waits), never from a request of the warm-up itself, and only from a
+     * request to the site's own address (warmupBase(); a request with another Host header starts nothing,
+     * and the addresses fetched are always the site's). The list of addresses comes from the sitemap (read
+     * again every 6 hours); an address is left alone for a TTL after it was asked for, whatever the answer
+     * (a page that cannot be kept is not asked for again and again).
      */
     public function warmUp(): void
     {
@@ -111,6 +146,10 @@ final class PageSpeed extends Feature
         $base = MerTools::cacheBase();
         $gate = $base . '/mertools-warm-tick';
         if (is_file($gate) && (int) @filemtime($gate) > time() - Warmup::INTERVAL) {
+            return;
+        }
+        $site = $this->warmupBase();
+        if ($site === null || strcasecmp((string) Uri::getInstance()->getHost(), (string) parse_url($site, PHP_URL_HOST)) !== 0) {
             return;
         }
         // one round at a time: the lock on the gate file is held for the whole round, a request that
@@ -134,11 +173,9 @@ final class PageSpeed extends Feature
         @set_time_limit(60);
         ignore_user_abort(true);
         try {
-            $warm  = new Warmup($base . '/mertools-warm.json');
-            $root  = Uri::root();
-            $host  = (string) parse_url($root, PHP_URL_HOST);
+            $warm = new Warmup($base . '/mertools-warm.json');
             if ($warm->listDue($now)) {
-                $urls = $this->warmupList($root . 'sitemap.xml', $host);
+                $urls = $this->warmupList($site);
                 // an empty answer (the sitemap is not there, a block) is tried again in a round, not in 6 hours
                 $warm->setUrls($urls, $urls ? $now : $now - Warmup::LIST_TTL + 300);
                 $warm->save();
@@ -156,7 +193,7 @@ final class PageSpeed extends Feature
                     break;
                 }
                 $warm->tried($url, $now, $ttl, $purged);
-                $this->warmupFetch($url, 15);
+                $this->warmupFetch($url, 15, 0, $site);
             }
             $warm->save();
         } catch (\Throwable $e) {
@@ -166,40 +203,98 @@ final class PageSpeed extends Feature
         }
     }
 
-    /** The addresses of the sitemap (an index is followed, up to 30 files). */
-    private function warmupList(string $sitemap, string $host): array
+    /** The addresses of the sitemap of the site (an index is followed, up to 30 files of the site). */
+    private function warmupList(string $site): array
     {
-        $files = [$sitemap];
+        $files = [$site . '/sitemap.xml'];
         $urls  = [];
         for ($i = 0; $i < \count($files) && $i < 30; $i++) {
-            $xml = $this->warmupFetch($files[$i], 20, 8388608);
+            $xml = $this->warmupFetch($files[$i], 20, 8388608, $site);
             if ($xml === null) {
                 continue;
             }
             $found = Warmup::locs($xml);
             if ($found['index']) {
-                $files = array_merge($files, $found['locs']);
+                $files = array_merge($files, array_filter($found['locs'], fn (string $loc) => Warmup::sameSite($loc, $site)));
             } else {
                 $urls = array_merge($urls, $found['locs']);
             }
         }
+        $lines = array_filter(array_map('trim', preg_split('/\R/', (string) $this->plugin->params->get('speed_cache_exclude', '')) ?: []));
 
-        return Warmup::order($urls, $host);
+        return Warmup::order($urls, $site, $lines);
     }
 
-    /** A guest's GET of an address of this site; the body of a 200, else null. */
-    private function warmupFetch(string $url, int $timeout, int $max = 1048576): ?string
+    /**
+     * A guest's GET of an address of the site: the body of a 200 (up to $max bytes; $max 0: the body is
+     * not kept, a page is only asked for), else null. A redirect (a sitemap; never a page) is followed
+     * only to an address of the site, checked before it is asked for, at most 3 times; the download stops
+     * at $max bytes, not after it.
+     */
+    private function warmupFetch(string $url, int $timeout, int $max, string $site): ?string
     {
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => $timeout, CURLOPT_CONNECTTIMEOUT => 5, CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_USERAGENT      => Warmup::AGENT . '/' . MerTools::VERSION, CURLOPT_ENCODING => '', CURLOPT_HTTPHEADER => ['Accept: text/html,application/xml'],
-        ]);
-        $body = curl_exec($ch);
-        $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        curl_close($ch);
+        for ($hop = 0; $hop <= 3; $hop++) {
+            if (!Warmup::sameSite($url, $site)) {
+                return null;
+            }
+            $body = '';
+            $over = false;
+            $ch   = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_TIMEOUT        => $timeout, CURLOPT_CONNECTTIMEOUT => 5, CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+                CURLOPT_USERAGENT      => Warmup::AGENT . '/' . MerTools::VERSION, CURLOPT_ENCODING => '', CURLOPT_HTTPHEADER => ['Accept: text/html,application/xml'],
+                CURLOPT_WRITEFUNCTION  => static function ($ch, string $chunk) use (&$body, &$over, $max): int {
+                    if ($max > 0) {
+                        if (\strlen($body) + \strlen($chunk) > $max) {
+                            $over = true;
 
-        return \is_string($body) && $code === 200 && \strlen($body) <= $max ? $body : null;
+                            // a length other than the chunk's ends the transfer
+                            return 0;
+                        }
+                        $body .= $chunk;
+                    }
+
+                    return \strlen($chunk);
+                },
+            ]);
+            $done = curl_exec($ch) !== false;
+            $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+            $next = (string) curl_getinfo($ch, CURLINFO_REDIRECT_URL);
+            unset($ch);
+            if ($done && $max > 0 && $code >= 300 && $code < 400 && $next !== '') {
+                $url = $next;
+                continue;
+            }
+
+            return $done && !$over && $code === 200 && $max > 0 ? $body : null;
+        }
+
+        return null;
+    }
+
+    /**
+     * A request of the warm-up is not a visit: Gridbox counted it in the hits of the page (it does on
+     * every view, with no way to say no), the count is taken back.
+     */
+    public function uncountWarmup(): void
+    {
+        $app   = $this->plugin->app();
+        $input = $app->getInput();
+        if (!$app->isClient('site') || !str_starts_with((string) $input->server->getString('HTTP_USER_AGENT', ''), Warmup::AGENT)
+            || $input->getCmd('option') !== 'com_gridbox' || $input->getCmd('view') !== 'page' || (int) http_response_code() !== 200) {
+            return;
+        }
+        $id = $input->getInt('id', 0);
+        if ($id <= 0) {
+            return;
+        }
+        try {
+            $db = Factory::getContainer()->get(DatabaseInterface::class);
+            $db->setQuery('UPDATE ' . $db->quoteName('#__gridbox_pages') . ' SET ' . $db->quoteName('hits') . ' = ' . $db->quoteName('hits')
+                . ' - 1 WHERE ' . $db->quoteName('id') . ' = ' . $id . ' AND ' . $db->quoteName('hits') . ' > 0')->execute();
+        } catch (\Throwable $e) {
+        }
     }
 
     /** Pages kept by MerTools and by Joomla's page cache are emptied (they would offer old pictures). */
@@ -339,7 +434,8 @@ final class PageSpeed extends Feature
                 'secure' => $app->isSSLConnection(), 'httponly' => true, 'samesite' => 'Lax'];
             setcookie('gridbox_viewed_products[0]', (string) (int) $meta['viewed'], $options);
         }
-        if (!empty($meta['page'])) {
+        // (not for the warm-up of the page cache: not a visit)
+        if (!empty($meta['page']) && !str_starts_with((string) $app->getInput()->server->getString('HTTP_USER_AGENT', ''), Warmup::AGENT)) {
             try {
                 $db = Factory::getContainer()->get(DatabaseInterface::class);
                 $db->setQuery('UPDATE ' . $db->quoteName('#__gridbox_pages') . ' SET ' . $db->quoteName('hits') . ' = ' . $db->quoteName('hits')
@@ -627,7 +723,7 @@ final class PageSpeed extends Feature
                     $html = Speedup::preloadImage($html, $photo, $bgVariants[$photo] ?? []);
                 }
             }
-            if ((int) $p->get('speed_slideimg', 1)) {
+            if ((int) $p->get('speed_slideimg', 1) && stripos($html, 'ba-item-product-slideshow') !== false) {
                 $this->plugin->loadLanguage();
                 $html = Speedup::slideImages($html, Speedup::productName($html), Text::_('PLG_SYSTEM_MERTOOLS_SLIDE_IMG_ALT_MORE'), $bgVariants);
             }

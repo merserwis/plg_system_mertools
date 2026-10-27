@@ -347,10 +347,17 @@ final class Speedup
     private const SLIDE_CSS = '<style id="mertools-slide-img">.ba-slideshow-img>picture>.mt-slide-img,.ba-slideshow-img>.mt-slide-img{position:absolute;top:0;left:0;'
         . 'width:100%;height:100%;max-width:none;object-fit:cover;object-position:50% 50%;pointer-events:none;user-select:none;-webkit-user-drag:none}</style>';
 
-    /** a slideshow set to show its pictures whole or at their size: the pictures follow (read once the styles apply) */
-    private const SLIDE_JS = '<script>document.addEventListener("DOMContentLoaded",function(){document.querySelectorAll(".mt-slide-img").forEach(function(i){'
+    /**
+     * a slideshow set to show its pictures whole or at their size: the pictures follow. Read once the page
+     * has loaded (Gridbox's deferred loading switches its style sheets on at DOMContentLoaded, they may not
+     * apply yet then; till the load the style above, cover, the usual setting) and again on a resize (a
+     * setting per screen size). The size is the slide's own style, so also a slide whose background comes
+     * later (loaded when shown) gets it at once.
+     */
+    private const SLIDE_JS = '<script>(function(w){function f(){document.querySelectorAll(".mt-slide-img").forEach(function(i){'
         . 'var d=i.closest(".ba-slideshow-img");if(!d)return;var s=getComputedStyle(d),z=s.backgroundSize;'
-        . 'i.style.objectFit=z==="contain"?"contain":/^auto( auto)?$/.test(z)?"none":"cover";i.style.objectPosition=s.backgroundPosition})});</script>';
+        . 'i.style.objectFit=z==="contain"?"contain":/^auto( auto)?$/.test(z)?"none":"cover";i.style.objectPosition=s.backgroundPosition})}'
+        . 'document.readyState==="complete"?f():w.addEventListener("load",f);var t;w.addEventListener("resize",function(){clearTimeout(t);t=setTimeout(f,200)})})(window);</script>';
 
     /**
      * The name of the product (or post) of a page, for the text of its pictures: Gridbox's title of the
@@ -400,17 +407,29 @@ final class Speedup
             $end   = $dots !== false && $dots < $next ? $dots : $next;
             $part  = substr($html, $start, $end - $start);
             $count = 0;
+            // a product with a variation chosen beforehand: Gridbox marks no slide active (its script makes the first one so)
+            $first = !preg_match('#<li class="item\b[^"]*\bactive\b#i', $part);
             $part  = (string) preg_replace_callback('#<li class="(item\b[^"]*)"><div class="ba-slideshow-img"[^>]*>(?!\s*<(?:picture|img)\b)#i',
-                function (array $s) use ($name, $more, $variants, &$count): string {
+                function (array $s) use ($name, $more, $variants, &$count, $first): string {
                     $tag = $s[0];
-                    $url = preg_match('#background-image:\s*url\(\s*(?:&quot;|&\#0?39;|["\'])?(.*?)(?:&quot;|&\#0?39;|["\'])?\s*\)#i', $tag, $u) ? $u[1]
-                        : (preg_match('#\sdata-src="([^"]+)"#i', $tag, $d) ? $d[1] : '');
+                    // data-src first: the same address as the background (backgrounds() changes both), and whole even
+                    // with a ")" in the file name, which ends an unquoted url( ) of the style
+                    $url = preg_match('#\sdata-src="([^"]+)"#i', $tag, $d) ? $d[1]
+                        : (preg_match('#background-image:\s*url\(\s*(?:&quot;|&\#0?39;|["\'])?(.*?)(?:&quot;|&\#0?39;|["\'])?\s*\)#i', $tag, $u) ? $u[1] : '');
                     if ($url === '' || str_starts_with($url, 'data:')) {
                         return $tag;
                     }
                     $number = ++$count;
-                    $alt    = $number === 1 || $name === '' ? $name : sprintf($more, $name, $number);
-                    $active = (bool) preg_match('#\bactive\b#', $s[1]);
+                    $alt    = $name;
+                    if ($number > 1 && $name !== '') {
+                        try {
+                            $alt = sprintf($more, $name, $number);
+                        } catch (\ValueError|\ArgumentCountError $e) {
+                            // a text override with other placeholders
+                            $alt = $name . ' ' . $number;
+                        }
+                    }
+                    $active = (bool) preg_match('#\bactive\b#', $s[1]) || ($first && $number === 1);
                     $esc    = fn (string $v) => htmlspecialchars($v, ENT_QUOTES, 'UTF-8', false);
                     $img    = '<img class="mt-slide-img" src="' . $esc($url) . '" alt="' . htmlspecialchars($alt, ENT_QUOTES, 'UTF-8') . '" decoding="async" draggable="false"'
                         . ($active ? ' fetchpriority="high"' : ' loading="lazy"') . '>';

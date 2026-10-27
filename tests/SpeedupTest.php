@@ -268,6 +268,14 @@ $check('slides: thumbnails untouched', $has($si, '<div class="ba-slideshow-dots 
 $check('slides: a field slideshow (not a product) untouched', $has($si, '<div class="ba-slideshow-img" style="background-image: url(/images/field.jpg);"></div>'), true);
 $check('slides: three pictures', substr_count($si, 'class="mt-slide-img"'), 3);
 $check('slides: style in the head, script before </body>', $has($si, '</style></head>') && $has($si, '<style id="mertools-slide-img">') && $has($si, '</script></body>'), true);
+$nv = str_replace('<li class="item active">', '<li class="item">', $pp);
+$nvo = Speedup::slideImages($nv, 'X', '%1$s – zdjęcie %2$d');
+$check('slides: no active slide (a variation chosen) = the first fetched first, the rest lazy', substr_count($nvo, 'fetchpriority="high"') . '/' . substr_count($nvo, 'loading="lazy"'), '1/2');
+$paren = '<head></head><div class="ba-item-product-slideshow ba-item"><li class="item active"><div class="ba-slideshow-img" data-src="/images/foto%20(1).jpg" style="background-image: url(/images/foto%20(1).jpg);"></div></li></div>';
+$check('slides: ")" in the file name = the whole address (data-src)', $has(Speedup::slideImages($paren, 'X', '%1$s %2$d'), 'src="/images/foto%20(1).jpg"'), true);
+$check('slides: a text override with other placeholders = name and number, no error', $has(Speedup::slideImages($pp, 'X', '%1$s %2$d %3$s'), 'alt="X 2"'), true);
+$check('slides: the script also fits a slide whose background comes later', $has($si, 'backgroundImage'), false);
+$check('slides: the script waits for the load and follows a resize', $has($si, 'addEventListener("load",f)') && $has($si, 'addEventListener("resize"'), true);
 $check('slides: done twice = once', Speedup::slideImages($si, 'X', '%1$s %2$d'), $si);
 $check('slides: name with quotes escaped', $has(Speedup::slideImages($pp, 'Miernik "Pro" <5>', '%1$s %2$d'), 'alt="Miernik &quot;Pro&quot; &lt;5&gt;"'), true);
 $check('slides: no name = empty text on all', substr_count(Speedup::slideImages($pp, '', '%1$s %2$d'), 'alt=""'), 3);

@@ -360,6 +360,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if ($this->speed()->pageToStore) {
             $this->speed()->storePage($code, $headers);
         }
+        $this->speed()->uncountWarmup();
         if ($this->speed()->pageCacheOn() || $this->speed()->dataCacheOn()) {
             $this->speed()->prunePageCache();
         }
@@ -397,6 +398,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             return;
         }
         self::cleanPageCache();
+        // the site's address as the administrator reaches it: the warm-up of the page cache works on it
+        $this->speed()->rememberSite();
         // Omnibus switched on (or on): the price history starts at once, with the Omnibus plugin's references
         if (Omnibus::enabled(new Registry((string) ($table->params ?? '')))) {
             try {

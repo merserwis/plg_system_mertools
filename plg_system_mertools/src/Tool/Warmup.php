@@ -60,24 +60,83 @@ final class Warmup
     }
 
     /**
-     * The addresses to keep warm: the ones of this site only, no query, no repeats, the shallow pages
-     * first (the home page, the main pages), the order of the sitemap inside a level.
+     * The address of the site the warm-up works on, never taken from a request (its Host header is the
+     * visitor's): Joomla's live_site, else the domain of Gridbox's sitemap, else the address the site had
+     * when an administrator last saved the MerTools settings. The origin and the folder of the site, without
+     * the last slash ("https://www.x.pl", "https://x.pl/joomla"), or null when none of them is a usable
+     * http(s) address.
+     */
+    public static function siteBase(string ...$candidates): ?string
+    {
+        foreach ($candidates as $candidate) {
+            $candidate = trim($candidate);
+            if ($candidate === '') {
+                continue;
+            }
+            if (!preg_match('#^[a-z][a-z0-9+.-]*://#i', $candidate)) {
+                $candidate = 'https://' . ltrim($candidate, '/');
+            }
+            $parts = parse_url($candidate);
+            if (!\is_array($parts) || !\in_array(strtolower((string) ($parts['scheme'] ?? '')), ['http', 'https'], true) || empty($parts['host'])) {
+                continue;
+            }
+
+            return strtolower($parts['scheme']) . '://' . strtolower($parts['host']) . (isset($parts['port']) ? ':' . (int) $parts['port'] : '')
+                . rtrim((string) ($parts['path'] ?? ''), '/');
+        }
+
+        return null;
+    }
+
+    /** Is the address one of the site's: http(s), the same scheme, host and port as the base (siteBase()), in its folder */
+    public static function sameSite(string $url, string $base): bool
+    {
+        $u = parse_url($url);
+        $b = parse_url($base);
+        if (!\is_array($u) || !\is_array($b) || empty($u['host']) || empty($b['host'])) {
+            return false;
+        }
+        $scheme = strtolower((string) ($u['scheme'] ?? ''));
+        $port   = fn (array $p, string $s): int => (int) ($p['port'] ?? ($s === 'https' ? 443 : 80));
+
+        if (!\in_array($scheme, ['http', 'https'], true) || strcasecmp($u['host'], $b['host']) !== 0
+            || $scheme !== strtolower((string) $b['scheme']) || $port($u, $scheme) !== $port($b, $scheme)) {
+            return false;
+        }
+        $folder = rtrim((string) ($b['path'] ?? ''), '/');
+        $path   = (string) ($u['path'] ?? '');
+
+        return $folder === '' || $path === $folder || str_starts_with($path, $folder . '/');
+    }
+
+    /**
+     * The addresses to keep warm: the ones of this site only (sameSite()), no query, no fragment, no
+     * repeats, the shallow pages first (the home page, the main pages), the order of the sitemap inside
+     * a level. Addresses containing one of $excluded (the page cache's own exclusions) are left out: they
+     * are never kept, so they would be asked for again and again.
      *
      * @param string[] $urls
+     * @param string[] $excluded
      * @return string[]
      */
-    public static function order(array $urls, string $host): array
+    public static function order(array $urls, string $base, array $excluded = []): array
     {
         $seen = [];
         $rank = [];
         foreach ($urls as $i => $url) {
+            $url   = (string) preg_replace('/#.*$/s', '', $url);
             $parts = parse_url($url);
-            if (!\is_array($parts) || strcasecmp((string) ($parts['host'] ?? ''), $host) !== 0 || isset($parts['query'])) {
+            if (!\is_array($parts) || !self::sameSite($url, $base) || isset($parts['query'])) {
                 continue;
             }
             // the home page without its slash is kept under the address with it (the path of a request is never empty)
             if (($parts['path'] ?? '') === '') {
-                $url = preg_replace('/#.*$/', '', $url) . '/';
+                $url .= '/';
+            }
+            foreach ($excluded as $part) {
+                if ($part !== '' && stripos((string) parse_url($url, PHP_URL_PATH), $part) !== false) {
+                    continue 2;
+                }
             }
             if (isset($seen[$url])) {
                 continue;
@@ -113,17 +172,6 @@ final class Warmup
         }
 
         return $out;
-    }
-
-    /** Figures for the panel: addresses on the list, kept ones among them. */
-    public static function figures(array $urls, callable $fresh): array
-    {
-        $kept = 0;
-        foreach ($urls as $url) {
-            $kept += $fresh($url) ? 1 : 0;
-        }
-
-        return ['total' => \count($urls), 'kept' => $kept];
     }
 
     /** @return string[] */
