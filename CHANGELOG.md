@@ -2,6 +2,12 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.6.9 — 2026-10-27
+
+### 🛠 Background jobs run once at a time
+
+The copies of pictures and the hourly tidying of kept pages are started after a page is sent, at most every so often. Two pages sent at the same moment could both start the same job. Now the first one takes it and the other leaves; the time of the last start is checked again while the job is held.
+
 ## 1.6.8 — 2026-10-27
 
 ### 🗂 Finished items leave no empty places in the lists

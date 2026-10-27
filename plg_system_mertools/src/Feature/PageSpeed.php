@@ -25,6 +25,7 @@ use Merserwis\Plugin\System\MerTools\Tool\ImageSize;
 use Merserwis\Plugin\System\MerTools\Tool\PageCache;
 use Merserwis\Plugin\System\MerTools\Tool\Speed;
 use Merserwis\Plugin\System\MerTools\Tool\Speedup;
+use Merserwis\Plugin\System\MerTools\Tool\Tick;
 use Merserwis\Plugin\System\MerTools\Tool\Warmup;
 
 final class PageSpeed extends Feature
@@ -66,11 +67,10 @@ final class PageSpeed extends Feature
         if (!is_file($queue) || (int) @filesize($queue) < 5) {
             return;
         }
-        $gate = $base . '/mertools-img-tick';
-        if (is_file($gate) && (int) @filemtime($gate) > time() - 15) {
+        $tick = Tick::claim($base . '/mertools-img-tick', 15);
+        if (!$tick) {
             return;
         }
-        @touch($gate);
         $finished = $this->plugin->finishResponse();
         try {
             $images = $this->imageOptimizer();
@@ -84,6 +84,8 @@ final class PageSpeed extends Feature
             }
         } catch (\Throwable $e) {
             // tried again with the next page
+        } finally {
+            $tick->release();
         }
     }
 
@@ -546,15 +548,15 @@ final class PageSpeed extends Feature
     /** Once an hour (after a page was sent): expired entries go, and the oldest above the limit. */
     public function prunePageCache(): void
     {
-        $gate = MerTools::cacheBase() . '/mertools-pcache-tick';
-        $now  = time();
-        if (is_file($gate) && (int) @filemtime($gate) > $now - 3600) {
+        $tick = Tick::claim(MerTools::cacheBase() . '/mertools-pcache-tick', 3600);
+        if (!$tick) {
             return;
         }
-        @touch($gate);
         try {
             $this->pageCache()->prune($this->cacheTtl(), max(100, min(100000, (int) $this->plugin->params->get('speed_cache_max', 5000))), microtime(true));
         } catch (\Throwable $e) {
+        } finally {
+            $tick->release();
         }
     }
 
