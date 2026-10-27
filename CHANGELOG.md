@@ -2,6 +2,22 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.6.8 — 2026-10-27
+
+### 🗂 Finished items leave no empty places in the lists
+
+Until now a card with a word of *Leave finished items out of the lists* in its title (e.g. `[ZAKOŃCZONE]`) was taken out of the finished page, after Gridbox had already chosen its items: a module or a page of the blog showed an empty place, and fewer items than set.
+
+- **In all lists**, MerTools now gives such an item an **end of publishing** of the moment it finds the word. Gridbox itself then leaves it out of every list (blog, category, recent posts, slideshows of posts, related posts) and **puts the next item in its place**.
+- **The page itself stays**: it opens at its address (Gridbox's page view does not look at that date) and stays in the sitemap of MerTools. The RSS feed and Gridbox's search leave it out.
+- **The date is MerTools' own**: it is noted, and taken away again when the word leaves the title or the setting is emptied or changed to the home page only. A date typed or changed in Gridbox is left as it is; an item in the trash keeps its note until it comes back.
+- The dates follow a change sent to Gridbox at once, the settings when they are saved, and anything else (an import) within an hour.
+- *On the home page only* works as before (the card is taken out of the page, so the archive still lists the item).
+
+### 🧭 Breadcrumbs
+
+- An item of the breadcrumbs that is only a heading of the menu (address `#` or `javascript:`) is no longer given the address of the home page in the structured data: it is left out, and the trail starts with the home page.
+
 ## 1.6.7 — 2026-10-27
 
 ### 🖼 Product photos for search engines (on by default)

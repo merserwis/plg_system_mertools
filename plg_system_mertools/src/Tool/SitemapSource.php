@@ -469,6 +469,8 @@ final class SitemapSource
         $db     = $this->db;
         $null   = $db->getNullDate();
         $hidden = array_flip(array_map('intval', (array) (self::HELPER)::getSubscriptionProducts()));
+        // a finished item MerTools gave an end of publishing (EndedPages) is out of the lists only: its page is still there
+        $kept   = array_flip((new EndedPages($db))->keptIds());
         $rows   = (array) $db->setQuery($db->getQuery(true)
             ->select($db->quoteName(['id', 'title', 'app_id', 'page_category', 'published', 'page_access', 'created', 'end_publishing',
                 'robots', 'sitemap_override', 'sitemap_include']))
@@ -490,7 +492,7 @@ final class SitemapSource
                 'sitemap_override' => (int) $row['sitemap_override'],
                 'sitemap_include'  => (int) $row['sitemap_include'],
                 'live'             => (int) $row['published'] === 1 && (int) $row['page_access'] === 1
-                    && (string) $row['created'] <= $now && ($end === '' || $end === $null || $end >= $now)
+                    && (string) $row['created'] <= $now && ($end === '' || $end === $null || $end >= $now || isset($kept[$id]))
                     && !isset($hidden[$id]) && ($appId === 0 || isset($apps[$appId])),
             ];
         }

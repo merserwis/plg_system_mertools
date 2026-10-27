@@ -433,7 +433,9 @@ final class SiteSchema
         $items   = [];
         foreach ($trail as [$name, $url]) {
             $name = trim((string) $name);
-            $url  = $url === '' || $url === null ? '' : self::absolute((string) $url, $root);
+            $url  = trim((string) $url);
+            // "#" or "javascript:" is a heading of the menu with no page of its own: an item with no address
+            $url  = $url === '' || $url[0] === '#' || preg_match('#^javascript:#i', $url) ? '' : self::absolute($url, $root);
             if ($name === '') {
                 continue;
             }

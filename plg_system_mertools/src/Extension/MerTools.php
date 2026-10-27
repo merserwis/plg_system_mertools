@@ -77,7 +77,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.6.7';
+    public const VERSION = '1.6.8';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -164,6 +164,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $this->history()->trackHistory();
             $this->speed()->purgeOnChange();
             $this->sitemaps()->watchChanges();
+            $this->pages()->endedWatch();
         }
         if ($app->isClient('administrator')) {
             $this->locks()->adminLockGuard();
@@ -368,6 +369,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $this->database()->dailyIntroCheck();
         $this->shop()->hourlyOmnibus();
         $this->missing()->hourlyMoved();
+        $this->pages()->hourlyEnded();
         $this->apps()->appBackupTick();
         $this->speed()->imageWork();
         $this->speed()->warmUp();
@@ -400,6 +402,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         self::cleanPageCache();
         // the site's address as the administrator reaches it: the warm-up of the page cache works on it
         $this->speed()->rememberSite();
+        // the words of the finished items or where they are left out changed: the end dates follow at once
+        $this->pages()->syncEnded(new Registry((string) ($table->params ?? '')));
         // Omnibus switched on (or on): the price history starts at once, with the Omnibus plugin's references
         if (Omnibus::enabled(new Registry((string) ($table->params ?? '')))) {
             try {

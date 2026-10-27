@@ -122,6 +122,11 @@ $check('breadcrumbs: no name for the page -> none', S::breadcrumbs([], $root, 'S
 $b = S::breadcrumbs([['Start', '/'], ['Bez adresu', ''], ['Blog', '/blog']], $root, 'Start', 'Wpis', 'https://x.pl/blog/wpis');
 $check('breadcrumbs: a middle item with no address out', array_column($b['itemListElement'], 'name'), ['Start', 'Blog', 'Wpis']);
 $check('breadcrumbs: positions', array_column($b['itemListElement'], 'position'), [1, 2, 3]);
+$b = S::breadcrumbs([['Firma', '#'], ['Kontakt', '']], $root, 'Start', 'Kontakt', 'https://x.pl/firma/kontakt');
+$check('breadcrumbs: a heading of the menu ("#") is not the home page', array_map(fn ($i) => [$i['name'], $i['item'] ?? null], $b['itemListElement']),
+    [['Start', 'https://x.pl/'], ['Kontakt', null]]);
+$b = S::breadcrumbs([['Start', '/'], ['Firma', 'javascript:void(0)'], ['Kontakt', '']], $root, 'Start', 'Kontakt', 'https://x.pl/firma/kontakt');
+$check('breadcrumbs: a javascript: address is no address', array_column($b['itemListElement'], 'name'), ['Start', 'Kontakt']);
 
 echo $fail ? "\n$fail FAILED\n" : "\nALL PASS\n";
 exit($fail ? 1 : 0);

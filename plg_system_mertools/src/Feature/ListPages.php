@@ -13,8 +13,13 @@ namespace Merserwis\Plugin\System\MerTools\Feature;
 
 \defined('_JEXEC') or die;
 
+use Joomla\CMS\Factory;
 use Joomla\CMS\Uri\Uri;
+use Joomla\Database\DatabaseInterface;
+use Joomla\Registry\Registry;
+use Merserwis\Plugin\System\MerTools\Extension\MerTools;
 use Merserwis\Plugin\System\MerTools\Tool\EndedItems;
+use Merserwis\Plugin\System\MerTools\Tool\EndedPages;
 use Merserwis\Plugin\System\MerTools\Tool\Pagination;
 
 final class ListPages extends Feature
@@ -118,6 +123,47 @@ final class ListPages extends Feature
     }
 
     /** A page of a Gridbox list (GET or HEAD) */
+    /**
+     * A change sent to Gridbox (a title saved): once it is done, the finished items get their end of
+     * publishing, or lose it (EndedPages). In every list only: on the home page only, the archive still lists them.
+     */
+    public function endedWatch(): void
+    {
+        $app   = $this->plugin->app();
+        $input = $app->getInput();
+        $user  = $app->getIdentity();
+        if (strtoupper((string) $input->getMethod()) !== 'POST' || $input->getCmd('option') !== 'com_gridbox' || !$user || $user->guest) {
+            return;
+        }
+        register_shutdown_function(fn () => $this->syncEnded());
+    }
+
+    /** Once an hour: titles changed past Gridbox's requests (an import, the database directly). */
+    public function hourlyEnded(): void
+    {
+        $gate = MerTools::cacheBase() . '/mertools-ended-tick';
+        if ((is_file($gate) && (int) @filemtime($gate) > time() - 3600) || !@touch($gate)) {
+            return;
+        }
+        $this->syncEnded();
+    }
+
+    /** See EndedPages::sync(); the kept pages and the sitemaps are out of date when a page changed. $params: the settings just saved. */
+    public function syncEnded(?Registry $params = null): void
+    {
+        $params ??= $this->plugin->params;
+        $words    = (string) $params->get('list_hide_where', 'home') === 'all' ? EndedItems::words((string) $params->get('list_hide_words', '')) : [];
+        try {
+            $zone = new \DateTimeZone((string) $this->plugin->app()->get('offset', 'UTC') ?: 'UTC');
+            $now  = (new \DateTimeImmutable('now', $zone))->format('Y-m-d H:i:s');
+            if ((new EndedPages(Factory::getContainer()->get(DatabaseInterface::class)))->sync($words, $now) > 0) {
+                $this->plugin->speed()->purgeKeptPages();
+                Sitemaps::changed();
+            }
+        } catch (\Throwable $e) {
+        }
+    }
+
     private function isList(): bool
     {
         $input = $this->plugin->app()->getInput();
