@@ -85,9 +85,11 @@ $check('fresh: agrees with read()', $cache->fresh($key, 3600, microtime(true)), 
 $cache->purge(false);
 $check('fresh: emptied since', $cache->fresh($key, 3600, microtime(true)), false);
 $cache->purge();
-@rmdir($cdir . '/' . substr($key, 0, 2));
-@unlink($cdir . '/purged');
-@rmdir($cdir);
+foreach ([$cdir . '/' . substr($key, 0, 2), $cdir] as $d) {
+    array_map('unlink', glob($d . '/*') ?: []);
+    rmdir($d);
+}
+$check('fresh: the test folder is gone', is_dir($cdir), false);
 
 echo $fail ? "\n$fail FAILED\n" : "\nall passed\n";
 exit($fail ? 1 : 0);
