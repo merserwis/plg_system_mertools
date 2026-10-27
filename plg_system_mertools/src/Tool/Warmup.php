@@ -72,7 +72,14 @@ final class Warmup
         $rank = [];
         foreach ($urls as $i => $url) {
             $parts = parse_url($url);
-            if (!\is_array($parts) || strcasecmp((string) ($parts['host'] ?? ''), $host) !== 0 || isset($parts['query']) || isset($seen[$url])) {
+            if (!\is_array($parts) || strcasecmp((string) ($parts['host'] ?? ''), $host) !== 0 || isset($parts['query'])) {
+                continue;
+            }
+            // the home page without its slash is kept under the address with it (the path of a request is never empty)
+            if (($parts['path'] ?? '') === '') {
+                $url = preg_replace('/#.*$/', '', $url) . '/';
+            }
+            if (isset($seen[$url])) {
                 continue;
             }
             $seen[$url] = true;

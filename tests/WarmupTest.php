@@ -30,6 +30,8 @@ $check('garbage: nothing', Warmup::locs('<html>403</html>'), ['index' => false, 
 // ---------------------------------------------------------------- the list
 $urls = ['https://www.merserwis.pl/oferta/a/b', 'https://www.merserwis.pl/oferta', 'https://www.merserwis.pl/', 'https://www.merserwis.pl/oferta/a', 'https://other.pl/x',
     'https://www.merserwis.pl/szukaj?query=a', 'https://www.merserwis.pl/oferta', 'https://www.merserwis.pl/blog', 'https://WWW.merserwis.pl/kontakt'];
+$check('order: the home page without its slash = with it, once', Warmup::order(['https://www.merserwis.pl', 'https://www.merserwis.pl/', 'https://www.merserwis.pl/a'], 'www.merserwis.pl'),
+    ['https://www.merserwis.pl/', 'https://www.merserwis.pl/a']);
 $check('order: shallow first, this host only, no query, no repeats', Warmup::order($urls, 'www.merserwis.pl'), [
     'https://www.merserwis.pl/', 'https://www.merserwis.pl/oferta', 'https://www.merserwis.pl/blog', 'https://WWW.merserwis.pl/kontakt',
     'https://www.merserwis.pl/oferta/a', 'https://www.merserwis.pl/oferta/a/b']);

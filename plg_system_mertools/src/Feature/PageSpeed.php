@@ -115,14 +115,17 @@ final class PageSpeed extends Feature
         }
         // one round at a time: the lock on the gate file is held for the whole round, a request that
         // finds it taken leaves (the date check alone would let two requests at the same moment both start)
-        $lock = @fopen($gate, 'c');
+        $first = !is_file($gate);
+        $lock  = @fopen($gate, 'c');
         if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
             return;
         }
         $now = time();
         clearstatcache(true, $gate);
+        // the date checked again under the lock (another round may have just ended), unless this request
+        // made the file: then its date is now, and the first round would wait a minute for nothing;
         // not where a visitor would wait for it
-        if ((int) @filemtime($gate) > $now - Warmup::INTERVAL || !$this->plugin->finishResponse()) {
+        if ((!$first && (int) @filemtime($gate) > $now - Warmup::INTERVAL) || !$this->plugin->finishResponse()) {
             fclose($lock);
 
             return;
