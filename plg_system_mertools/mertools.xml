@@ -106,6 +106,11 @@
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
+                <field name="speed_slideimg" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_SLIDEIMG_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SLIDEIMG_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
                 <field name="speed_video" type="radio" layout="joomla.form.field.radio.switcher" default="1"
                     label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_DESC">
                     <option value="0">JNO</option>

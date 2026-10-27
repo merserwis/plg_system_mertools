@@ -244,5 +244,47 @@ $check('icons: font awesome async', $has($iconsOut, 'href="/media/font-awesome/c
 $check('icons: material icons async', $has($iconsOut, 'href="/media/material-icons.css" media="print"'), true);
 $check('icons: materialize (a framework) untouched', $has($iconsOut, '<link rel="stylesheet" href="/media/materialize.min.css">'), true);
 
+// ---------------------------------------------------------------- product photos as pictures
+$pp = '<html><head><title>Metrel A 1715 5M - Merserwis</title><meta property="og:title" content="OG name"></head><body>'
+    . '<div class="ba-item-product-slideshow ba-item" id="item-1"><div class="slideshow-wrapper"><ul class="ba-slideshow"><div class="slideshow-content ba-field-content lightbox-enabled">'
+    . '<li class="item active"><div class="ba-slideshow-img" data-src="/m/s-1500.webp" style="background-image: url(/m/s-1500.webp);" data-mt-bg="1"></div></li>'
+    . '<li class="item"><div class="ba-slideshow-img" data-src="https://www.merserwis.pl/images/b&amp;w.jpg" style="background-image: url(&quot;https://www.merserwis.pl/images/b&amp;w.jpg&quot;);"></div></li>'
+    . '<li class="item"><div class="ba-slideshow-img" data-src="/images/lazy.jpg"></div></li>'
+    . '</div><div class="ba-slideshow-dots thumbnails-dots" style="--thumbnails-dots-image-0: url(/images/a.jpg);"></div></ul></div></div>'
+    . '<div class="ba-item-post-intro ba-item"><h1 class="intro-post-title">Metrel A&nbsp;1715 <b>5M</b> &amp; co</h1></div>'
+    . '<div class="ba-item-field-slideshow ba-item"><li class="item active"><div class="ba-slideshow-img" style="background-image: url(/images/field.jpg);"></div></li></div>'
+    . '</body></html>';
+$name = Speedup::productName($pp);
+$check('name: Gridbox title, tags out, entities decoded, hard space plain', $name, 'Metrel A 1715 5M & co');
+$check('name: og:title when no title of a post', Speedup::productName('<meta property="og:title" content="Kane AQA &amp; co">'), 'Kane AQA & co');
+$check('name: <title> last', Speedup::productName('<title> Sonel MPI-530 </title>'), 'Sonel MPI-530');
+$check('name: nothing', Speedup::productName('<p>x</p>'), '');
+$si = Speedup::slideImages($pp, 'Metrel A 1715', '%1$s – zdjęcie %2$d', ['/m/s-1500.webp' => [768 => '/m/s-768.webp', 480 => '/m/s-480.webp']]);
+$check('slides: active one a <picture> with the copies of the background, fetched first', $has($si, '<div class="ba-slideshow-img" data-src="/m/s-1500.webp" style="background-image: url(/m/s-1500.webp);" data-mt-bg="1"><picture><source media="(max-width:480px)" srcset="/m/s-480.webp"><source media="(max-width:768px)" srcset="/m/s-768.webp"><img class="mt-slide-img" src="/m/s-1500.webp" alt="Metrel A 1715" decoding="async" draggable="false" fetchpriority="high"></picture></div>'), true);
+$check('slides: second one plain <img>, quoted url, &amp; kept once, lazy, numbered text', $has($si, '<img class="mt-slide-img" src="https://www.merserwis.pl/images/b&amp;w.jpg" alt="Metrel A 1715 – zdjęcie 2" decoding="async" draggable="false" loading="lazy"></div>'), true);
+$check('slides: no style = the address of data-src', $has($si, '<div class="ba-slideshow-img" data-src="/images/lazy.jpg"><img class="mt-slide-img" src="/images/lazy.jpg" alt="Metrel A 1715 – zdjęcie 3"'), true);
+$check('slides: background and Gridbox markup kept', substr_count($si, 'class="ba-slideshow-img"'), 4);
+$check('slides: thumbnails untouched', $has($si, '<div class="ba-slideshow-dots thumbnails-dots" style="--thumbnails-dots-image-0: url(/images/a.jpg);"></div>'), true);
+$check('slides: a field slideshow (not a product) untouched', $has($si, '<div class="ba-slideshow-img" style="background-image: url(/images/field.jpg);"></div>'), true);
+$check('slides: three pictures', substr_count($si, 'class="mt-slide-img"'), 3);
+$check('slides: style in the head, script before </body>', $has($si, '</style></head>') && $has($si, '<style id="mertools-slide-img">') && $has($si, '</script></body>'), true);
+$check('slides: done twice = once', Speedup::slideImages($si, 'X', '%1$s %2$d'), $si);
+$check('slides: name with quotes escaped', $has(Speedup::slideImages($pp, 'Miernik "Pro" <5>', '%1$s %2$d'), 'alt="Miernik &quot;Pro&quot; &lt;5&gt;"'), true);
+$check('slides: no name = empty text on all', substr_count(Speedup::slideImages($pp, '', '%1$s %2$d'), 'alt=""'), 3);
+$check('slides: page without a product slideshow unchanged', Speedup::slideImages('<head></head><div class="ba-item-field-slideshow">x</div>', 'X', '%1$s %2$d'), '<head></head><div class="ba-item-field-slideshow">x</div>');
+$check('slides: copy equal to the full one = no <picture>', $has(Speedup::slideImages($pp, 'X', '%1$s %2$d', ['/m/s-1500.webp' => [768 => '/m/s-1500.webp', 480 => '/m/s-1500.webp']]), '<picture>'), false);
+$two = str_replace('</body>', '<div class="ba-item-product-slideshow ba-item"><li class="item active"><div class="ba-slideshow-img" style="background-image: url(/images/two.jpg);"></div></li></div></body>', $pp);
+$check('slides: a second product slideshow too, one style', substr_count(Speedup::slideImages($two, 'X', '%1$s %2$d'), 'class="mt-slide-img"') . '/' . substr_count(Speedup::slideImages($two, 'X', '%1$s %2$d'), 'id="mertools-slide-img"'), '4/1');
+
+$raw = '<html><head><title>T</title></head><body><div class="ba-item-product-slideshow ba-item" id="item-1"><div class="slideshow-wrapper"><ul class="ba-slideshow">'
+    . '<div class="slideshow-content ba-field-content lazy-load-image lightbox-enabled"><li class="item active"><div class="ba-slideshow-img" data-src="https://www.merserwis.pl/images/slide.jpg" style="background-image: url(https://www.merserwis.pl/images/slide.jpg);"></div></li></div>'
+    . '<div class="ba-slideshow-dots"></div></ul></div></div><h1 class="intro-post-title">Sonel MPI-530</h1></body></html>';
+$chainVars = [];
+$chain = Speedup::backgrounds($raw, $site, $bgCopies, $chainVars);
+[$chain, $chainPhoto] = Speedup::mainPhoto($chain);
+$chain = Speedup::slideImages($chain, Speedup::productName($chain), '%1$s – zdjęcie %2$d', $chainVars);
+$check('chain as in the plugin: copies, main photo, picture with the same copies', $has($chain, '<li class="item active"><div class="ba-slideshow-img" data-src="/m/s-1500.webp" style="background-image: url(/m/s-1500.webp);" data-mt-bg="1"><picture><source media="(max-width:480px)" srcset="/m/s-480.webp"><source media="(max-width:768px)" srcset="/m/s-768.webp"><img class="mt-slide-img" src="/m/s-1500.webp" alt="Sonel MPI-530" decoding="async" draggable="false" fetchpriority="high"></picture></div></li>'), true);
+$check('chain: main photo still found', $chainPhoto, '/m/s-1500.webp');
+
 echo $fail === 0 ? "\nALL PASS\n" : "\n$fail FAILED\n";
 exit($fail === 0 ? 0 : 1);

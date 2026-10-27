@@ -343,6 +343,103 @@ final class Speedup
         return [substr_replace($html, $fixed, $m[0][1], \strlen($whole)), html_entity_decode($m[2][0], ENT_QUOTES)];
     }
 
+    /** the picture put into a product slide: on the background, looking the same, never in the way of a click or a swipe */
+    private const SLIDE_CSS = '<style id="mertools-slide-img">.ba-slideshow-img>picture>.mt-slide-img,.ba-slideshow-img>.mt-slide-img{position:absolute;top:0;left:0;'
+        . 'width:100%;height:100%;max-width:none;object-fit:cover;object-position:50% 50%;pointer-events:none;user-select:none;-webkit-user-drag:none}</style>';
+
+    /** a slideshow set to show its pictures whole or at their size: the pictures follow (read once the styles apply) */
+    private const SLIDE_JS = '<script>document.addEventListener("DOMContentLoaded",function(){document.querySelectorAll(".mt-slide-img").forEach(function(i){'
+        . 'var d=i.closest(".ba-slideshow-img");if(!d)return;var s=getComputedStyle(d),z=s.backgroundSize;'
+        . 'i.style.objectFit=z==="contain"?"contain":/^auto( auto)?$/.test(z)?"none":"cover";i.style.objectPosition=s.backgroundPosition})});</script>';
+
+    /**
+     * The name of the product (or post) of a page, for the text of its pictures: Gridbox's title of the
+     * post, else og:title, else <title>. Plain text, entities decoded.
+     */
+    public static function productName(string $html): string
+    {
+        foreach (['#<h1\b[^>]*\bclass="[^"]*\bintro-post-title\b[^"]*"[^>]*>(.*?)</h1>#is', '#<meta\s+property="og:title"\s+content="([^"]*)"#i', '#<title>(.*?)</title>#is'] as $re) {
+            if (preg_match($re, $html, $m)) {
+                $name = trim((string) preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($m[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+                if ($name !== '') {
+                    return $name;
+                }
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Product photos for search engines: Gridbox shows the pictures of a product slideshow as CSS
+     * backgrounds (no <img>, no alt, so not in image search, and found late by the browser). Into every
+     * slide goes a real picture of the same address, with the product's name as its text, laid exactly
+     * on the background: same look (cover, centred, as the background; a slideshow set otherwise is
+     * followed by a line of script), clicks and swipes still go to Gridbox's slide (pointer-events none).
+     * The background stays: Gridbox's lightbox reads it, and a slideshow Gridbox builds anew (another
+     * variation of the product) goes back to backgrounds only. With the phone copies of backgrounds()
+     * ($variants) the picture is a <picture> with the same media rules, so each screen fetches one
+     * address, the one of the background. The active slide's picture is fetched first, the others lazily.
+     *
+     * @param array  $variants full-width copy => [768 => copy, 480 => copy] (backgrounds())
+     * @param string $more     the text of the second and further pictures (sprintf: name, number)
+     */
+    public static function slideImages(string $html, string $name, string $more, array $variants = []): string
+    {
+        if (stripos($html, 'ba-item-product-slideshow') === false || str_contains($html, 'id="mertools-slide-img"')) {
+            return $html;
+        }
+        $out  = '';
+        $done = 0;
+        $at   = 0;
+        while (preg_match('#<div class="ba-item-product-slideshow\b[^"]*"#i', $html, $m, PREG_OFFSET_CAPTURE, $at)) {
+            $start = $m[0][1];
+            // the slides: up to the dots (thumbnails) of this slideshow, or up to the next item
+            $next  = preg_match('#<div class="ba-item-[a-z-]+\b[^"]*"#i', $html, $n, PREG_OFFSET_CAPTURE, $start + 1) ? $n[0][1] : \strlen($html);
+            $dots  = stripos($html, 'ba-slideshow-dots', $start);
+            $end   = $dots !== false && $dots < $next ? $dots : $next;
+            $part  = substr($html, $start, $end - $start);
+            $count = 0;
+            $part  = (string) preg_replace_callback('#<li class="(item\b[^"]*)"><div class="ba-slideshow-img"[^>]*>(?!\s*<(?:picture|img)\b)#i',
+                function (array $s) use ($name, $more, $variants, &$count): string {
+                    $tag = $s[0];
+                    $url = preg_match('#background-image:\s*url\(\s*(?:&quot;|&\#0?39;|["\'])?(.*?)(?:&quot;|&\#0?39;|["\'])?\s*\)#i', $tag, $u) ? $u[1]
+                        : (preg_match('#\sdata-src="([^"]+)"#i', $tag, $d) ? $d[1] : '');
+                    if ($url === '' || str_starts_with($url, 'data:')) {
+                        return $tag;
+                    }
+                    $number = ++$count;
+                    $alt    = $number === 1 || $name === '' ? $name : sprintf($more, $name, $number);
+                    $active = (bool) preg_match('#\bactive\b#', $s[1]);
+                    $esc    = fn (string $v) => htmlspecialchars($v, ENT_QUOTES, 'UTF-8', false);
+                    $img    = '<img class="mt-slide-img" src="' . $esc($url) . '" alt="' . htmlspecialchars($alt, ENT_QUOTES, 'UTF-8') . '" decoding="async" draggable="false"'
+                        . ($active ? ' fetchpriority="high"' : ' loading="lazy"') . '>';
+                    $plain  = html_entity_decode($url, ENT_QUOTES);
+                    $source = '';
+                    // the narrower screen first: the first source that fits is taken, as the later media rule wins for the background
+                    foreach ([480, 768] as $screen) {
+                        $copy = $variants[$plain][$screen] ?? null;
+                        if ($copy !== null && $copy !== $plain) {
+                            $source .= '<source media="(max-width:' . $screen . 'px)" srcset="' . $esc($copy) . '">';
+                        }
+                    }
+
+                    return $tag . ($source === '' ? $img : '<picture>' . $source . $img . '</picture>');
+                }, $part);
+            $done += $count;
+            $out  .= substr($html, $at, $start - $at) . $part;
+            $at    = $end;
+        }
+        if ($done === 0) {
+            return $html;
+        }
+        $html = $out . substr($html, $at);
+        $head = stripos($html, '</head>');
+        $html = $head === false ? $html : substr_replace($html, self::SLIDE_CSS, $head, 0);
+
+        return self::beforeBodyEnd($html, self::SLIDE_JS);
+    }
+
     /**
      * A preload of the main picture, right after <title> (or at the end of the head). With $phone
      * ([768 => copy, 480 => copy], see backgrounds()) each screen preloads the copy it will show.

@@ -4,6 +4,15 @@ All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta 
 
 ## 1.6.7 — 2026-10-26
 
+### 🖼 Product photos for search engines (on by default; SEO audit, item 19)
+
+Gridbox shows the pictures of a product slideshow as CSS backgrounds: no `<img>`, no alt, so the photos are not in Google Images.
+
+- **Every slide of a product slideshow gets a real picture** of the same address, with the **product's name as its alt** (from the title of the product, else `og:title`; the next ones `Name – picture 2`, `– zdjęcie 2` in Polish), laid exactly on the background (cover, centred, as Gridbox shows it; a slideshow set to *contain* is followed by a line of script).
+- **Nothing else changes**: the background stays (Gridbox's zoom reads it), clicks, the zoom, the dots and swiping go to Gridbox's slide as before (the picture lets them through), and when another variation of the product with its own photos is chosen Gridbox builds the slideshow anew with backgrounds only, as today.
+- **No photo is fetched twice**: with the lighter copies of the backgrounds the picture is a `<picture>` with the same screen rules (480 / 768 px), so each screen asks for the address of the background. The active slide's picture is fetched first, the others lazily.
+- Checked on merserwis.pl product pages (Metrel MI 3155, 3 photos, options): the same requests as without it, the zoom and the dots work, the phone view identical to the pixel, the desktop view the same but for the smoothing of edges. Product slideshows only. Switch: *Product photos for search engines* (tab *Page speed*).
+
 ### 🔥 Page cache warm-up (on with the page cache; SEO audit, item 12)
 
 The page cache is filled by visitors, so the first one after a change, an expiry or an emptying paid for building the page (on merserwis.pl 1.4 s against 0.23 s from the cache). Now the pages are built before anybody asks.

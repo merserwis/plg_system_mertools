@@ -568,7 +568,7 @@ final class PageSpeed extends Feature
                     $this->plugin->sendJson(['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_SPEED_BAD_RESULT')]);
                 }
                 $defaults = ['url_collapse_slashes' => 1, 'notfound_redirect' => 0, 'layout_clip_x' => 1, 'shop_option_links' => 1,
-                    'cart_enabled' => 1, 'tel_enabled' => 1, 'dark_enabled' => 0, 'speed_show' => 1, 'speed_images' => 1, 'speed_mainphoto' => 1,
+                    'cart_enabled' => 1, 'tel_enabled' => 1, 'dark_enabled' => 0, 'speed_show' => 1, 'speed_images' => 1, 'speed_mainphoto' => 1, 'speed_slideimg' => 1,
                     'speed_video' => 1, 'speed_video_phone' => 'none', 'speed_scripts' => 0, 'speed_cache' => 0, 'speed_cache_data' => 1,
                     'speed_icons' => 1, 'speed_webp' => 1, 'speed_gif' => 1, 'speed_popups' => 1, 'layout_post_rows' => 1, 'tabs_accordion' => 1, 'db_indexes' => 1];
                 $speed->save($m, MerTools::VERSION, Speed::enabledTools($this->plugin->params->toArray(), $defaults), time());
@@ -626,6 +626,10 @@ final class PageSpeed extends Feature
                 if ($photo) {
                     $html = Speedup::preloadImage($html, $photo, $bgVariants[$photo] ?? []);
                 }
+            }
+            if ((int) $p->get('speed_slideimg', 1)) {
+                $this->plugin->loadLanguage();
+                $html = Speedup::slideImages($html, Speedup::productName($html), Text::_('PLG_SYSTEM_MERTOOLS_SLIDE_IMG_ALT_MORE'), $bgVariants);
             }
             if ((int) $p->get('speed_video', 1)) {
                 $image = trim((string) $p->get('speed_video_phone_image', ''));
