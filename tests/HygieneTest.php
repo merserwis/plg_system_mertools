@@ -53,6 +53,12 @@ $check('csp: report', Hygiene::csp('report', "default-src 'self'\n; img-src *"),
 $check('csp: enforce default', Hygiene::csp('enforce', '  '), ['Content-Security-Policy', Hygiene::CSP_DEFAULT]);
 $check('csp: non-ASCII refused', Hygiene::csp('enforce', "default-src 'self' ą"), null);
 $check('csp: junk mode', Hygiene::csp('x', 'a'), null);
+// added to the policy the site has, never in its place (a list of policies: the browser applies all)
+$strict = "default-src 'self'; script-src 'self'; frame-ancestors 'none'";
+$check('csp: none before: only ours', Hygiene::withPolicy([], Hygiene::CSP_DEFAULT), Hygiene::CSP_DEFAULT);
+$check('csp: the site\'s stricter one kept first', Hygiene::withPolicy([$strict], Hygiene::CSP_DEFAULT), $strict . ', ' . Hygiene::CSP_DEFAULT);
+$check('csp: ours not added twice (also from header())', Hygiene::withPolicy([$strict . ', ' . Hygiene::CSP_DEFAULT, Hygiene::CSP_DEFAULT], Hygiene::CSP_DEFAULT), $strict . ', ' . Hygiene::CSP_DEFAULT);
+$check('csp: two of the site\'s, spaces tidied', Hygiene::withPolicy(["a 'self' ", ' b  x'], 'c'), "a 'self', b x, c");
 
 echo $fail ? "$fail FAILED\n" : "ALL PASS\n";
 exit($fail ? 1 : 0);

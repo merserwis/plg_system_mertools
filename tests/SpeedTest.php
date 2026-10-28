@@ -26,6 +26,8 @@ $check('duplicates once', Speed::urls("/oferta\n/oferta", $root), ['https://www.
 $check('full address, other site too', Speed::urls("https://www.merserwis.pl/x\nhttps://example.com/", $root), ['https://www.merserwis.pl/x', 'https://example.com/']);
 $check('junk left out', Speed::urls("javascript:alert(1)\n//evil.example/\nftp://x/y\n/a b\n/ok", $root), ['https://www.merserwis.pl/ok']);
 $check('site in a subfolder', Speed::urls('/kontakt', 'https://example.com/joomla/'), ['https://example.com/kontakt']);
+$check('site in a subfolder: empty = its home page', Speed::urls('', 'https://example.com/joomla/'), ['https://example.com/joomla/']);
+$check('site in a subfolder: "/" (the old default) = its home page', Speed::urls("/\n/joomla/kontakt", 'https://example.com/joomla'), ['https://example.com/joomla/', 'https://example.com/joomla/kontakt']);
 $check('at most 10', count(Speed::urls(implode("\n", array_map(fn ($i) => "/p$i", range(1, 15))), $root)), 10);
 
 $good = ['url' => 'https://www.merserwis.pl/', 'strategy' => 'mobile', 'runs' => 3, 'score' => 43.4, 'fcp' => 7053.36, 'lcp' => 9601.02,

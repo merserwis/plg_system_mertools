@@ -65,18 +65,31 @@ final class NotFound
         if (self::excluded($requestUri, $excludes)) {
             return false;
         }
-        $path = (string) parse_url($requestUri, PHP_URL_PATH);
-
         // the target itself is missing: show the error page, never loop
         $targetHost = strtolower((string) parse_url($target, PHP_URL_HOST));
-        if ($targetHost === strtolower($siteHost)) {
-            $targetPath = rtrim((string) parse_url($target, PHP_URL_PATH), '/');
-            if ($targetPath === rtrim($path, '/')) {
-                return false;
-            }
+        if ($targetHost === strtolower($siteHost) && self::page($target) === self::page($requestUri)) {
+            return false;
         }
 
         return true;
+    }
+
+    /**
+     * What tells a page apart: its path, and with index.php (or the bare root) also its query, as in the log
+     * of missing addresses (a site without SEF: index.php?option=…&id=42 and …&id=99 are two pages). The
+     * parameters of the query compared in any order.
+     */
+    private static function page(string $url): string
+    {
+        $path  = '/' . ltrim((string) parse_url($url, PHP_URL_PATH), '/');
+        $query = (string) parse_url($url, PHP_URL_QUERY);
+        if ($query === '' || !preg_match('#(?:^/|/index\.php)$#i', $path)) {
+            return rtrim($path, '/');
+        }
+        parse_str($query, $vars);
+        ksort($vars);
+
+        return rtrim($path, '/') . '?' . http_build_query($vars);
     }
 
     /**

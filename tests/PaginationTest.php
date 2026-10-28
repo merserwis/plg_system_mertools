@@ -19,6 +19,12 @@ $check('page numbers', array_map([Pagination::class, 'page'], [null, '2', '9', '
     [1, 2, 9, 1000, null, null, null, null, null, null, null, null]);
 $check('without page, others kept', Pagination::withoutPage('/oferta/x', 'sort-by=price&page=0&query=a'), '/oferta/x?sort-by=price&query=a');
 $check('without page, none left', Pagination::withoutPage('/blog', 'page=abc'), '/blog');
+// every form PHP reads as the parameter goes (one left in: refused again after the redirect, for ever)
+$check('without page: array forms', Pagination::withoutPage('/blog', 'page[]=2&x=1&page%5B%5D=3&page[a]=4'), '/blog?x=1');
+$check('without page: an encoded name', Pagination::withoutPage('/blog', 'p%61ge=0&x=1'), '/blog?x=1');
+$check('without page: a bare name', Pagination::withoutPage('/blog', 'page&x=1'), '/blog?x=1');
+$check('without page: other names that begin the same stay', Pagination::withoutPage('/blog', 'pages=2&page_x=1&pagex=3'), '/blog?pages=2&page_x=1&pagex=3');
+$check('without sort-by: scalar and array, others as they are', Pagination::without('/a', 'sort-by[]=x&q=%C5%BC+a&sort-by=bad&sort%2Dby=y', 'sort-by'), '/a?q=%C5%BC+a');
 
 $head = "<head><title>Multimetry</title>\n\t<link href=\"https://x.pl/oferta/multimetry\" rel=\"canonical\"><meta name=\"description\" content=\"Multimetry cyfrowe\"></head>";
 $check('canonical of page 3', Pagination::canonical($head, 3), str_replace('/multimetry"', '/multimetry?page=3"', $head));

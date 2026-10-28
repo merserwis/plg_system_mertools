@@ -302,11 +302,12 @@ final class Sitemap
     }
 
     /**
-     * The rules the items are checked against, from the settings and robots.txt (null: no file).
+     * The rules the items are checked against, from the settings and robots.txt (null: no file). $sef: Joomla's
+     * Search Engine Friendly URLs; without them every address is index.php with a query that tells the pages apart.
      *
-     * @return array{types: string[], filters: array<string, bool>, apps: int[], paths: string[], titles: string[], robots: ?array}
+     * @return array{types: string[], filters: array<string, bool>, apps: int[], paths: string[], titles: string[], robots: ?array, sef: bool}
      */
-    public static function rules(Registry $params, ?string $robotsTxt): array
+    public static function rules(Registry $params, ?string $robotsTxt, bool $sef = true): array
     {
         return [
             'types'   => self::types($params),
@@ -315,30 +316,33 @@ final class Sitemap
             'paths'   => self::lines($params, 'sitemap_paths'),
             'titles'  => self::lines($params, 'sitemap_titles'),
             'robots'  => $robotsTxt === null ? null : self::parseRobots($robotsTxt),
+            'sef'     => $sef,
         ];
     }
 
     /**
      * Why an item is not in the map, or null when it is. The item: type, app (id, 0 outside the apps),
      * live (published, public, started, not ended, not in the trash), flag (Gridbox's include flag),
-     * robots (effective), loc, title. $seen collects the addresses already in the map.
+     * robots (effective), loc, title. $seen collects the addresses already in the map. Without SEF an address
+     * with a query is the page itself (index.php?option=…&id=42): kept, and robots.txt checked with its query.
      */
     public static function reason(array $item, array $rules, array &$seen): ?string
     {
         $loc    = (string) $item['loc'];
         $path   = self::path($loc);
         $query  = (string) parse_url($loc, PHP_URL_QUERY);
+        $sef    = (bool) ($rules['sef'] ?? true);
         $checks = [
             'status'     => static fn (): bool => empty($item['live']),
             'flag'       => static fn (): bool => $rules['filters']['flag'] && empty($item['flag']),
             'noindex'    => static fn (): bool => $rules['filters']['noindex'] && self::isNoindex((string) ($item['robots'] ?? '')),
             'robots-txt' => static fn (): bool => $rules['filters']['robots-txt'] && $rules['robots'] !== null
-                && self::blocked($rules['robots'], (string) parse_url($loc, PHP_URL_PATH) ?: '/'),
+                && self::blocked($rules['robots'], ((string) parse_url($loc, PHP_URL_PATH) ?: '/') . (!$sef && $query !== '' ? '?' . $query : '')),
             'type'       => static fn (): bool => !\in_array($item['type'], $rules['types'], true),
             'app'        => static fn (): bool => \in_array((int) ($item['app'] ?? 0), $rules['apps'], true),
             'path'       => static fn (): bool => self::pathMatches($path, $rules['paths']),
             'title'      => static fn (): bool => self::titleMatches((string) ($item['title'] ?? ''), $rules['titles']),
-            'query'      => static fn (): bool => $query !== '',
+            'query'      => static fn (): bool => $sef && $query !== '',
             'dup'        => static fn (): bool => isset($seen[$loc]),
         ];
         foreach ($checks as $reason => $check) {
@@ -354,15 +358,38 @@ final class Sitemap
     // ---------------------------------------------------------------- addresses
 
     /**
+     * The address the routed paths are put after: Gridbox's sitemap domain, else the site's own address. The
+     * paths Joomla's router builds begin with the folder of a site installed in one ("/shop/catalog/item"), so
+     * the folder is taken off the end of the domain ("https://example.com/shop" → "https://example.com"): it is
+     * never written twice. A site in the root of its domain keeps the domain as it is.
+     *
+     * @param string $domain Gridbox's sitemap domain ('' when not set)
+     * @param string $root   the site's address (Uri::root(): "https://example.com/shop/")
+     * @param string $base   the site's folder (Uri::root(true): "" or "/shop")
+     */
+    public static function domain(string $domain, string $root, string $base): string
+    {
+        $domain = rtrim($domain !== '' ? $domain : $root, '/');
+        $base   = rtrim($base, '/');
+        if ($base !== '' && str_ends_with(strtolower($domain), strtolower($base))) {
+            $domain = substr($domain, 0, -\strlen($base));
+        }
+
+        return $domain;
+    }
+
+    /**
      * The address in the map, as Gridbox writes it: its sitemap domain before the routed path and its
-     * rule of the trailing slash (added or removed), so the addresses stay the same as today.
+     * rule of the trailing slash (added or removed), so the addresses stay the same as today. Not after
+     * index.php followed by a query (a site without SEF): "index.php/?id=42" is not the page's address.
      */
     public static function loc(string $route, string $domain, bool $slash): string
     {
         [$path, $query] = array_pad(explode('?', $route, 2), 2, null);
-        if ($slash && !str_ends_with($path, '/')) {
+        $script = $query !== null && str_ends_with(strtolower($path), '.php');
+        if (!$script && $slash && !str_ends_with($path, '/')) {
             $path .= '/';
-        } elseif (!$slash && str_ends_with($path, '/')) {
+        } elseif (!$script && !$slash && str_ends_with($path, '/')) {
             $path = substr($path, 0, -1);
         }
 

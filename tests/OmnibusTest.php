@@ -52,6 +52,8 @@ $check('a price raised in the window: the lower one before', Omnibus::lowest([$h
 $check('no price (0) is skipped', Omnibus::lowest([$h('2026-08-01', '0'), $h('2026-09-20', '95')], $from, $to), 95.0);
 $check('nothing known', Omnibus::lowest([], $from, $to), null);
 $check('rows in any order', Omnibus::lowest([$h('2026-09-20', '90'), $h('2026-08-01', '100')], $from, $to), 90.0);
+// a price kept for years, raised in the window and then reduced: its old row (kept past the two years) still counts
+$check('a price older than two years, raised in the window', Omnibus::lowest([$h('2024-05-01', '100'), $h('2026-09-30', '120')], $from, $to), 100.0);
 
 // Gridbox's product data
 $items = Omnibus::items([
@@ -179,5 +181,40 @@ $check('old price script gone', str_contains($both, 'scprice.js'), false);
 $check('with a version and the full address', Omnibus::dropScript('<script defer src="https://www.merserwis.pl/plugins/system/omnibus/assets/scr_omnibus.js?v=2"></script>', Omnibus::SCRIPT), '');
 $check('a file of another name stays', Omnibus::dropScript('<script src="/plugins/system/omnibus/assets/scr_omnibus.js.bak"></script>', Omnibus::SCRIPT), '<script src="/plugins/system/omnibus/assets/scr_omnibus.js.bak"></script>');
 $check('lines hidden unless shown by MerTools', str_starts_with(Omnibus::css(), '.omnibus_info{display:none!important}.omnibus_info.mt-omnibus-on{display:block!important}'), true);
+
+// the prices a guest is shown, for the product data (JSON-LD): Gridbox's running sales applied as for the history
+if (!interface_exists('Joomla\Database\DatabaseInterface')) {
+    eval('namespace Joomla\Database; interface DatabaseInterface {}');
+}
+require_once __DIR__ . '/../plg_system_mertools/src/Tool/OmnibusStore.php';
+$gridbox = new class implements Joomla\Database\DatabaseInterface {
+    public array $sales = [];
+    private string $sql = '';
+
+    public function quoteName($name): string
+    {
+        return '`' . $name . '`';
+    }
+
+    public function setQuery($sql, $offset = 0, $limit = 0): static
+    {
+        $this->sql = (string) $sql;
+
+        return $this;
+    }
+
+    public function loadAssocList(): array
+    {
+        return str_contains($this->sql, 'gridbox_store_sales_map') ? [] : $this->sales;
+    }
+};
+$gridbox->sales = [$sale(['id' => 4, 'discount' => '20', 'publish_up' => '2026-10-01 00:00:00', 'publish_down' => '2026-10-31 23:59:59']), $sale(['id' => 5, 'discount' => '50', 'access' => '2'])];
+$rows  = [['product_id' => '3', 'price' => '100', 'sale_price' => '', 'variations' => json_encode(['k1' => ['price' => '50', 'sale_price' => ''], 'k2' => ['price' => '60', 'sale_price' => '55']])]];
+$shown = (new Merserwis\Plugin\System\MerTools\Tool\OmnibusStore($gridbox, [1, 5], $zone))->shownPrices($rows, strtotime('2026-10-19 10:00:00 UTC'));
+$check('shown: a store-wide sale lowers the product (100 → 80)', [$shown['3']['sale'], $shown['3']['via']], [80.0, 4]);
+$check('shown: and its version without a sale price of its own', $shown['k1']['sale'], 40.0);
+$check('shown: a version with its own sale price keeps it', [$shown['k2']['sale'], isset($shown['k2']['via'])], [55.0, false]);
+$before = (new Merserwis\Plugin\System\MerTools\Tool\OmnibusStore($gridbox, [1, 5], $zone))->shownPrices($rows, strtotime('2026-09-30 12:00:00 UTC'));
+$check('shown: before the sale (and the one for registered users): as they are', [$before['3']['sale'], $before['k1']['sale']], [null, null]);
 echo $fail ? "$fail FAILED\n" : "ALL PASS\n";
 exit($fail ? 1 : 0);

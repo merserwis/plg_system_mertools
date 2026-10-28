@@ -469,7 +469,7 @@ final class Feed
     }
 
     /**
-     * The newest posts of an app that a guest may see.
+     * The newest posts of an app that a guest may see (the post and its category published and public).
      *
      * @param int[]  $categories only these categories (none: all)
      * @param string $now        the site's local time, as Gridbox keeps dates
@@ -482,6 +482,10 @@ final class Feed
         $query = $db->getQuery(true)
             ->select($db->quoteName(['p.id', 'p.title', 'p.intro_text', 'p.meta_description', 'p.intro_image', 'p.image_alt', 'p.created', 'p.saved_time', 'p.page_category', 'p.language']))
             ->from($db->quoteName('#__gridbox_pages', 'p'))
+            // the post's category published and public too, as Gridbox lists posts (a whole blog, a tag, an author)
+            ->join('INNER', $db->quoteName('#__gridbox_categories', 'c'), $db->quoteName('c.id') . ' = ' . $db->quoteName('p.page_category'))
+            ->where($db->quoteName('c.published') . ' = 1')
+            ->where($db->quoteName('c.access') . ' = 1')
             ->where($db->quoteName('p.app_id') . ' = ' . $appId)
             ->where($db->quoteName('p.page_category') . ' <> ' . $db->quote('trashed'))
             ->where($db->quoteName('p.published') . ' = 1')
@@ -502,7 +506,8 @@ final class Feed
                 . ' AND ' . $db->quoteName('am.author_id') . ' = ' . $author . ')');
         }
         if ($language !== null && $language !== '') {
-            $query->where($db->quoteName('p.language') . ' IN (' . $db->quote($language) . ', ' . $db->quote('*') . ')');
+            $query->where($db->quoteName('p.language') . ' IN (' . $db->quote($language) . ', ' . $db->quote('*') . ')')
+                ->where($db->quoteName('c.language') . ' IN (' . $db->quote($language) . ', ' . $db->quote('*') . ')');
         }
 
         return (array) $db->setQuery($query, 0, $limit)->loadAssocList();

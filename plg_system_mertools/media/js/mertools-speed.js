@@ -55,13 +55,16 @@
       var f = document.querySelector('[name="jform[params][' + name + ']"]');
       return f ? f.value : fallback;
     }
+    // the same rules as Speed::urls(): "/" alone and an empty field are the home page of the site, also in a folder
     function pages() {
       var out = [];
-      String(formValue('speed_urls', '/')).split(/\r?\n/).forEach(function (line) {
+      String(formValue('speed_urls', '')).split(/\r?\n/).forEach(function (line) {
         line = line.trim();
         if (!line || /[\s"<>\\]/.test(line)) { return; }
         var url = null;
-        if (line.charAt(0) === '/' && line.charAt(1) !== '/') {
+        if (line === '/') {
+          url = cfg.root + '/';
+        } else if (line.charAt(0) === '/' && line.charAt(1) !== '/') {
           url = cfg.root.replace(/^(https?:\/\/[^/]+).*$/i, '$1') + line;
         } else if (/^https?:\/\/[^/]+/i.test(line)) {
           url = line;

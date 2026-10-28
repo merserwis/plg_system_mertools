@@ -42,7 +42,7 @@ final class Feeds extends Feature
         }
         try {
             $db  = Factory::getContainer()->get(DatabaseInterface::class);
-            $row = $db->setQuery('SELECT p.title, p.intro_text, p.meta_description, p.intro_image, p.created, a.type FROM ' . $db->quoteName('#__gridbox_pages', 'p')
+            $row = $db->setQuery('SELECT p.title, p.intro_text, p.meta_description, p.intro_image, p.created, p.app_id, p.page_category, a.type FROM ' . $db->quoteName('#__gridbox_pages', 'p')
                 . ' JOIN ' . $db->quoteName('#__gridbox_app', 'a') . ' ON a.id = p.app_id WHERE p.id = ' . $id, 0, 1)->loadAssoc();
             if (!$row || $row['type'] !== 'blog') {
                 return $html;
@@ -51,13 +51,18 @@ final class Feeds extends Feature
             $blocks   = JsonLd::find($html, ArticleSchema::TYPES);
             $original = $blocks[0][1] ?? null;
             $root     = rtrim(Uri::root(), '/');
-            $abs      = static fn (string $src): string => $src === '' || preg_match('#^(https?:)?//#i', $src) ? $src : $root . '/' . ltrim($src, '/');
+            // the folder of a site in a subfolder only once, when the path already has it
+            $abs      = static fn (string $src): string => Feed::absolute($src, $root);
             $logo     = trim((string) $this->plugin->params->get('blog_jsonld_logo', ''));
             $logo     = $logo !== '' ? $abs(preg_replace('/#.*$/', '', $logo)) : ArticleSchema::originalLogo($original);
             $authors  = (array) $db->setQuery('SELECT a.title FROM ' . $db->quoteName('#__gridbox_authors_map', 'm') . ' JOIN ' . $db->quoteName('#__gridbox_authors', 'a')
                 . ' ON a.id = m.author_id WHERE m.page_id = ' . $id . ' AND a.published = 1 ORDER BY m.id')->loadColumn();
+            // without search engine friendly URLs the address is only index.php: the post's own link
+            $url  = (int) $app->get('sef', 1) ? Uri::current() : $this->plugin->gridboxLink('getGridboxPageLinks',
+                [$id, (string) $row['type'], (int) $row['app_id'], (int) $row['page_category']],
+                'index.php?option=com_gridbox&view=page&blog=' . (int) $row['app_id'] . '&category=' . (int) $row['page_category'] . '&id=' . $id);
             $post = ArticleSchema::build([
-                'url'          => Uri::current(),
+                'url'          => $url,
                 'headline'     => (string) $row['title'],
                 'images'       => [$abs((string) $row['intro_image'])],
                 'description'  => ProductSchema::text((string) $row['intro_text']) ?: ProductSchema::text((string) $row['meta_description']),
@@ -226,6 +231,10 @@ final class Feeds extends Feature
     {
         $mode  = Feed::headMode($this->plugin->params);
         $input = $this->plugin->app()->getInput();
+        if ($mode !== 'all' && ($input->getCmd('option') !== 'com_gridbox' || !\in_array($input->getCmd('view'), ['blog', 'page'], true))) {
+            // links on the blog pages and posts only: no query on the other pages
+            return;
+        }
         $store = new Feed(Factory::getContainer()->get(DatabaseInterface::class));
         try {
             $apps = $store->feedApps();

@@ -15,7 +15,8 @@
  * Such a "<" is kept as &lt;: every libxml reads it, the page shows "<", and Gridbox's editor too
  * (it prints the introduction into a textarea, so the browser shows "<" and the next save sends "<"
  * again — changed back after that save). Only the meta tags need a hand: Joomla escapes their text
- * once more ("&amp;lt;"), put back to "&lt;" on the finished page.
+ * once more ("&amp;lt;"), put back to "&lt;" on the finished page. A server with a newer libxml
+ * reads the "<" as text: there the stored introductions are left as they are.
  */
 
 namespace Merserwis\Plugin\System\MerTools\Tool;
@@ -42,15 +43,32 @@ final class IntroText
         return (bool) preg_match(self::BARE, $text);
     }
 
+    /** Does the libxml of this server lose such a "<"? (2.9.11 and later read it as text: nothing to repair.) */
+    public static function oldLibxml(int $version): bool
+    {
+        return $version > 0 && $version < 20911;
+    }
+
     /**
-     * Every introduction with such a "<" in Gridbox's pages and products, made safe.
+     * Every introduction with such a "<" in Gridbox's pages and products, made safe; only the pages
+     * $ids when given (a save of known pages: no search through the whole table).
+     *
+     * @param int[]|null $ids
      *
      * @return int[]  the ids changed
      */
-    public static function repair(DatabaseInterface $db): array
+    public static function repair(DatabaseInterface $db, ?array $ids = null): array
     {
         $table = $db->quoteName('#__gridbox_pages');
-        $rows  = $db->setQuery('SELECT id, intro_text FROM ' . $table . ' WHERE intro_text REGEXP ' . $db->quote(self::BARE_SQL))->loadAssocList() ?: [];
+        $where = '';
+        if ($ids !== null) {
+            $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0)));
+            if (!$ids) {
+                return [];
+            }
+            $where = 'id IN (' . implode(',', $ids) . ') AND ';
+        }
+        $rows  = $db->setQuery('SELECT id, intro_text FROM ' . $table . ' WHERE ' . $where . 'intro_text REGEXP ' . $db->quote(self::BARE_SQL))->loadAssocList() ?: [];
         $ids   = [];
         foreach ($rows as $row) {
             $text = (string) $row['intro_text'];

@@ -11,10 +11,13 @@
  * Never kept or served: logged-in users, anything but GET/HEAD, addresses with parameters (search,
  * filters; campaign tags like utm_* do not count), pages with a message, the Markdown version of a
  * page, visitors whose page differs (a cart, a wishlist, another currency, a pending order, a comment
- * author), pages with checkout, login, wishlist or submission forms, answers other than 200 and
- * answers that set a cookie MerTools does not know. Product pages with "Recently viewed products"
- * go only to visitors who have not viewed another product (the list would not be theirs), and
- * Gridbox's cookie is set as Gridbox sets it.
+ * author, the order just placed on the thank-you page), pages with checkout, login, wishlist or
+ * submission forms, answers other than 200, answers that set a cookie MerTools does not know or say
+ * they are the visitor's own (Cache-Control: private; Vary: Cookie, User-Agent or *), and pages a
+ * plugin keeps out of Joomla's page cache (onPageCacheSetCaching / onPageCacheIsExcluded). Product
+ * pages with "Recently viewed products" go only to visitors who have not viewed another product (the
+ * list would not be theirs), and Gridbox's cookie is set as Gridbox sets it. A page in another
+ * language than the site's default one is kept apart for each language.
  *
  * Also the two requests Gridbox's script makes on every page before the page can be shown: the
  * page items (task=editor.getItems) and its texts (task=editor.loadModule&module=gridboxLanguage).
@@ -46,6 +49,12 @@ final class PageCache
 
     /** Gridbox elements of a page that belongs to one visitor */
     public const PRIVATE_ITEMS = ['checkout-form', 'checkout-order-form', 'login', 'submission-form', 'wishlist'];
+
+    /**
+     * what in the visitor's session makes their page their own: Gridbox's summary of the order just
+     * placed (the thank-you page puts it into the page once, for the shop's analytics)
+     */
+    public const SKIP_SESSION = ['gridbox-store-layer'];
 
     /** response headers of a page that are sent again with the kept copy */
     public const REPLAY = ['link', 'vary', 'content-language', 'x-robots-tag'];
@@ -175,6 +184,39 @@ final class PageCache
         }
 
         return $viewed;
+    }
+
+    /**
+     * May the answer go to other visitors, as far as its headers say? Not when it is marked as the
+     * visitor's own (Cache-Control: private) or as different for each browser (Vary: Cookie, User-Agent
+     * or *). Joomla sends "no-store, no-cache" with every page, so those two say nothing here.
+     *
+     * @param string[] $headers  headers_list()
+     */
+    public static function shared(array $headers): bool
+    {
+        foreach ($headers as $header) {
+            [$name, $value] = array_map('trim', explode(':', (string) $header, 2) + [1 => '']);
+            $name = strtolower($name);
+            if ($name === 'cache-control' && preg_match('/(?:^|,)\s*private\b/i', $value)) {
+                return false;
+            }
+            if ($name === 'vary' && preg_match('/(?:^|,)\s*(?:\*|cookie|user-agent)\s*(?:,|$)/i', $value)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * The address a page is kept under: the address itself in the site's default language (as before,
+     * and as the warm-up looks it up), with the language added in any other (a multilingual site may
+     * give one address in more than one language: a cookie, the browser's language).
+     */
+    public static function pageAddress(string $url, string $language, string $default): string
+    {
+        return $language === '' || strcasecmp($language, $default) === 0 ? $url : $url . '|' . $language;
     }
 
     /** The headers of a page to send again with its copy: [[name, value], …] */

@@ -33,6 +33,9 @@ final class AppGuard
 
     private const CHUNK = 50;
 
+    /** rows read at a time (a page row holds its whole layout): the memory a copy needs does not grow with the app */
+    private const ROWS = 100;
+
     /**
      * What a copy holds, in this order: table => [the column that links a row, the set of ids it is
      * linked to, the set its rows make and from which column]. The first eighteen are what Gridbox
@@ -101,6 +104,22 @@ final class AppGuard
         }
 
         return rtrim($setting, '/');
+    }
+
+    /**
+     * Can the copies be fetched from the web? Their folder is inside the site root and the server is
+     * not one known to obey the .htaccess / web.config MerTools puts there (Apache, LiteSpeed, IIS):
+     * nginx, Caddy and others serve the folder unless told not to in their own configuration.
+     */
+    public static function exposed(string $folder, string $root, string $server): bool
+    {
+        $folder = rtrim(str_replace('\\', '/', $folder), '/') . '/';
+        $root   = rtrim(str_replace('\\', '/', $root), '/') . '/';
+        if (!str_starts_with(strtolower($folder), strtolower($root))) {
+            return false;
+        }
+
+        return !preg_match('/apache|litespeed|microsoft-iis/i', $server);
     }
 
     // ---------------------------------------------------------------- what is kept
@@ -177,10 +196,13 @@ final class AppGuard
         return $out;
     }
 
-    /** A name of a copy as this class makes it: nothing that could leave the folder. */
+    /**
+     * A name of a copy as this class makes it: nothing that could leave the folder. It ends in 32 random
+     * hex digits (8 before 1.7.0), so nobody can guess it where the server does not keep the folder closed.
+     */
     public static function validName(string $file): bool
     {
-        return (bool) preg_match('/^app-\d{1,10}-[a-z0-9-]{0,40}-?\d{8}-\d{6}-[a-f0-9]{8}\.jsonl\.gz$/', $file);
+        return (bool) preg_match('/^app-\d{1,10}-[a-z0-9-]{0,40}-?\d{8}-\d{6}-[a-f0-9]{8}(?:[a-f0-9]{24})?\.jsonl\.gz$/', $file);
     }
 
     /**
@@ -259,7 +281,8 @@ final class AppGuard
 
     /**
      * Writes a copy of the app. An automatic copy with the same content as the last copy of the app is not
-     * kept: that copy is marked as checked instead.
+     * kept: that copy is marked as checked instead. Files over FILE_MAX and files that cannot be read are
+     * left out and counted in "skipped": a copy with skipped > 0 cannot bring the whole app back.
      *
      * @return array{file:string, size:int, pages:int, rows:int, files:int, skipped:int, unchanged:bool}
      */
@@ -273,7 +296,7 @@ final class AppGuard
         }
         $this->ensureFolder();
         $slug = trim(substr((string) preg_replace('/[^a-z0-9]+/', '-', strtolower(self::ascii((string) $app['title']))), 0, 40), '-');
-        $file = 'app-' . $appId . '-' . ($slug !== '' ? $slug . '-' : '') . gmdate('Ymd-His', (int) strtotime($now . ' UTC')) . '-' . bin2hex(random_bytes(4)) . '.jsonl.gz';
+        $file = 'app-' . $appId . '-' . ($slug !== '' ? $slug . '-' : '') . gmdate('Ymd-His', (int) strtotime($now . ' UTC')) . '-' . bin2hex(random_bytes(16)) . '.jsonl.gz';
         $path = $this->dir . '/' . $file;
         $part = $path . '.part';
         $gz   = @gzopen($part, 'wb6');
@@ -308,22 +331,32 @@ final class AppGuard
                     continue;
                 }
                 foreach (array_chunk(array_values(array_unique($sets[$set])), self::CHUNK) as $chunk) {
-                    $rows = (array) $db->setQuery($db->getQuery(true)->select('*')->from($db->quoteName($table))
-                        ->where($db->quoteName($column) . ' IN (' . implode(', ', array_map('intval', $chunk)) . ')')
-                        ->order($db->quoteName('id')))->loadAssocList();
-                    foreach ($rows as $row) {
-                        $put(self::encodeRow($table, $row));
-                        $counts['rows']++;
-                        if ($makes) {
-                            $sets[$makes[0]][] = (int) $row[$makes[1]];
+                    // the rows in id order, a batch at a time (the pages of a whole shop would not fit the memory at once)
+                    $last = null;
+                    do {
+                        $query = $db->getQuery(true)->select('*')->from($db->quoteName($table))
+                            ->where($db->quoteName($column) . ' IN (' . implode(', ', array_map('intval', $chunk)) . ')')
+                            ->order($db->quoteName('id'));
+                        if ($last !== null) {
+                            $query->where($db->quoteName('id') . ' > ' . $last);
                         }
-                        if ($table === '#__gridbox_fields_desktop_files') {
-                            $desktop[] = ['app_id' => $row['app_id'], 'filename' => (string) $row['filename']];
-                        } elseif ($table === '#__gridbox_comments_attachments' || $table === '#__gridbox_reviews_attachments') {
-                            $attach[$table === '#__gridbox_comments_attachments' ? 'comments' : 'reviews'][] = (string) $row['filename'];
+                        $rows = (array) $db->setQuery($query, 0, self::ROWS)->loadAssocList();
+                        foreach ($rows as $row) {
+                            $put(self::encodeRow($table, $row));
+                            $counts['rows']++;
+                            $last = (int) $row['id'];
+                            if ($makes) {
+                                $sets[$makes[0]][] = (int) $row[$makes[1]];
+                            }
+                            if ($table === '#__gridbox_fields_desktop_files') {
+                                $desktop[] = ['app_id' => $row['app_id'], 'filename' => (string) $row['filename']];
+                            } elseif ($table === '#__gridbox_comments_attachments' || $table === '#__gridbox_reviews_attachments') {
+                                $attach[$table === '#__gridbox_comments_attachments' ? 'comments' : 'reviews'][] = (string) $row['filename'];
+                            }
                         }
-                    }
-                    unset($rows);
+                        $more = \count($rows) === self::ROWS;
+                        unset($rows);
+                    } while ($more);
                 }
             }
             $counts['pages'] = \count($sets['pages'] ?? []);
@@ -340,6 +373,9 @@ final class AppGuard
                 }
                 $data = @file_get_contents($full);
                 if ($data === false) {
+                    // there but not readable: left out like a large file, so the copy says it is not whole
+                    $put((string) json_encode(['f' => $rel, 'skip' => $size], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                    $counts['skipped']++;
                     continue;
                 }
                 $put((string) json_encode(['f' => $rel, 'd' => base64_encode($data)], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
@@ -594,15 +630,16 @@ final class AppGuard
         if (!is_dir($this->dir) && !@mkdir($this->dir, 0755, true) && !is_dir($this->dir)) {
             throw new \RuntimeException('Cannot create ' . $this->dir);
         }
-        // the folder may be inside the web root: nothing in it is served
+        // the folder may be inside the web root: nothing in it is served (Apache, LiteSpeed, IIS; no list of
+        // the files anywhere); no copy is written into a folder these cannot be put into
         $guards = [
             '.htaccess'  => "# MerTools: copies of Gridbox apps, never served\n<IfModule mod_authz_core.c>\n  Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n  Order deny,allow\n  Deny from all\n</IfModule>\n",
             'web.config' => "<?xml version=\"1.0\"?>\n<configuration><system.webServer><authorization><deny users=\"*\" /></authorization></system.webServer></configuration>\n",
             'index.html' => "<!DOCTYPE html><title></title>\n",
         ];
         foreach ($guards as $name => $content) {
-            if (!is_file($this->dir . '/' . $name)) {
-                @file_put_contents($this->dir . '/' . $name, $content);
+            if (!is_file($this->dir . '/' . $name) && @file_put_contents($this->dir . '/' . $name, $content) === false) {
+                throw new \RuntimeException('Cannot write ' . $this->dir . '/' . $name);
             }
         }
     }

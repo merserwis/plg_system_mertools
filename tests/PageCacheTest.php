@@ -62,6 +62,21 @@ $check('cookies: someone\'s own list', PageCache::cookieCheck(['Set-Cookie: grid
 $check('cookies: unknown cookie', PageCache::cookieCheck(['Set-Cookie: gridbox-preloader=1'], $sess), null);
 $check('headers replayed', PageCache::replayHeaders(['Content-Type: text/html; charset=utf-8', 'Link: <https://x/?output=markdown>; rel="alternate"', 'Vary: Accept',
     'Set-Cookie: a=b', 'X-Frame-Options: SAMEORIGIN']), [['Link', '<https://x/?output=markdown>; rel="alternate"'], ['Vary', 'Accept']]);
+$joomla = ['Expires: Wed, 17 Aug 2005 00:00:00 GMT', 'Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0', 'Cache-Control: no-cache',
+    'Pragma: no-cache', 'Vary: Accept', "Set-Cookie: $sess=abc"];
+$check('shared: Joomla\'s usual headers of a guest page', PageCache::shared($joomla), true);
+$check('shared: Vary Accept-Encoding', PageCache::shared(['Vary: Accept, Accept-Encoding']), true);
+$check('not shared: Cache-Control private', PageCache::shared(array_merge($joomla, ['Cache-Control: private, max-age=0'])), false);
+$check('not shared: private after other directives', PageCache::shared(['cache-control: no-cache, private']), false);
+$check('not shared: Vary Cookie', PageCache::shared(['Vary: Accept, Cookie']), false);
+$check('not shared: Vary User-Agent', PageCache::shared(['Vary: User-Agent']), false);
+$check('not shared: Vary *', PageCache::shared(['Vary: *']), false);
+$check('shared: a header merely containing the word', PageCache::shared(['X-Note: private', 'Vary: X-Cookie-Consent']), true);
+$check('session: the order just placed', in_array('gridbox-store-layer', PageCache::SKIP_SESSION, true), true);
+$check('address: default language as before', PageCache::pageAddress('https://x.pl/a', 'pl-PL', 'pl-PL'), 'https://x.pl/a');
+$check('address: default language, other case', PageCache::pageAddress('https://x.pl/a', 'pl-pl', 'pl-PL'), 'https://x.pl/a');
+$check('address: another language apart', PageCache::pageAddress('https://x.pl/a', 'en-GB', 'pl-PL'), 'https://x.pl/a|en-GB');
+$check('address: no language known', PageCache::pageAddress('https://x.pl/a', '', 'pl-PL'), 'https://x.pl/a');
 $check('content type', PageCache::contentType(['X-A: b', 'Content-Type: text/html; charset=utf-8']), 'text/html; charset=utf-8');
 $check('content type unknown', PageCache::contentType(['Content-Type: application/json']), 'text/html; charset=utf-8');
 
@@ -148,6 +163,17 @@ $check('removePurged: the new one stays', $other->read($other->key('page', 's3')
 usleep(1100000);
 $other->purge(false);
 $check('prune removes files from before the stamp', $other->prune(600, 100, microtime(true)) >= 1, true);
+
+// two orders within seconds: each moves the time (the files of the second wait), the page kept between them is not served
+$burst = new PageCache($dir);
+$burst->purge(false);
+usleep(2000);
+$between = $burst->key('page', 'https://x/stock');
+$burst->write($between, ['kind' => 'page'], 'stock 5', microtime(true));
+$check('burst: page kept after the first order', ($burst->read($between, 600, microtime(true))['body'] ?? null), 'stock 5');
+usleep(2000);
+(new PageCache($dir))->purge(false);
+$check('burst: second order within 20 s still empties', (new PageCache($dir))->read($between, 600, microtime(true)), null);
 
 $check('no web listing', is_file($dir . '/index.html'), true);
 exec('rm -rf ' . escapeshellarg($dir));

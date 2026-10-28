@@ -2,13 +2,52 @@
 
 > Version 1.0.0 was the first stable release, after a full code audit (security, correctness, speed). Report problems in the [issues](https://github.com/merserwis/plg_system_mertools/issues).
 
-A Joomla system plugin with fixes and optimisations for **Balbooa Gridbox** that cannot be done from Gridbox's own settings. Each fix is a separate tool that can be turned on or off. **The Gridbox core files are never changed**, so Gridbox updates install cleanly.
+A Joomla system plugin with fixes and optimisations for **Balbooa Gridbox** that cannot be done from Gridbox's own settings, for any Joomla 6 + Gridbox site. Each fix is a separate tool that can be turned on or off. **The Gridbox core files are never changed**, so Gridbox updates install cleanly.
 
-Built for the Merserwis shop (Joomla 6, Balbooa Gridbox, PHP 8.5), in the same style as [Better Search for Gridbox](https://github.com/merserwis/plg_system_bettersearch).
+First built for the Merserwis shop (Joomla 6, Balbooa Gridbox, PHP 8.5), in the same style as [Better Search for Gridbox](https://github.com/merserwis/plg_system_bettersearch); since 1.7.0 meant for any Joomla + Gridbox site. The figures quoted below (load times, sample sizes) come from that shop.
+
+> **Check your site.** After installing, after updating and after turning on any tool, check on your own site that it works as it should: as a guest (in a private window), on a computer and on a phone, on several kinds of pages (home page, post, product, cart, form). Every Joomla + Gridbox site is built differently; if something does not work right, turn that tool off and [report it](https://github.com/merserwis/plg_system_mertools/issues). Some tools are on right after installing — the control panel shows which.
+
+## The administrator (1.7.0)
+
+Everything is under **Components → MerTools for Gridbox**, laid out like Akeeba Admin Tools:
+
+- **Control Panel** — the tools as tiles in sections (*Speed*, *Search engines*, *Shop* — only with a Gridbox store —, *Gridbox in the administrator*, *Configuration*), each with a dot that says whether it is on; on the side the state of MerTools, shortcuts (quick setup, configuration, clear the cache, open Gridbox) and the reminder to check the site.
+- **The sidebar menu** opens the tools used day to day: *Page Cache*, *Images*, *Sitemap*, *404 Pages*, *Edit History*; the cog beside each opens its settings. A tool's page starts with its *Overview* (what it did, its buttons), its settings follow in the next tabs.
+- **Configuration** — what is set once and forgotten, one page with a vertical tab per tool: *Addresses (URL)*, *Site hygiene*, *Structured data*, *Blog*, *Shop*, *First view*, *Page layout*, *Tabs*, *Phone numbers*, *Dark mode*, *Lists in the administrator*, *Edit lock*.
+- **Quick Setup** — 15 switches with the main tools, each marked *recommended* or *optional*; *Turn on the recommended* switches on the recommended ones and leaves the optional ones as they are, and only the switches you change are saved. A fresh install offers it first.
+
+The settings are still the parameters of the plugin, so nothing changes for the site itself; opening the plugin in Joomla's plugin manager leads to the control panel (the plugin's own form, with every setting at once, opens only when the component is disabled).
+
+| Tool | Where |
+|---|---|
+| Page cache, warm-up, *Clear cache* button in the top bar | *Page Cache* |
+| Images without waiting, WebP copies | *Images* |
+| PageSpeed Insights measurements | *Speed Measurements* |
+| Recommended settings of Gridbox, Joomla and the server | *Diagnostics* |
+| Faster first view (page shown at once, icons, main photo, videos, popups, marketing scripts) | *Configuration → First view* |
+| Sitemap | *Sitemap* |
+| 404 log, moved pages, redirects | *404 Pages* |
+| Canonical URL, guard of the sorting, pages of the lists | *Configuration → Addresses (URL)* |
+| Site hygiene, Content-Security-Policy | *Configuration → Site hygiene* |
+| Structured data of the site | *Configuration → Structured data* |
+| Blog feeds, article data | *Configuration → Blog* |
+| Product option links, discount %, price on request, product data | *Configuration → Shop* |
+| Omnibus | *Omnibus* |
+| Tidy up old carts | *Carts* |
+| Gridbox lists (columns, editing in the list, media) | *Configuration → Lists in the administrator* |
+| Edit lock | *Configuration → Edit lock* |
+| Edit history | *Edit History* |
+| Apps protection and backups | *Gridbox Apps* |
+| Indexes of Gridbox tables, “<” in introductions | *Database* |
+| Post rows, no sideways shift, finished items out of the lists | *Configuration → Page layout* |
+| Tabs on phones, link to a tab | *Configuration → Tabs* |
+| Phone numbers | *Configuration → Phone numbers* |
+| Dark mode | *Configuration → Dark mode* |
 
 ## Tools
 
-Every option in the settings has a **?** beside its name with an explanation of what it does (hover, keyboard focus or click).
+Every option in the settings has a **?** beside its name with an explanation of what it does (hover, keyboard focus or click). Where a tool below names a tab, see the table above for where it is since 1.7.0.
 
 ### 🔗 Canonical URL — collapse duplicate slashes
 
@@ -109,7 +148,7 @@ The lowest price of the 30 days before a price reduction, shown next to the redu
 - **Moving from a separate Omnibus plugin.** At the start, every sale running then takes that plugin's reference price when it belongs to the same sale (same regular and sale price; never above the regular price), else the regular price; new products on sale from their first day: their own price. The panel on tab *Shop* lists every product and version on sale with the price shown and where it came from. The plugin's lines and its script (`plugins/system/omnibus/assets/scr_omnibus.js`) are taken off the pages and the line keeps the look of its stylesheet; what it did for category pages is done by Better Categories for Gridbox 1.7.0 (below). With both, the plugin can be removed.
 - **Gridbox's own sales** (*Gridbox → Discounts*: a percentage or an amount off every product, the products of chosen categories or chosen products and versions, with or without dates) are reductions like any other. A product or version without a sale price of its own gets the price such a sale makes of it in the history, the way Gridbox works it out (the first sale that is for it, guests' access levels), so the line shows the lowest price of the 30 days before the sale started. The prices are compared again the moment a sale starts or ends (at the first visit after it), not only once an hour. The Omnibus panel lists every Gridbox sale with its state and whether the line follows it: a cart discount (an amount off the order above a total) lowers no product price, and a sale for some users only (an access level other than the guests') is not what guests see — both are marked there.
 
-Off by default, tab *Shop*.
+A visitor who views prices in another currency (currency switcher, currency of the language) sees no Omnibus line, because the history is kept in the store's default currency. Off by default, tab *Shop*.
 
 ### 🗂 Page layout — category pages: now in Better Categories
 
@@ -197,7 +236,7 @@ Gridbox creates its tables with a primary key only, so each lookup of product da
 
 ### 📞 Phone numbers — click to call
 
-Phone numbers written as plain text (contact rows, footers, product pages) become `tel:` links, so a tap on a phone dials them — no need to add links by hand in Gridbox. Polish numbers in the usual forms (`22 531 00 94`, `(22) 531-00-94`, `533 394 222`, with or without +48) and international numbers starting with `+` are found; links, buttons, forms, code and numbers that are not phones (NIP, REGON, KRS, bank accounts, serial numbers, prices, standards, fax numbers) are left alone. The links look like the text around them (or like the site's links), the country code is added for dialling from abroad (default +48), and areas can be excluded with a CSS selector. A small script does it in the browser when it is idle; the page content is not changed. On by default, tab *Phone numbers*.
+Phone numbers written as plain text (contact rows, footers, product pages) become `tel:` links, so a tap on a phone dials them — no need to add links by hand in Gridbox. Numbers written with the international prefix (`+48 22 531 00 94`, `0034 612 345 678`) are always found, and numbers without it (nine digits in groups: `22 531 00 94`, `(22) 531-00-94`, `533 394 222`) once the country's calling code is set (since 1.7.0 empty by default; installs updated from older versions keep 48); links, buttons, forms, code and numbers that are not phones (NIP, REGON, KRS, bank accounts, serial numbers, prices, standards, fax numbers) are left alone. The links look like the text around them (or like the site's links), the country code is added to those numbers for dialling from abroad, and areas can be excluded with a CSS selector. A small script does it in the browser when it is idle; the page content is not changed. On by default, tab *Phone numbers*.
 
 ### ⏱ Page speed — PageSpeed Insights panel with before/after
 
@@ -280,21 +319,22 @@ English (default) and Polish. The settings follow the language of the Joomla adm
 ## Installation
 
 1. Download `pkg_mertools-<version>.zip` from [Releases](https://github.com/merserwis/plg_system_mertools/releases).
-2. Install it in Joomla (Extensions → Install). The package installs the system plugin and an administrator menu entry.
-3. The plugin is enabled on a fresh install. Open its settings from **Components → MerTools for Gridbox** (the menu entry opens the plugin's settings page directly).
+2. Install it in Joomla (Extensions → Install). The package installs the system plugin and its administrator component.
+3. The plugin is enabled on a fresh install. Open **Components → MerTools for Gridbox** and start with the **Quick Setup**.
+4. Check your site (see the note at the top) after every tool you turn on.
 
 ## Package structure
 
 | Extension | What it is |
 |---|---|
 | `plg_system_mertools` | The system plugin — the tools and their settings. |
-| `com_mertools` | A thin administrator component: the sidebar menu entry that opens the plugin settings. |
+| `com_mertools` | The administrator: control panel, quick setup, the pages of the tools and the configuration (the settings themselves are the plugin's parameters). |
 
 ## Requirements
 
-- Joomla 6 (tested with Joomla 6.1.4)
+- Joomla 6 (tested with Joomla 6.2)
 - Balbooa Gridbox
-- PHP 8.2+ (tested with PHP 8.5.11)
+- PHP 8.2+ (tested with PHP 8.5.12)
 
 ## License
 

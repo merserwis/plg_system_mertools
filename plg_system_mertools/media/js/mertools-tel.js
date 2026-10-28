@@ -1,8 +1,10 @@
 /**
  * MerTools for Gridbox — phone numbers written as plain text become links that dial them (tel:).
  *
- * Polish numbers in the usual groupings ("22 531 00 94", "(22) 531-00-94", "533 394 222", with or
- * without +48) and international numbers starting with "+" are found in the text of the page; links,
+ * Numbers in the usual groupings ("22 531 00 94", "(22) 531-00-94", "533 394 222") with an
+ * international prefix ("+48 …", "0048 …") and other numbers starting with "+" are found in the text
+ * of the page; the same groupings without a prefix only when the country of the site's numbers is set
+ * (cfg.cc, its code is added to them), else they could be numbers of any country. Links,
  * buttons, form fields, code and the areas excluded in the settings are left alone, and so are
  * numbers that are not phones (NIP, REGON, KRS, bank accounts, serial numbers, prices, fax numbers).
  * The look of the text stays: the link takes the colour of the text around it.
@@ -21,8 +23,9 @@
   var S = '[\\s\\u00a0.\\-]';
   var PREFIX = '(?:\\+|00)\\d{2,3}' + S + '?';
   var RE = new RegExp('(^|[^\\w+\\-./:,])('
-    // Polish: 2-3-2-2 (landline, area code optionally in brackets) or 3-3-3 (mobile), optional prefix
-    + '(?:' + PREFIX + ')?(?:\\(?[1-9]\\d\\)?' + S + '?\\d{3}' + S + '\\d{2}' + S + '\\d{2}|[1-9]\\d{2}' + S + '\\d{3}' + S + '\\d{3})'
+    // 2-3-2-2 (landline, area code optionally in brackets) or 3-3-3 (mobile); the prefix may be left
+    // out only when the country is set
+    + '(?:' + PREFIX + ')' + (cfg.cc ? '?' : '') + '(?:\\(?[1-9]\\d\\)?' + S + '?\\d{3}' + S + '\\d{2}' + S + '\\d{2}|[1-9]\\d{2}' + S + '\\d{3}' + S + '\\d{3})'
     // with a prefix, also nine digits in one block
     + '|' + PREFIX + '[1-9]\\d{8}'
     // other countries: "+" and groups of digits
@@ -78,12 +81,21 @@
 
   // a text node is worth a look only with at least eight digits in it
   var DIGITS = /(?:\d\D{0,3}){8}/;
+  // elements whose content is never linked (all in NOT_IN) are not entered at all: the long scripts
+  // and styles in the page are not read
+  var SKIP = {};
+  'a,button,script,style,noscript,textarea,select,code,pre,kbd,samp,svg,math,iframe,template,title'.split(',').forEach(function (t) { SKIP[t] = 1; });
+
+  function accept(x) {
+    if (x.nodeType === 1) return SKIP[x.localName] ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_SKIP;
+    return DIGITS.test(x.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+  }
 
   function scan(root) {
     if (!root || !root.isConnected) return;
-    var list = [], w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), n;
+    var list = [], w = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, accept), n;
     while ((n = w.nextNode())) {
-      if (DIGITS.test(n.nodeValue) && !inside(n)) list.push(n);
+      if (!inside(n)) list.push(n);
     }
     // the reads first, then the changes
     for (var i = 0; i < list.length; i++) linkNode(list[i]);

@@ -56,5 +56,20 @@ $check('long value cut', mb_strlen(History::diff($base, ['title' => str_repeat('
 $check('null = empty', History::diff(['title' => null] + $base, ['title' => ''] + $base), null);
 $check('new key not in before ignored', History::diff($base, ['crc_tags' => '9'] + $base), null);
 
+// pages added while a request ran: only those the request made
+$page = fn (string $crc, int $app, string $title = 'X', string $cat = '10') => ['crc_content' => $crc, 'app_id' => $app, 'title' => $title, 'page_category' => $cat];
+$check('copy of one page', History::ownNew([20 => $page('111', 2)], [5 => $page('111', 2)], null), [20 => 5]);
+$check('copy + a page somebody else made', History::ownNew([20 => $page('111', 2), 21 => $page('999', 2)], [5 => $page('111', 2)], null), [20 => 5]);
+$check('somebody else copied the same page too', History::ownNew([20 => $page('111', 2), 21 => $page('111', 2)], [5 => $page('111', 2)], null), []);
+$check('two pages copied', History::ownNew([20 => $page('111', 2), 21 => $page('222', 2)], [5 => $page('111', 2), 6 => $page('222', 2)], null), [20 => 5, 21 => 6]);
+$check('two same pages copied: no source', History::ownNew([20 => $page('111', 2), 21 => $page('111', 2)], [5 => $page('111', 2), 6 => $page('111', 2)], null), [20 => 0, 21 => 0]);
+$check('same content, other app', History::ownNew([20 => $page('111', 3)], [5 => $page('111', 2)], null), []);
+$check('nothing added', History::ownNew([], [5 => $page('111', 2)], null), []);
+$asked = ['title' => 'Nowy produkt', 'app_id' => 2, 'page_category' => '10'];
+$check('new page asked for', History::ownNew([30 => $page('1', 2, 'Nowy produkt'), 31 => $page('2', 2, 'Inny')], [], $asked), [30 => 0]);
+$check('new page, other category', History::ownNew([30 => $page('1', 2, 'Nowy produkt', '11')], [], $asked), []);
+$check('two new pages of that title: not clear', History::ownNew([30 => $page('1', 2, 'Nowy produkt'), 31 => $page('2', 2, 'Nowy produkt')], [], $asked), []);
+$check('single page (no category)', History::ownNew([40 => $page('1', 0, 'O nas', '')], [], ['title' => 'O nas', 'app_id' => 0, 'page_category' => '']), [40 => 0]);
+
 echo $fail === 0 ? "\nALL PASS\n" : "\n$fail FAILED\n";
 exit($fail === 0 ? 0 : 1);

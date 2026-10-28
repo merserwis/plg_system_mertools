@@ -3,10 +3,10 @@
     <name>plg_system_mertools</name>
     <author>Merserwis</author>
     <authorUrl>https://github.com/merserwis/</authorUrl>
-    <creationDate>2026-10-27</creationDate>
+    <creationDate>2026-10-28</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.6.10</version>
+    <version>1.7.0</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -27,128 +27,23 @@
     </languages>
     <config>
         <fields name="params" addfieldprefix="Merserwis\Plugin\System\MerTools\Field">
+
             <fieldset name="basic">
                 <field name="intro_note" type="note" class="alert alert-info" label="PLG_SYSTEM_MERTOOLS_INTRO_LABEL" description="PLG_SYSTEM_MERTOOLS_INTRO_DESC" />
-            </fieldset>
-
-            <!-- ============================================================ Canonical URL -->
-            <fieldset name="url" label="PLG_SYSTEM_MERTOOLS_FIELDSET_URL">
                 <field name="mt_admin" type="mtadmin" hiddenLabel="true" />
-                <field name="url_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_URL_NOTE" />
-                <field name="url_collapse_slashes" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_URL_COLLAPSE_LABEL" description="PLG_SYSTEM_MERTOOLS_URL_COLLAPSE_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="url_redirect_code" type="list" default="301" showon="url_collapse_slashes:1"
-                    label="PLG_SYSTEM_MERTOOLS_URL_CODE_LABEL" description="PLG_SYSTEM_MERTOOLS_URL_CODE_DESC">
-                    <option value="301">PLG_SYSTEM_MERTOOLS_URL_CODE_301</option>
-                    <option value="302">PLG_SYSTEM_MERTOOLS_URL_CODE_302</option>
-                </field>
-                <field name="url_cf_note" type="note" class="alert alert-warning" description="PLG_SYSTEM_MERTOOLS_URL_CF_NOTE" />
-                            <field name="url_sort_guard" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_URL_SORT_GUARD_LABEL" description="PLG_SYSTEM_MERTOOLS_URL_SORT_GUARD_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="url_pagination" type="radio" layout="joomla.form.field.radio.switcher" default="0"
-                    label="PLG_SYSTEM_MERTOOLS_URL_PAGINATION_LABEL" description="PLG_SYSTEM_MERTOOLS_URL_PAGINATION_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
             </fieldset>
 
-            <!-- ============================================================ Page speed -->
-            <fieldset name="speed" label="PLG_SYSTEM_MERTOOLS_FIELDSET_SPEED">
+            <fieldset name="checks" label="PLG_SYSTEM_MERTOOLS_FIELDSET_CHECKS" page="checks">
                 <field name="speed_checks" type="mtchecks"
                     label="PLG_SYSTEM_MERTOOLS_SPEED_CHECKS_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_CHECKS_DESC" />
-                <field name="speed_key" type="password" default="" filter="string" autocomplete="off"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_KEY_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_KEY_DESC" />
-                <field name="speed_urls" type="textarea" default="/" rows="4" filter="string"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_URLS_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_URLS_DESC" />
-                <field name="speed_runs" type="list" default="3"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_RUNS_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_RUNS_DESC">
-                    <option value="1">1</option>
-                    <option value="3">3</option>
-                    <option value="5">5</option>
-                </field>
-                <field name="speed_tools_note" type="note" class="alert alert-info" label="PLG_SYSTEM_MERTOOLS_SPEED_TOOLS_NOTE_LABEL"
-                    description="PLG_SYSTEM_MERTOOLS_SPEED_TOOLS_NOTE_DESC" />
-                <field name="speed_show" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_SHOW_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SHOW_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="speed_icons" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_ICONS_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_ICONS_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="speed_images" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_IMAGES_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_IMAGES_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="speed_webp" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="speed_images:1"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_WEBP_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_WEBP_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="speed_gif" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="speed_images:1"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_GIF_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_GIF_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="speed_images_panel" type="mtimages" showon="speed_images:1"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_IMAGES_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_IMAGES_PANEL_DESC" />
-                <field name="speed_mainphoto" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_MAINPHOTO_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_MAINPHOTO_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="speed_slideimg" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_SLIDEIMG_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SLIDEIMG_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="speed_video" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="speed_video_delay" type="number" default="3" min="0" max="60" filter="integer" showon="speed_video:1"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_DELAY_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_DELAY_DESC" />
-                <field name="speed_video_phone" type="list" default="none" showon="speed_video:1"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_DESC">
-                    <option value="none">PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_NONE</option>
-                    <option value="image">PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_IMAGE</option>
-                    <option value="video">PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_VIDEO</option>
-                </field>
-                <field name="speed_video_phone_width" type="number" default="768" min="320" max="2000" filter="integer"
-                    showon="speed_video:1[AND]speed_video_phone!:video"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_WIDTH_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_WIDTH_DESC" />
-                <field name="speed_video_phone_color" type="color" default="#1a1a1a" showon="speed_video:1[AND]speed_video_phone!:video"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_COLOR_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_COLOR_DESC" />
-                <field name="speed_video_phone_image" type="media" types="images" preview="tooltip" showon="speed_video:1[AND]speed_video_phone:image"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_PIC_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_PIC_DESC" />
-                <field name="speed_popups" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_POPUPS_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_POPUPS_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="speed_scripts" type="radio" layout="joomla.form.field.radio.switcher" default="0"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="speed_scripts_list" type="textarea" rows="6" filter="raw" showon="speed_scripts:1"
-                    default="googletagmanager.com&#10;fbq(&#10;connect.facebook.net&#10;clarity.ms&#10;hotjar.com&#10;elfsightcdn.com&#10;cloudflareinsights.com"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_LIST_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_LIST_DESC" />
-                <field name="speed_scripts_keep" type="textarea" rows="2" filter="raw" showon="speed_scripts:1"
-                    default="cookieconsent&#10;cookie-consent"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_KEEP_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_KEEP_DESC" />
-                <field name="speed_scripts_timeout" type="number" default="0" min="0" max="120" filter="integer" showon="speed_scripts:1"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_TIMEOUT_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_TIMEOUT_DESC" />
+            </fieldset>
+
+            <fieldset name="cache_panel" label="PLG_SYSTEM_MERTOOLS_FIELDSET_OVERVIEW" page="cache">
+                <field name="speed_cache_panel" type="mtpagecache"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_PANEL_DESC" />
+            </fieldset>
+
+            <fieldset name="cache" label="PLG_SYSTEM_MERTOOLS_FIELDSET_CACHE" page="cache">
                 <field name="speed_cache_note" type="note" class="alert alert-info" label="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_NOTE_LABEL"
                     description="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_NOTE_DESC" />
                 <field name="speed_cache" type="radio" layout="joomla.form.field.radio.switcher" default="0"
@@ -169,6 +64,14 @@
                     label="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_COOKIES_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_COOKIES_DESC" />
                 <field name="speed_cache_max" type="number" default="5000" min="100" max="100000" filter="integer" showon="speed_cache:1"
                     label="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_MAX_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_MAX_DESC" />
+                <field name="admin_cache_button" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_ADMIN_CACHE_BUTTON_LABEL" description="PLG_SYSTEM_MERTOOLS_ADMIN_CACHE_BUTTON_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+            </fieldset>
+
+            <fieldset name="cache_warm" label="PLG_SYSTEM_MERTOOLS_FIELDSET_CACHE_WARM" page="cache">
                 <field name="speed_warm" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="speed_cache:1"
                     label="PLG_SYSTEM_MERTOOLS_SPEED_WARM_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_WARM_DESC">
                     <option value="0">JNO</option>
@@ -176,19 +79,160 @@
                 </field>
                 <field name="speed_warm_batch" type="number" default="5" min="1" max="20" filter="integer" showon="speed_cache:1[AND]speed_warm:1"
                     label="PLG_SYSTEM_MERTOOLS_SPEED_WARM_BATCH_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_WARM_BATCH_DESC" />
-                <field name="speed_cache_panel" type="mtpagecache" showon="speed_cache:1[OR]speed_cache_data:1"
-                    label="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_PANEL_DESC" />
-                <field name="admin_cache_button" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_ADMIN_CACHE_BUTTON_LABEL" description="PLG_SYSTEM_MERTOOLS_ADMIN_CACHE_BUTTON_DESC">
+            </fieldset>
+
+            <fieldset name="images_panel" label="PLG_SYSTEM_MERTOOLS_FIELDSET_OVERVIEW" page="images">
+                <field name="speed_images_panel" type="mtimages"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_IMAGES_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_IMAGES_PANEL_DESC" />
+            </fieldset>
+
+            <fieldset name="images" label="PLG_SYSTEM_MERTOOLS_FIELDSET_IMAGES" page="images">
+                <field name="speed_images" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_IMAGES_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_IMAGES_DESC">
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
+                <field name="speed_webp" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="speed_images:1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_WEBP_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_WEBP_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="speed_gif" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="speed_images:1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_GIF_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_GIF_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+            </fieldset>
+
+            <fieldset name="measure_panel" label="PLG_SYSTEM_MERTOOLS_FIELDSET_OVERVIEW" page="measure">
                 <field name="speed_panel" type="mtspeed" hiddenLabel="true"
                     label="PLG_SYSTEM_MERTOOLS_SPEED_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_PANEL_DESC" />
             </fieldset>
 
-            <!-- ============================================================ Page not found (404) -->
-            <fieldset name="notfound" label="PLG_SYSTEM_MERTOOLS_FIELDSET_NOTFOUND">
+            <fieldset name="measure" label="PLG_SYSTEM_MERTOOLS_FIELDSET_MEASURE" page="measure">
+                <field name="speed_key" type="password" default="" filter="string" autocomplete="off"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_KEY_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_KEY_DESC" />
+                <field name="speed_urls" type="textarea" default="" rows="4" filter="string"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_URLS_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_URLS_DESC" />
+                <field name="speed_runs" type="list" default="3"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_RUNS_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_RUNS_DESC">
+                    <option value="1">1</option>
+                    <option value="3">3</option>
+                    <option value="5">5</option>
+                </field>
+            </fieldset>
+
+            <fieldset name="sitemap_panel" label="PLG_SYSTEM_MERTOOLS_FIELDSET_OVERVIEW" page="sitemap">
+                <field name="sitemap_panel" type="mtsitemap" parentclass="stack"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_PANEL_DESC" />
+            </fieldset>
+
+            <fieldset name="sitemap" label="PLG_SYSTEM_MERTOOLS_FIELDSET_SITEMAP" page="sitemap">
+                <field name="sitemap_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_ENABLED_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_ENABLED_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_split" type="list" default="app" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_SPLIT_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_SPLIT_DESC">
+                    <option value="app">PLG_SYSTEM_MERTOOLS_SITEMAP_SPLIT_APP</option>
+                    <option value="single">PLG_SYSTEM_MERTOOLS_SITEMAP_SPLIT_SINGLE</option>
+                </field>
+                <field name="sitemap_part_limit" type="number" default="10000" min="1000" max="50000" filter="integer" showon="sitemap_enabled:1[AND]sitemap_split:app"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_PART_LIMIT_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_PART_LIMIT_DESC" />
+            </fieldset>
+
+            <fieldset name="sitemap_types" label="PLG_SYSTEM_MERTOOLS_FIELDSET_SITEMAP_TYPES" page="sitemap">
+                <field name="sitemap_type_menu" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_MENU_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_MENU_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_type_page" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_PAGE_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_PAGE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_type_category" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_CATEGORY_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_CATEGORY_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_type_app" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_APP_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_APP_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_type_tag" type="radio" layout="joomla.form.field.radio.switcher" default="0" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_TAG_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_TAG_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_type_author" type="radio" layout="joomla.form.field.radio.switcher" default="0" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_AUTHOR_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_AUTHOR_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+            </fieldset>
+
+            <fieldset name="sitemap_filters" label="PLG_SYSTEM_MERTOOLS_FIELDSET_SITEMAP_FILTERS" page="sitemap">
+                <field name="sitemap_flags" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_FLAGS_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_FLAGS_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_noindex" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_NOINDEX_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_NOINDEX_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_robots" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_ROBOTS_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_ROBOTS_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_apps" type="mtapps" skip="system_apps" multiple="true" layout="joomla.form.field.list-fancy-select" showon="sitemap_enabled:1"
+                    hint="PLG_SYSTEM_MERTOOLS_SITEMAP_APPS_HINT"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_APPS_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_APPS_DESC" />
+                <field name="sitemap_paths" type="textarea" default="" rows="4" filter="string" showon="sitemap_enabled:1"
+                    hint="PLG_SYSTEM_MERTOOLS_SITEMAP_PATHS_HINT"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_PATHS_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_PATHS_DESC" />
+                <field name="sitemap_titles" type="textarea" default="" rows="3" filter="string" showon="sitemap_enabled:1"
+                    hint="PLG_SYSTEM_MERTOOLS_SITEMAP_TITLES_HINT"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TITLES_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TITLES_DESC" />
+            </fieldset>
+
+            <fieldset name="sitemap_dates" label="PLG_SYSTEM_MERTOOLS_FIELDSET_SITEMAP_DATES" page="sitemap">
+                <field name="sitemap_prices" type="radio" layout="joomla.form.field.radio.switcher" default="0" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_PRICES_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_PRICES_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="sitemap_unknown_date" type="list" default="omit" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_UNKNOWN_DATE_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_UNKNOWN_DATE_DESC">
+                    <option value="omit">PLG_SYSTEM_MERTOOLS_SITEMAP_UNKNOWN_DATE_OMIT</option>
+                    <option value="created">PLG_SYSTEM_MERTOOLS_SITEMAP_UNKNOWN_DATE_CREATED</option>
+                </field>
+                <field name="sitemap_ttl" type="number" default="360" min="5" max="1440" filter="integer" showon="sitemap_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TTL_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TTL_DESC" />
+            </fieldset>
+
+            <fieldset name="notfound_panel" label="PLG_SYSTEM_MERTOOLS_FIELDSET_OVERVIEW" page="notfound">
+                <field name="notfound_panel" type="mtnotfound" parentclass="stack"
+                    label="PLG_SYSTEM_MERTOOLS_NOTFOUND_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_NOTFOUND_PANEL_DESC" />
+            </fieldset>
+
+            <fieldset name="notfound_log" label="PLG_SYSTEM_MERTOOLS_FIELDSET_NOTFOUND_LOG" page="notfound">
+                <field name="notfound_log" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_NOTFOUND_LOG_LABEL" description="PLG_SYSTEM_MERTOOLS_NOTFOUND_LOG_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="notfound_log_days" type="number" default="90" min="0" max="3650" filter="integer" showon="notfound_log:1"
+                    label="PLG_SYSTEM_MERTOOLS_NOTFOUND_LOG_DAYS_LABEL" description="PLG_SYSTEM_MERTOOLS_NOTFOUND_LOG_DAYS_DESC" />
+            </fieldset>
+
+            <fieldset name="notfound" label="PLG_SYSTEM_MERTOOLS_FIELDSET_NOTFOUND" page="notfound">
                 <field name="notfound_moved" type="radio" layout="joomla.form.field.radio.switcher" default="1"
                     label="PLG_SYSTEM_MERTOOLS_NOTFOUND_MOVED_LABEL" description="PLG_SYSTEM_MERTOOLS_NOTFOUND_MOVED_DESC">
                     <option value="0">JNO</option>
@@ -226,280 +270,40 @@
                 <field name="notfound_exclude" type="textarea" default="" rows="3" filter="string"
                     hint="/api/"
                     label="PLG_SYSTEM_MERTOOLS_NOTFOUND_EXCLUDE_LABEL" description="PLG_SYSTEM_MERTOOLS_NOTFOUND_EXCLUDE_DESC" />
-                <field name="notfound_log_spacer" type="spacer" hr="true" />
-                <field name="notfound_log" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_NOTFOUND_LOG_LABEL" description="PLG_SYSTEM_MERTOOLS_NOTFOUND_LOG_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="notfound_log_days" type="number" default="90" min="0" max="3650" filter="integer" showon="notfound_log:1"
-                    label="PLG_SYSTEM_MERTOOLS_NOTFOUND_LOG_DAYS_LABEL" description="PLG_SYSTEM_MERTOOLS_NOTFOUND_LOG_DAYS_DESC" />
-                <field name="notfound_panel" type="mtnotfound" parentclass="stack"
-                    label="PLG_SYSTEM_MERTOOLS_NOTFOUND_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_NOTFOUND_PANEL_DESC" />
             </fieldset>
 
-            <!-- ============================================================ Sitemap -->
-            <fieldset name="sitemap" label="PLG_SYSTEM_MERTOOLS_FIELDSET_SITEMAP">
-                <field name="sitemap_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="0"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_ENABLED_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_ENABLED_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="sitemap_split" type="list" default="app" showon="sitemap_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_SPLIT_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_SPLIT_DESC">
-                    <option value="app">PLG_SYSTEM_MERTOOLS_SITEMAP_SPLIT_APP</option>
-                    <option value="single">PLG_SYSTEM_MERTOOLS_SITEMAP_SPLIT_SINGLE</option>
-                </field>
-                <field name="sitemap_part_limit" type="number" default="10000" min="1000" max="50000" filter="integer" showon="sitemap_enabled:1[AND]sitemap_split:app"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_PART_LIMIT_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_PART_LIMIT_DESC" />
-                <field name="sitemap_types_spacer" type="spacer" hr="true" showon="sitemap_enabled:1" />
-                <field name="sitemap_type_menu" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_MENU_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_MENU_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="sitemap_type_page" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_PAGE_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_PAGE_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="sitemap_type_category" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_CATEGORY_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_CATEGORY_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="sitemap_type_app" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_APP_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_APP_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="sitemap_type_tag" type="radio" layout="joomla.form.field.radio.switcher" default="0" showon="sitemap_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_TAG_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_TAG_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="sitemap_type_author" type="radio" layout="joomla.form.field.radio.switcher" default="0" showon="sitemap_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_AUTHOR_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TYPE_AUTHOR_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="sitemap_filters_spacer" type="spacer" hr="true" showon="sitemap_enabled:1" />
-                <field name="sitemap_flags" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_FLAGS_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_FLAGS_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="sitemap_noindex" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_NOINDEX_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_NOINDEX_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="sitemap_robots" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="sitemap_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_ROBOTS_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_ROBOTS_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="sitemap_apps" type="mtapps" skip="system_apps" multiple="true" layout="joomla.form.field.list-fancy-select" showon="sitemap_enabled:1"
-                    hint="PLG_SYSTEM_MERTOOLS_SITEMAP_APPS_HINT"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_APPS_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_APPS_DESC" />
-                <field name="sitemap_paths" type="textarea" default="" rows="4" filter="string" showon="sitemap_enabled:1"
-                    hint="PLG_SYSTEM_MERTOOLS_SITEMAP_PATHS_HINT"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_PATHS_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_PATHS_DESC" />
-                <field name="sitemap_titles" type="textarea" default="" rows="3" filter="string" showon="sitemap_enabled:1"
-                    hint="PLG_SYSTEM_MERTOOLS_SITEMAP_TITLES_HINT"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TITLES_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TITLES_DESC" />
-                <field name="sitemap_dates_spacer" type="spacer" hr="true" showon="sitemap_enabled:1" />
-                <field name="sitemap_prices" type="radio" layout="joomla.form.field.radio.switcher" default="0" showon="sitemap_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_PRICES_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_PRICES_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="sitemap_unknown_date" type="list" default="omit" showon="sitemap_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_UNKNOWN_DATE_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_UNKNOWN_DATE_DESC">
-                    <option value="omit">PLG_SYSTEM_MERTOOLS_SITEMAP_UNKNOWN_DATE_OMIT</option>
-                    <option value="created">PLG_SYSTEM_MERTOOLS_SITEMAP_UNKNOWN_DATE_CREATED</option>
-                </field>
-                <field name="sitemap_ttl" type="number" default="360" min="5" max="1440" filter="integer" showon="sitemap_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_TTL_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TTL_DESC" />
-                <field name="sitemap_panel" type="mtsitemap" parentclass="stack"
-                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_PANEL_DESC" />
+            <fieldset name="history_panel" label="PLG_SYSTEM_MERTOOLS_FIELDSET_OVERVIEW" page="history">
+                <field name="history_panel" type="mthistory" parentclass="stack"
+                    label="PLG_SYSTEM_MERTOOLS_HISTORY_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_HISTORY_PANEL_DESC" />
             </fieldset>
 
-            <!-- ============================================================ Page layout -->
-            <fieldset name="layout" label="PLG_SYSTEM_MERTOOLS_FIELDSET_LAYOUT">
-                <field name="layout_post_rows" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_LAYOUT_ROWS_LABEL" description="PLG_SYSTEM_MERTOOLS_LAYOUT_ROWS_DESC">
+            <fieldset name="history" label="PLG_SYSTEM_MERTOOLS_FIELDSET_HISTORY" page="history">
+                <field name="history_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_HISTORY_NOTE" />
+                <field name="history_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_HISTORY_ENABLED_LABEL" description="PLG_SYSTEM_MERTOOLS_HISTORY_ENABLED_DESC">
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
-                <field name="layout_post_rows_note" type="note" class="alert alert-info" showon="layout_post_rows:1"
-                    label="PLG_SYSTEM_MERTOOLS_LAYOUT_ROWS_NOTE_LABEL" description="PLG_SYSTEM_MERTOOLS_LAYOUT_ROWS_NOTE" />
-                <field name="layout_clip_x" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_LAYOUT_CLIP_LABEL" description="PLG_SYSTEM_MERTOOLS_LAYOUT_CLIP_DESC">
+                <field name="history_lists" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="history_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_HISTORY_LISTS_LABEL" description="PLG_SYSTEM_MERTOOLS_HISTORY_LISTS_DESC">
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
-                <field name="list_hide_words" type="textarea" rows="3" default="" filter="string"
-                    label="PLG_SYSTEM_MERTOOLS_LIST_HIDE_WORDS_LABEL" description="PLG_SYSTEM_MERTOOLS_LIST_HIDE_WORDS_DESC" hint="[ZAKOŃCZONE]" />
-                <field name="list_hide_where" type="list" default="home"
-                    label="PLG_SYSTEM_MERTOOLS_LIST_HIDE_WHERE_LABEL" description="PLG_SYSTEM_MERTOOLS_LIST_HIDE_WHERE_DESC">
-                    <option value="home">PLG_SYSTEM_MERTOOLS_LIST_HIDE_WHERE_HOME</option>
-                    <option value="all">PLG_SYSTEM_MERTOOLS_LIST_HIDE_WHERE_ALL</option>
-                </field>
-                <field name="layout_categories_moved" type="note" class="alert alert-info"
-                    label="PLG_SYSTEM_MERTOOLS_LAYOUT_CATEGORIES_LABEL" description="PLG_SYSTEM_MERTOOLS_LAYOUT_CATEGORIES_MOVED" />
-                <field name="intro_lt" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_INTRO_LT_LABEL" description="PLG_SYSTEM_MERTOOLS_INTRO_LT_DESC">
+                <field name="history_actionlog" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="history_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_HISTORY_ACTIONLOG_LABEL" description="PLG_SYSTEM_MERTOOLS_HISTORY_ACTIONLOG_DESC">
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
-                <field name="tabs_spacer" type="spacer" hr="true" />
-                <field name="tabs_links" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_TABS_LINKS_LABEL" description="PLG_SYSTEM_MERTOOLS_TABS_LINKS_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="tabs_accordion" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_TABS_ACC_LABEL" description="PLG_SYSTEM_MERTOOLS_TABS_ACC_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="tabs_accordion_width" type="number" default="768" min="320" max="1600" filter="integer" showon="tabs_accordion:1"
-                    label="PLG_SYSTEM_MERTOOLS_TABS_ACC_WIDTH_LABEL" description="PLG_SYSTEM_MERTOOLS_TABS_ACC_WIDTH_DESC" />
-                <field name="tabs_accordion_first" type="radio" layout="joomla.form.field.radio.switcher" default="0" showon="tabs_accordion:1"
-                    label="PLG_SYSTEM_MERTOOLS_TABS_ACC_FIRST_LABEL" description="PLG_SYSTEM_MERTOOLS_TABS_ACC_FIRST_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="tabs_sliders" type="list" default="nav" showon="tabs_accordion:1"
-                    label="PLG_SYSTEM_MERTOOLS_TABS_SLIDERS_LABEL" description="PLG_SYSTEM_MERTOOLS_TABS_SLIDERS_DESC">
-                    <option value="nav">PLG_SYSTEM_MERTOOLS_TABS_SLIDERS_NAV</option>
-                    <option value="stack">PLG_SYSTEM_MERTOOLS_TABS_SLIDERS_STACK</option>
-                    <option value="off">PLG_SYSTEM_MERTOOLS_TABS_SLIDERS_OFF</option>
-                </field>
+                <field name="history_days" type="number" default="365" min="0" max="3650" filter="integer" showon="history_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_HISTORY_DAYS_LABEL" description="PLG_SYSTEM_MERTOOLS_HISTORY_DAYS_DESC" />
             </fieldset>
 
-            <!-- ============================================================ Blog feeds (RSS / Atom) -->
-            <fieldset name="feed" label="PLG_SYSTEM_MERTOOLS_FIELDSET_FEED">
-                <field name="feed_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="0"
-                    label="PLG_SYSTEM_MERTOOLS_FEED_ENABLED_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_ENABLED_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="feed_format" type="list" default="both" showon="feed_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_FEED_FORMAT_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_FORMAT_DESC">
-                    <option value="both">PLG_SYSTEM_MERTOOLS_FEED_FORMAT_BOTH</option>
-                    <option value="rss">PLG_SYSTEM_MERTOOLS_FEED_FORMAT_RSS</option>
-                    <option value="atom">PLG_SYSTEM_MERTOOLS_FEED_FORMAT_ATOM</option>
-                </field>
-                <field name="feed_apps" type="mtfeedapps" multiple="true" layout="joomla.form.field.list-fancy-select" showon="feed_enabled:1"
-                    hint="PLG_SYSTEM_MERTOOLS_FEED_APPS_HINT"
-                    label="PLG_SYSTEM_MERTOOLS_FEED_APPS_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_APPS_DESC" />
-                <field name="feed_limit" type="number" default="20" min="1" max="100" filter="integer" showon="feed_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_FEED_LIMIT_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_LIMIT_DESC" />
-                <field name="feed_text" type="list" default="intro" showon="feed_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_FEED_TEXT_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_TEXT_DESC">
-                    <option value="intro">PLG_SYSTEM_MERTOOLS_FEED_TEXT_INTRO</option>
-                    <option value="meta">PLG_SYSTEM_MERTOOLS_FEED_TEXT_META</option>
-                    <option value="none">PLG_SYSTEM_MERTOOLS_FEED_TEXT_NONE</option>
-                </field>
-                <field name="feed_image" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="feed_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_FEED_IMAGE_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_IMAGE_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="feed_enclosure" type="radio" layout="joomla.form.field.radio.switcher" default="0" showon="feed_enabled:1[AND]feed_image:1"
-                    label="PLG_SYSTEM_MERTOOLS_FEED_ENCLOSURE_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_ENCLOSURE_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="feed_more" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="feed_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_FEED_MORE_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_MORE_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="feed_more_text" type="text" default="" filter="string" maxlength="80" showon="feed_enabled:1[AND]feed_more:1"
-                    hint="PLG_SYSTEM_MERTOOLS_FEED_MORE_DEFAULT"
-                    label="PLG_SYSTEM_MERTOOLS_FEED_MORE_TEXT_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_MORE_TEXT_DESC" />
-                <field name="feed_head" type="list" default="blog" showon="feed_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_FEED_HEAD_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_HEAD_DESC">
-                    <option value="blog">PLG_SYSTEM_MERTOOLS_FEED_HEAD_BLOG</option>
-                    <option value="all">PLG_SYSTEM_MERTOOLS_FEED_HEAD_ALL</option>
-                    <option value="none">PLG_SYSTEM_MERTOOLS_FEED_HEAD_NONE</option>
-                </field>
-                <field name="feed_ttl" type="number" default="60" min="0" max="1440" filter="integer" showon="feed_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_FEED_TTL_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_TTL_DESC" />
-                <field name="feed_panel" type="mtfeed" showon="feed_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_FEED_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_PANEL_DESC" />
-                <field name="blog_jsonld_spacer" type="spacer" hr="true" />
-                <field name="blog_jsonld" type="radio" layout="joomla.form.field.radio.switcher" default="0"
-                    label="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_LABEL" description="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="blog_jsonld_org" type="text" default="" filter="string" maxlength="200" showon="blog_jsonld:1"
-                    hint="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_ORG_HINT"
-                    label="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_ORG_LABEL" description="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_ORG_DESC" />
-                <field name="blog_jsonld_logo" type="media" default="" showon="blog_jsonld:1"
-                    label="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_LOGO_LABEL" description="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_LOGO_DESC" />
+            <fieldset name="omnibus_panel" label="PLG_SYSTEM_MERTOOLS_FIELDSET_OVERVIEW" page="omnibus">
+                <field name="omnibus_panel" type="mtomnibus"
+                    label="PLG_SYSTEM_MERTOOLS_OMNIBUS_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_OMNIBUS_PANEL_DESC" />
             </fieldset>
 
-            <!-- ============================================================ Shop -->
-            <fieldset name="shop" label="PLG_SYSTEM_MERTOOLS_FIELDSET_SHOP">
-                <field name="shop_option_links" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_SHOP_OPTION_LINKS_LABEL" description="PLG_SYSTEM_MERTOOLS_SHOP_OPTION_LINKS_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="shop_discount_field" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_SHOP_DISCOUNT_FIELD_LABEL" description="PLG_SYSTEM_MERTOOLS_SHOP_DISCOUNT_FIELD_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="price_spacer" type="spacer" hr="true" />
-                <field name="price_request" type="radio" layout="joomla.form.field.radio.switcher" default="0"
-                    label="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_LABEL" description="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="price_request_text" type="text" default="" showon="price_request:1" filter="string" maxlength="60"
-                    hint="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_DEFAULT"
-                    label="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_TEXT_LABEL" description="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_TEXT_DESC" />
-                <field name="price_request_choose" type="text" default="" showon="price_request:1" filter="string" maxlength="60"
-                    hint="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_CHOOSE_DEFAULT"
-                    label="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_CHOOSE_LABEL" description="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_CHOOSE_DESC" />
-                <field name="price_request_size" type="number" default="18" min="0" max="200" step="1" filter="integer" showon="price_request:1"
-                    label="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_SIZE_LABEL" description="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_SIZE_DESC" />
-                <field name="jsonld_spacer" type="spacer" hr="true" />
-                <field name="shop_jsonld" type="radio" layout="joomla.form.field.radio.switcher" default="0"
-                    label="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_LABEL" description="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="shop_jsonld_mpn" type="list" default="none" showon="shop_jsonld:1"
-                    label="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_MPN_LABEL" description="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_MPN_DESC">
-                    <option value="none">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_MPN_NONE</option>
-                    <option value="sku">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_MPN_SKU</option>
-                    <option value="after_slash">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_MPN_AFTER_SLASH</option>
-                </field>
-                <field name="shop_jsonld_avail_field" type="mtproductfields" default="" showon="shop_jsonld:1"
-                    label="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_FIELD_LABEL" description="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_FIELD_DESC">
-                    <option value="">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_FIELD_NONE</option>
-                </field>
-                <field name="shop_jsonld_avail_rules" type="textarea" default="" rows="4" filter="string" showon="shop_jsonld:1[AND]shop_jsonld_avail_field!:"
-                    hint="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_RULES_HINT"
-                    label="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_RULES_LABEL" description="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_RULES_DESC" />
-                <field name="shop_jsonld_avail_default" type="list" default="" showon="shop_jsonld:1"
-                    label="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_DEFAULT_LABEL" description="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_DEFAULT_DESC">
-                    <option value="">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_KEEP</option>
-                    <option value="InStock">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_INSTOCK</option>
-                    <option value="BackOrder">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_BACKORDER</option>
-                    <option value="OutOfStock">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_OUTOFSTOCK</option>
-                    <option value="PreOrder">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_PREORDER</option>
-                    <option value="MadeToOrder">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_MADETOORDER</option>
-                    <option value="LimitedAvailability">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_LIMITED</option>
-                </field>
-                <field name="omnibus_spacer" type="spacer" hr="true" />
+            <fieldset name="omnibus" label="PLG_SYSTEM_MERTOOLS_FIELDSET_OMNIBUS" page="omnibus">
                 <field name="shop_omnibus" type="radio" layout="joomla.form.field.radio.switcher" default="0"
                     label="PLG_SYSTEM_MERTOOLS_SHOP_OMNIBUS_LABEL" description="PLG_SYSTEM_MERTOOLS_SHOP_OMNIBUS_DESC">
                     <option value="0">JNO</option>
@@ -513,9 +317,14 @@
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
-                <field name="omnibus_panel" type="mtomnibus" showon="shop_omnibus:1"
-                    label="PLG_SYSTEM_MERTOOLS_OMNIBUS_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_OMNIBUS_PANEL_DESC" />
-                <field name="cart_spacer" type="spacer" hr="true" />
+            </fieldset>
+
+            <fieldset name="carts_panel" label="PLG_SYSTEM_MERTOOLS_FIELDSET_OVERVIEW" page="carts">
+                <field name="cart_panel" type="mtcarts"
+                    label="PLG_SYSTEM_MERTOOLS_CART_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_CART_PANEL_DESC" />
+            </fieldset>
+
+            <fieldset name="carts" label="PLG_SYSTEM_MERTOOLS_FIELDSET_CARTS" page="carts">
                 <field name="cart_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="1"
                     label="PLG_SYSTEM_MERTOOLS_CART_ENABLED_LABEL" description="PLG_SYSTEM_MERTOOLS_CART_ENABLED_DESC">
                     <option value="0">JNO</option>
@@ -537,57 +346,14 @@
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
-                <field name="cart_panel" type="mtcarts" showon="cart_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_CART_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_CART_PANEL_DESC" />
             </fieldset>
 
-            <!-- ============================================================ Gridbox lists -->
-            <fieldset name="lists" label="PLG_SYSTEM_MERTOOLS_FIELDSET_LISTS">
-                <field name="lists_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_LISTS_NOTE" />
-                <field name="list_columns" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_LIST_COLUMNS_LABEL" description="PLG_SYSTEM_MERTOOLS_LIST_COLUMNS_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="list_quickedit" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="list_columns:1"
-                    label="PLG_SYSTEM_MERTOOLS_LIST_QUICKEDIT_LABEL" description="PLG_SYSTEM_MERTOOLS_LIST_QUICKEDIT_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="list_fields_hidden" type="textarea" rows="3" default="Instrukcja obsługi Metrel" filter="string" showon="list_columns:1"
-                    label="PLG_SYSTEM_MERTOOLS_LIST_FIELDS_HIDDEN_LABEL" description="PLG_SYSTEM_MERTOOLS_LIST_FIELDS_HIDDEN_DESC" />
-                <field name="list_ghosts" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_LIST_GHOSTS_LABEL" description="PLG_SYSTEM_MERTOOLS_LIST_GHOSTS_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="media_drop" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_MEDIA_DROP_LABEL" description="PLG_SYSTEM_MERTOOLS_MEDIA_DROP_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
+            <fieldset name="apps_panel" label="PLG_SYSTEM_MERTOOLS_FIELDSET_OVERVIEW" page="apps">
+                <field name="apps_panel" type="mtappsbackup" parentclass="stack"
+                    label="PLG_SYSTEM_MERTOOLS_APPS_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_APPS_PANEL_DESC" />
             </fieldset>
 
-            <!-- ============================================================ Edit lock -->
-            <fieldset name="lock" label="PLG_SYSTEM_MERTOOLS_FIELDSET_LOCK">
-                <field name="lock_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_LOCK_NOTE" />
-                <field name="lock_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_LOCK_ENABLED_LABEL" description="PLG_SYSTEM_MERTOOLS_LOCK_ENABLED_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="lock_takeover" type="list" default="all" showon="lock_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_LOCK_TAKEOVER_LABEL" description="PLG_SYSTEM_MERTOOLS_LOCK_TAKEOVER_DESC">
-                    <option value="all">PLG_SYSTEM_MERTOOLS_LOCK_TAKEOVER_ALL</option>
-                    <option value="admins">PLG_SYSTEM_MERTOOLS_LOCK_TAKEOVER_ADMINS</option>
-                    <option value="none">PLG_SYSTEM_MERTOOLS_LOCK_TAKEOVER_NONE</option>
-                </field>
-                <field name="lock_idle" type="number" default="30" min="0" max="1440" filter="integer" showon="lock_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_LOCK_IDLE_LABEL" description="PLG_SYSTEM_MERTOOLS_LOCK_IDLE_DESC" />
-            </fieldset>
-
-            <!-- ============================================================ Apps against deletion -->
-            <fieldset name="apps" label="PLG_SYSTEM_MERTOOLS_FIELDSET_APPS">
+            <fieldset name="apps" label="PLG_SYSTEM_MERTOOLS_FIELDSET_APPS" page="apps">
                 <field name="apps_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_APPS_NOTE" />
                 <field name="apps_protect" type="radio" layout="joomla.form.field.radio.switcher" default="1"
                     label="PLG_SYSTEM_MERTOOLS_APPS_PROTECT_LABEL" description="PLG_SYSTEM_MERTOOLS_APPS_PROTECT_DESC">
@@ -618,238 +384,52 @@
                 <field name="apps_backup_path" type="text" default="" filter="string" maxlength="255"
                     hint="administrator/backups/mertools"
                     label="PLG_SYSTEM_MERTOOLS_APPS_BACKUP_PATH_LABEL" description="PLG_SYSTEM_MERTOOLS_APPS_BACKUP_PATH_DESC" />
-                <field name="apps_panel" type="mtappsbackup" parentclass="stack"
-                    label="PLG_SYSTEM_MERTOOLS_APPS_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_APPS_PANEL_DESC" />
             </fieldset>
 
-            <!-- ============================================================ Edit history -->
-            <fieldset name="history" label="PLG_SYSTEM_MERTOOLS_FIELDSET_HISTORY">
-                <field name="history_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_HISTORY_NOTE" />
-                <field name="history_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_HISTORY_ENABLED_LABEL" description="PLG_SYSTEM_MERTOOLS_HISTORY_ENABLED_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="history_lists" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="history_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_HISTORY_LISTS_LABEL" description="PLG_SYSTEM_MERTOOLS_HISTORY_LISTS_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="history_actionlog" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="history_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_HISTORY_ACTIONLOG_LABEL" description="PLG_SYSTEM_MERTOOLS_HISTORY_ACTIONLOG_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="history_days" type="number" default="365" min="0" max="3650" filter="integer" showon="history_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_HISTORY_DAYS_LABEL" description="PLG_SYSTEM_MERTOOLS_HISTORY_DAYS_DESC" />
-                <field name="history_panel" type="mthistory" parentclass="stack"
-                    label="PLG_SYSTEM_MERTOOLS_HISTORY_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_HISTORY_PANEL_DESC" />
+            <fieldset name="database_panel" label="PLG_SYSTEM_MERTOOLS_FIELDSET_OVERVIEW" page="database">
+                <field name="db_indexes_panel" type="mtdbindexes"
+                    label="PLG_SYSTEM_MERTOOLS_DB_INDEXES_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_DB_INDEXES_PANEL_DESC" />
             </fieldset>
 
-            <!-- ============================================================ Database -->
-            <fieldset name="database" label="PLG_SYSTEM_MERTOOLS_FIELDSET_DB">
+            <fieldset name="database" label="PLG_SYSTEM_MERTOOLS_FIELDSET_DB" page="database">
                 <field name="db_indexes" type="radio" layout="joomla.form.field.radio.switcher" default="1"
                     label="PLG_SYSTEM_MERTOOLS_DB_INDEXES_LABEL" description="PLG_SYSTEM_MERTOOLS_DB_INDEXES_DESC">
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
-                <field name="db_indexes_panel" type="mtdbindexes"
-                    label="PLG_SYSTEM_MERTOOLS_DB_INDEXES_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_DB_INDEXES_PANEL_DESC" />
+                <field name="intro_lt" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_INTRO_LT_LABEL" description="PLG_SYSTEM_MERTOOLS_INTRO_LT_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
             </fieldset>
 
-            <!-- ============================================================ Phone numbers -->
-            <fieldset name="tel" label="PLG_SYSTEM_MERTOOLS_FIELDSET_TEL">
-                <field name="tel_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="1"
-                    label="PLG_SYSTEM_MERTOOLS_TEL_ENABLED_LABEL" description="PLG_SYSTEM_MERTOOLS_TEL_ENABLED_DESC">
+            <fieldset name="url" label="PLG_SYSTEM_MERTOOLS_FIELDSET_URL" page="config">
+                <field name="url_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_URL_NOTE" />
+                <field name="url_collapse_slashes" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_URL_COLLAPSE_LABEL" description="PLG_SYSTEM_MERTOOLS_URL_COLLAPSE_DESC">
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
-                <field name="tel_devices" type="list" default="all" showon="tel_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_TEL_DEVICES_LABEL" description="PLG_SYSTEM_MERTOOLS_TEL_DEVICES_DESC">
-                    <option value="all">PLG_SYSTEM_MERTOOLS_TEL_DEVICES_ALL</option>
-                    <option value="touch">PLG_SYSTEM_MERTOOLS_TEL_DEVICES_TOUCH</option>
+                <field name="url_redirect_code" type="list" default="301" showon="url_collapse_slashes:1"
+                    label="PLG_SYSTEM_MERTOOLS_URL_CODE_LABEL" description="PLG_SYSTEM_MERTOOLS_URL_CODE_DESC">
+                    <option value="301">PLG_SYSTEM_MERTOOLS_URL_CODE_301</option>
+                    <option value="302">PLG_SYSTEM_MERTOOLS_URL_CODE_302</option>
                 </field>
-                <field name="tel_style" type="list" default="text" showon="tel_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_TEL_STYLE_LABEL" description="PLG_SYSTEM_MERTOOLS_TEL_STYLE_DESC">
-                    <option value="text">PLG_SYSTEM_MERTOOLS_TEL_STYLE_TEXT</option>
-                    <option value="link">PLG_SYSTEM_MERTOOLS_TEL_STYLE_LINK</option>
+                <field name="url_cf_note" type="note" class="alert alert-warning" description="PLG_SYSTEM_MERTOOLS_URL_CF_NOTE" />
+                <field name="url_sort_guard" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_URL_SORT_GUARD_LABEL" description="PLG_SYSTEM_MERTOOLS_URL_SORT_GUARD_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
                 </field>
-                <field name="tel_country" type="text" default="48" showon="tel_enabled:1" filter="string" maxlength="4"
-                    label="PLG_SYSTEM_MERTOOLS_TEL_COUNTRY_LABEL" description="PLG_SYSTEM_MERTOOLS_TEL_COUNTRY_DESC" />
-                <field name="tel_exclude" type="text" default="" showon="tel_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_TEL_EXCLUDE_LABEL" description="PLG_SYSTEM_MERTOOLS_TEL_EXCLUDE_DESC" />
+                <field name="url_pagination" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_URL_PAGINATION_LABEL" description="PLG_SYSTEM_MERTOOLS_URL_PAGINATION_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
             </fieldset>
 
-            <!-- ============================================================ Dark mode -->
-            <fieldset name="dark" label="PLG_SYSTEM_MERTOOLS_FIELDSET_DARK">
-                <field name="dark_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_DARK_NOTE" />
-                <field name="dark_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="0"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_ENABLED_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_ENABLED_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="dark_palette" type="list" default="slate" showon="dark_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_PALETTE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_PALETTE_DESC">
-                    <option value="slate">PLG_SYSTEM_MERTOOLS_DARK_PAL_SLATE</option>
-                    <option value="charcoal">PLG_SYSTEM_MERTOOLS_DARK_PAL_CHARCOAL</option>
-                    <option value="midnight">PLG_SYSTEM_MERTOOLS_DARK_PAL_MIDNIGHT</option>
-                    <option value="warm">PLG_SYSTEM_MERTOOLS_DARK_PAL_WARM</option>
-                    <option value="sepia">PLG_SYSTEM_MERTOOLS_DARK_PAL_SEPIA</option>
-                    <option value="dim">PLG_SYSTEM_MERTOOLS_DARK_PAL_DIM</option>
-                    <option value="custom">PLG_SYSTEM_MERTOOLS_DARK_PAL_CUSTOM</option>
-                </field>
-                <field name="dark_picker" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1[AND]dark_toggle:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_PICKER_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_PICKER_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="dark_palettes" type="checkboxes" default="slate,midnight,warm,sepia,charcoal" showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_picker:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_PALETTES_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_PALETTES_DESC">
-                    <option value="slate">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_SLATE</option>
-                    <option value="charcoal">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_CHARCOAL</option>
-                    <option value="midnight">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_MIDNIGHT</option>
-                    <option value="warm">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_WARM</option>
-                    <option value="sepia">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_SEPIA</option>
-                    <option value="dim">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_DIM</option>
-                    <option value="custom">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_CUSTOM</option>
-                </field>
-                <field name="dark_intensity" type="range" default="50" min="0" max="100" step="1" showon="dark_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_INTENSITY_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_INTENSITY_DESC" />
-                <field name="dark_preview" type="mtpreview" showon="dark_enabled:1" hiddenLabel="true"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_PREVIEW_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_PREVIEW_DESC" />
-                <field name="dark_default" type="list" default="auto" showon="dark_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_DESC">
-                    <option value="auto">PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_AUTO</option>
-                    <option value="light">PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_LIGHT</option>
-                    <option value="dark">PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_DARK</option>
-                </field>
-
-                <field name="dark_accent_site" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_ACCENT_SITE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_ACCENT_SITE_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="dark_accent" type="color" default="#34dca2" showon="dark_enabled:1[AND]dark_accent_site:0"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_ACCENT_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_ACCENT_DESC" />
-
-                <field name="dark_toggle" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_TOGGLE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_TOGGLE_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="dark_toggle_place" type="list" default="auto" showon="dark_enabled:1[AND]dark_toggle:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_PLACE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_PLACE_DESC">
-                    <option value="auto">PLG_SYSTEM_MERTOOLS_DARK_PLACE_AUTO</option>
-                    <option value="start">PLG_SYSTEM_MERTOOLS_DARK_PLACE_START</option>
-                    <option value="end">PLG_SYSTEM_MERTOOLS_DARK_PLACE_END</option>
-                    <option value="float">PLG_SYSTEM_MERTOOLS_DARK_PLACE_FLOAT</option>
-                    <option value="float-left">PLG_SYSTEM_MERTOOLS_DARK_PLACE_FLOAT_LEFT</option>
-                    <option value="float-a11y-above">PLG_SYSTEM_MERTOOLS_DARK_PLACE_A11Y_ABOVE</option>
-                    <option value="float-a11y-beside">PLG_SYSTEM_MERTOOLS_DARK_PLACE_A11Y_BESIDE</option>
-                </field>
-                <field name="dark_float_x" type="number" default="18" min="0" max="400" step="1" filter="integer"
-                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_toggle_place:float,float-left"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_X_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_X_DESC" />
-                <field name="dark_float_y" type="number" default="18" min="0" max="400" step="1" filter="integer"
-                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_toggle_place:float,float-left"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_Y_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_Y_DESC" />
-                <field name="dark_a11y_selector" type="text" default="._access-icon"
-                    showon="dark_enabled:1[AND]dark_toggle:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_A11Y_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_A11Y_DESC" />
-                <field name="dark_mobile_place" type="list" default="same" showon="dark_enabled:1[AND]dark_toggle:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_MPLACE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_MPLACE_DESC">
-                    <option value="same">PLG_SYSTEM_MERTOOLS_DARK_MPLACE_SAME</option>
-                    <option value="burger">PLG_SYSTEM_MERTOOLS_DARK_MPLACE_BURGER</option>
-                    <option value="float">PLG_SYSTEM_MERTOOLS_DARK_PLACE_FLOAT</option>
-                    <option value="float-left">PLG_SYSTEM_MERTOOLS_DARK_PLACE_FLOAT_LEFT</option>
-                    <option value="float-a11y-above">PLG_SYSTEM_MERTOOLS_DARK_PLACE_A11Y_ABOVE</option>
-                    <option value="float-a11y-beside">PLG_SYSTEM_MERTOOLS_DARK_PLACE_A11Y_BESIDE</option>
-                    <option value="selector">PLG_SYSTEM_MERTOOLS_DARK_MPLACE_SELECTOR</option>
-                    <option value="hidden">PLG_SYSTEM_MERTOOLS_DARK_MPLACE_HIDDEN</option>
-                </field>
-                <field name="dark_mobile_bp" type="number" default="768" min="320" max="1400" step="1" filter="integer"
-                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_mobile_place!:same"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_MBP_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_MBP_DESC" />
-                <field name="dark_mobile_x" type="number" default="16" min="0" max="400" step="1" filter="integer"
-                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_mobile_place:float,float-left"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_MX_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_X_DESC" />
-                <field name="dark_mobile_y" type="number" default="16" min="0" max="400" step="1" filter="integer"
-                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_mobile_place:float,float-left"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_MY_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_Y_DESC" />
-                <field name="dark_mobile_selector" type="text" default=""
-                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_mobile_place:selector"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_MSEL_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_MSEL_DESC" />
-                <field name="dark_mobile_insert" type="list" default="append"
-                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_mobile_place:selector"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_MINS_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_MINS_DESC">
-                    <option value="append">PLG_SYSTEM_MERTOOLS_DARK_MINS_APPEND</option>
-                    <option value="prepend">PLG_SYSTEM_MERTOOLS_DARK_MINS_PREPEND</option>
-                    <option value="before">PLG_SYSTEM_MERTOOLS_DARK_MINS_BEFORE</option>
-                    <option value="after">PLG_SYSTEM_MERTOOLS_DARK_MINS_AFTER</option>
-                </field>
-                <field name="dark_toggle_size" type="number" default="44" min="24" max="96" step="1" filter="integer"
-                    showon="dark_enabled:1[AND]dark_toggle:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_SIZE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_SIZE_DESC" />
-                <field name="dark_toggle_border" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1[AND]dark_toggle:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_BORDER_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_BORDER_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="dark_toggle_shadow" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1[AND]dark_toggle:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_SHADOW_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_SHADOW_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="dark_header_selector" type="text" default="header.header" showon="dark_enabled:1[AND]dark_toggle:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_SELECTOR_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_SELECTOR_DESC" />
-
-                <field name="dark_transition" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_TRANSITION_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_TRANSITION_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="dark_buttons" type="list" default="accent" showon="dark_enabled:1[AND]dark_adaptive:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_BUTTONS_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_BUTTONS_DESC">
-                    <option value="accent">PLG_SYSTEM_MERTOOLS_DARK_BUTTONS_ACCENT</option>
-                    <option value="outline">PLG_SYSTEM_MERTOOLS_DARK_BUTTONS_OUTLINE</option>
-                    <option value="off">PLG_SYSTEM_MERTOOLS_DARK_BUTTONS_OFF</option>
-                </field>
-                <field name="dark_vivid" type="list" default="outline" showon="dark_enabled:1[AND]dark_adaptive:1[AND]dark_buttons:off"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_VIVID_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_VIVID_DESC">
-                    <option value="outline">PLG_SYSTEM_MERTOOLS_DARK_VIVID_OUTLINE</option>
-                    <option value="soft">PLG_SYSTEM_MERTOOLS_DARK_VIVID_SOFT</option>
-                    <option value="keep">PLG_SYSTEM_MERTOOLS_DARK_VIVID_KEEP</option>
-                </field>
-                <field name="dark_logo" type="media" default="" preview="tooltip" showon="dark_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_LOGO_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_LOGO_DESC" />
-                <field name="dark_logo_selector" type="text" default="header .ba-item-logo img" showon="dark_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_LOGO_SEL_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_LOGO_SEL_DESC" />
-                <field name="dark_adaptive" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_ADAPTIVE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_ADAPTIVE_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-                <field name="dark_dim_media" type="radio" layout="joomla.form.field.radio.switcher" default="0" showon="dark_enabled:1"
-                    label="PLG_SYSTEM_MERTOOLS_DARK_DIMMEDIA_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_DIMMEDIA_DESC">
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
-
-                <field name="dark_custom_spacer" type="spacer" hr="true" showon="dark_enabled:1[AND]dark_palette:custom" />
-                <field name="dark_custom_note" type="note" class="alert alert-info" showon="dark_enabled:1[AND]dark_palette:custom" description="PLG_SYSTEM_MERTOOLS_DARK_CUSTOM_NOTE" />
-                <field name="dark_c_bg" type="color" default="#1b2230" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_BG" description="PLG_SYSTEM_MERTOOLS_DARK_C_BG_DESC" />
-                <field name="dark_c_surface" type="color" default="#232c3d" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_SURFACE" description="PLG_SYSTEM_MERTOOLS_DARK_C_SURFACE_DESC" />
-                <field name="dark_c_bg_dark" type="color" default="#10151f" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_BGDARK" description="PLG_SYSTEM_MERTOOLS_DARK_C_BGDARK_DESC" />
-                <field name="dark_c_title" type="color" default="#e8ecf3" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_TITLE" description="PLG_SYSTEM_MERTOOLS_DARK_C_TITLE_DESC" />
-                <field name="dark_c_text" type="color" default="#c3cbd9" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_TEXT" description="PLG_SYSTEM_MERTOOLS_DARK_C_TEXT_DESC" />
-                <field name="dark_c_muted" type="text" default="rgba(232,236,243,.45)" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_MUTED" description="PLG_SYSTEM_MERTOOLS_DARK_C_MUTED_DESC" />
-                <field name="dark_c_border" type="color" default="#333e52" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_BORDER" description="PLG_SYSTEM_MERTOOLS_DARK_C_BORDER_DESC" />
-                <field name="dark_c_hover" type="color" default="#2a3447" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_HOVER" description="PLG_SYSTEM_MERTOOLS_DARK_C_HOVER_DESC" />
-                <field name="dark_c_shadow" type="text" default="rgba(0,0,0,.5)" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_SHADOW" description="PLG_SYSTEM_MERTOOLS_DARK_C_SHADOW_DESC" />
-            </fieldset>
-
-            <!-- ============================================================ Site hygiene -->
-            <fieldset name="hygiene" label="PLG_SYSTEM_MERTOOLS_FIELDSET_HYGIENE">
+            <fieldset name="hygiene" label="PLG_SYSTEM_MERTOOLS_FIELDSET_HYGIENE" page="config">
                 <field name="hygiene_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_HYGIENE_NOTE" />
                 <field name="hygiene_og_url" type="radio" layout="joomla.form.field.radio.switcher" default="1"
                     label="PLG_SYSTEM_MERTOOLS_HYGIENE_OG_URL_LABEL" description="PLG_SYSTEM_MERTOOLS_HYGIENE_OG_URL_DESC">
@@ -881,8 +461,8 @@
                     default="upgrade-insecure-requests; object-src 'none'; base-uri 'self'"
                     label="PLG_SYSTEM_MERTOOLS_HYGIENE_CSP_LABEL" description="PLG_SYSTEM_MERTOOLS_HYGIENE_CSP_DESC" />
             </fieldset>
-            <!-- ============================================================ Structured data -->
-            <fieldset name="schema" label="PLG_SYSTEM_MERTOOLS_FIELDSET_SCHEMA">
+
+            <fieldset name="schema" label="PLG_SYSTEM_MERTOOLS_FIELDSET_SCHEMA" page="config">
                 <field name="schema_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_SCHEMA_NOTE" />
                 <field name="schema_on" type="radio" layout="joomla.form.field.radio.switcher" default="0"
                     label="PLG_SYSTEM_MERTOOLS_SCHEMA_ON_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_ON_DESC">
@@ -983,6 +563,467 @@
                     label="PLG_SYSTEM_MERTOOLS_SCHEMA_AREA_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_AREA_DESC" />
                 <field name="schema_services_audience" type="text" default="" showon="schema_on:1" maxlength="200"
                     label="PLG_SYSTEM_MERTOOLS_SCHEMA_AUDIENCE_LABEL" description="PLG_SYSTEM_MERTOOLS_SCHEMA_AUDIENCE_DESC" />
+            </fieldset>
+
+            <fieldset name="blog" label="PLG_SYSTEM_MERTOOLS_FIELDSET_FEED" page="config">
+                <field name="feed_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_ENABLED_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_ENABLED_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="feed_format" type="list" default="both" showon="feed_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_FORMAT_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_FORMAT_DESC">
+                    <option value="both">PLG_SYSTEM_MERTOOLS_FEED_FORMAT_BOTH</option>
+                    <option value="rss">PLG_SYSTEM_MERTOOLS_FEED_FORMAT_RSS</option>
+                    <option value="atom">PLG_SYSTEM_MERTOOLS_FEED_FORMAT_ATOM</option>
+                </field>
+                <field name="feed_apps" type="mtfeedapps" multiple="true" layout="joomla.form.field.list-fancy-select" showon="feed_enabled:1"
+                    hint="PLG_SYSTEM_MERTOOLS_FEED_APPS_HINT"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_APPS_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_APPS_DESC" />
+                <field name="feed_limit" type="number" default="20" min="1" max="100" filter="integer" showon="feed_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_LIMIT_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_LIMIT_DESC" />
+                <field name="feed_text" type="list" default="intro" showon="feed_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_TEXT_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_TEXT_DESC">
+                    <option value="intro">PLG_SYSTEM_MERTOOLS_FEED_TEXT_INTRO</option>
+                    <option value="meta">PLG_SYSTEM_MERTOOLS_FEED_TEXT_META</option>
+                    <option value="none">PLG_SYSTEM_MERTOOLS_FEED_TEXT_NONE</option>
+                </field>
+                <field name="feed_image" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="feed_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_IMAGE_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_IMAGE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="feed_enclosure" type="radio" layout="joomla.form.field.radio.switcher" default="0" showon="feed_enabled:1[AND]feed_image:1"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_ENCLOSURE_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_ENCLOSURE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="feed_more" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="feed_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_MORE_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_MORE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="feed_more_text" type="text" default="" filter="string" maxlength="80" showon="feed_enabled:1[AND]feed_more:1"
+                    hint="PLG_SYSTEM_MERTOOLS_FEED_MORE_DEFAULT"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_MORE_TEXT_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_MORE_TEXT_DESC" />
+                <field name="feed_head" type="list" default="blog" showon="feed_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_HEAD_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_HEAD_DESC">
+                    <option value="blog">PLG_SYSTEM_MERTOOLS_FEED_HEAD_BLOG</option>
+                    <option value="all">PLG_SYSTEM_MERTOOLS_FEED_HEAD_ALL</option>
+                    <option value="none">PLG_SYSTEM_MERTOOLS_FEED_HEAD_NONE</option>
+                </field>
+                <field name="feed_ttl" type="number" default="60" min="0" max="1440" filter="integer" showon="feed_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_TTL_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_TTL_DESC" />
+                <field name="feed_panel" type="mtfeed" showon="feed_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_FEED_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_FEED_PANEL_DESC" />
+                <field name="blog_jsonld_spacer" type="spacer" hr="true" />
+                <field name="blog_jsonld" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_LABEL" description="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="blog_jsonld_org" type="text" default="" filter="string" maxlength="200" showon="blog_jsonld:1"
+                    hint="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_ORG_HINT"
+                    label="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_ORG_LABEL" description="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_ORG_DESC" />
+                <field name="blog_jsonld_logo" type="media" default="" showon="blog_jsonld:1"
+                    label="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_LOGO_LABEL" description="PLG_SYSTEM_MERTOOLS_BLOG_JSONLD_LOGO_DESC" />
+            </fieldset>
+
+            <fieldset name="shop" label="PLG_SYSTEM_MERTOOLS_FIELDSET_SHOP" page="config">
+                <field name="shop_option_links" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_SHOP_OPTION_LINKS_LABEL" description="PLG_SYSTEM_MERTOOLS_SHOP_OPTION_LINKS_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="shop_discount_field" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_SHOP_DISCOUNT_FIELD_LABEL" description="PLG_SYSTEM_MERTOOLS_SHOP_DISCOUNT_FIELD_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="price_spacer" type="spacer" hr="true" />
+                <field name="price_request" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_LABEL" description="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="price_request_text" type="text" default="" showon="price_request:1" filter="string" maxlength="60"
+                    hint="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_DEFAULT"
+                    label="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_TEXT_LABEL" description="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_TEXT_DESC" />
+                <field name="price_request_choose" type="text" default="" showon="price_request:1" filter="string" maxlength="60"
+                    hint="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_CHOOSE_DEFAULT"
+                    label="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_CHOOSE_LABEL" description="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_CHOOSE_DESC" />
+                <field name="price_request_size" type="number" default="18" min="0" max="200" step="1" filter="integer" showon="price_request:1"
+                    label="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_SIZE_LABEL" description="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_SIZE_DESC" />
+                <field name="jsonld_spacer" type="spacer" hr="true" />
+                <field name="shop_jsonld" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_LABEL" description="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="shop_jsonld_mpn" type="list" default="none" showon="shop_jsonld:1"
+                    label="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_MPN_LABEL" description="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_MPN_DESC">
+                    <option value="none">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_MPN_NONE</option>
+                    <option value="sku">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_MPN_SKU</option>
+                    <option value="after_slash">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_MPN_AFTER_SLASH</option>
+                </field>
+                <field name="shop_jsonld_avail_field" type="mtproductfields" default="" showon="shop_jsonld:1"
+                    label="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_FIELD_LABEL" description="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_FIELD_DESC">
+                    <option value="">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_FIELD_NONE</option>
+                </field>
+                <field name="shop_jsonld_avail_rules" type="textarea" default="" rows="4" filter="string" showon="shop_jsonld:1[AND]shop_jsonld_avail_field!:"
+                    hint="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_RULES_HINT"
+                    label="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_RULES_LABEL" description="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_RULES_DESC" />
+                <field name="shop_jsonld_avail_default" type="list" default="" showon="shop_jsonld:1"
+                    label="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_DEFAULT_LABEL" description="PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_DEFAULT_DESC">
+                    <option value="">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_KEEP</option>
+                    <option value="InStock">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_INSTOCK</option>
+                    <option value="BackOrder">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_BACKORDER</option>
+                    <option value="OutOfStock">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_OUTOFSTOCK</option>
+                    <option value="PreOrder">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_PREORDER</option>
+                    <option value="MadeToOrder">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_MADETOORDER</option>
+                    <option value="LimitedAvailability">PLG_SYSTEM_MERTOOLS_SHOP_JSONLD_AVAIL_LIMITED</option>
+                </field>
+            </fieldset>
+
+            <fieldset name="speed" label="PLG_SYSTEM_MERTOOLS_FIELDSET_SPEED" page="config">
+                <field name="speed_tools_note" type="note" class="alert alert-info" label="PLG_SYSTEM_MERTOOLS_SPEED_TOOLS_NOTE_LABEL"
+                    description="PLG_SYSTEM_MERTOOLS_SPEED_TOOLS_NOTE_DESC" />
+                <field name="speed_show" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_SHOW_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SHOW_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="speed_icons" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_ICONS_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_ICONS_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="speed_mainphoto" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_MAINPHOTO_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_MAINPHOTO_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="speed_slideimg" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_SLIDEIMG_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SLIDEIMG_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="speed_video" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="speed_video_delay" type="number" default="3" min="0" max="60" filter="integer" showon="speed_video:1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_DELAY_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_DELAY_DESC" />
+                <field name="speed_video_phone" type="list" default="none" showon="speed_video:1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_DESC">
+                    <option value="none">PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_NONE</option>
+                    <option value="image">PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_IMAGE</option>
+                    <option value="video">PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_VIDEO</option>
+                </field>
+                <field name="speed_video_phone_width" type="number" default="768" min="320" max="2000" filter="integer"
+                    showon="speed_video:1[AND]speed_video_phone!:video"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_WIDTH_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_WIDTH_DESC" />
+                <field name="speed_video_phone_color" type="color" default="#1a1a1a" showon="speed_video:1[AND]speed_video_phone!:video"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_COLOR_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_COLOR_DESC" />
+                <field name="speed_video_phone_image" type="media" types="images" preview="tooltip" showon="speed_video:1[AND]speed_video_phone:image"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_PIC_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_PIC_DESC" />
+                <field name="speed_popups" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_POPUPS_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_POPUPS_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="speed_scripts" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="speed_scripts_list" type="textarea" rows="6" filter="raw" showon="speed_scripts:1"
+                    default="googletagmanager.com&#10;fbq(&#10;connect.facebook.net&#10;clarity.ms&#10;hotjar.com&#10;elfsightcdn.com&#10;cloudflareinsights.com"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_LIST_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_LIST_DESC" />
+                <field name="speed_scripts_keep" type="textarea" rows="2" filter="raw" showon="speed_scripts:1"
+                    default="cookieconsent&#10;cookie-consent"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_KEEP_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_KEEP_DESC" />
+                <field name="speed_scripts_timeout" type="number" default="0" min="0" max="120" filter="integer" showon="speed_scripts:1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_TIMEOUT_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_SCRIPTS_TIMEOUT_DESC" />
+            </fieldset>
+
+            <fieldset name="layout" label="PLG_SYSTEM_MERTOOLS_FIELDSET_LAYOUT" page="config">
+                <field name="layout_post_rows" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_LAYOUT_ROWS_LABEL" description="PLG_SYSTEM_MERTOOLS_LAYOUT_ROWS_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="layout_post_rows_note" type="note" class="alert alert-info" showon="layout_post_rows:1"
+                    label="PLG_SYSTEM_MERTOOLS_LAYOUT_ROWS_NOTE_LABEL" description="PLG_SYSTEM_MERTOOLS_LAYOUT_ROWS_NOTE" />
+                <field name="layout_clip_x" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_LAYOUT_CLIP_LABEL" description="PLG_SYSTEM_MERTOOLS_LAYOUT_CLIP_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="list_hide_words" type="textarea" rows="3" default="" filter="string"
+                    label="PLG_SYSTEM_MERTOOLS_LIST_HIDE_WORDS_LABEL" description="PLG_SYSTEM_MERTOOLS_LIST_HIDE_WORDS_DESC" hint="[ZAKOŃCZONE]" />
+                <field name="list_hide_where" type="list" default="home"
+                    label="PLG_SYSTEM_MERTOOLS_LIST_HIDE_WHERE_LABEL" description="PLG_SYSTEM_MERTOOLS_LIST_HIDE_WHERE_DESC">
+                    <option value="home">PLG_SYSTEM_MERTOOLS_LIST_HIDE_WHERE_HOME</option>
+                    <option value="all">PLG_SYSTEM_MERTOOLS_LIST_HIDE_WHERE_ALL</option>
+                </field>
+                <field name="layout_categories_moved" type="note" class="alert alert-info"
+                    label="PLG_SYSTEM_MERTOOLS_LAYOUT_CATEGORIES_LABEL" description="PLG_SYSTEM_MERTOOLS_LAYOUT_CATEGORIES_MOVED" />
+            </fieldset>
+
+            <fieldset name="tabs" label="PLG_SYSTEM_MERTOOLS_FIELDSET_TABS" page="config">
+                <field name="tabs_links" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_TABS_LINKS_LABEL" description="PLG_SYSTEM_MERTOOLS_TABS_LINKS_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="tabs_accordion" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_TABS_ACC_LABEL" description="PLG_SYSTEM_MERTOOLS_TABS_ACC_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="tabs_accordion_width" type="number" default="768" min="320" max="1600" filter="integer" showon="tabs_accordion:1"
+                    label="PLG_SYSTEM_MERTOOLS_TABS_ACC_WIDTH_LABEL" description="PLG_SYSTEM_MERTOOLS_TABS_ACC_WIDTH_DESC" />
+                <field name="tabs_accordion_first" type="radio" layout="joomla.form.field.radio.switcher" default="0" showon="tabs_accordion:1"
+                    label="PLG_SYSTEM_MERTOOLS_TABS_ACC_FIRST_LABEL" description="PLG_SYSTEM_MERTOOLS_TABS_ACC_FIRST_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="tabs_sliders" type="list" default="nav" showon="tabs_accordion:1"
+                    label="PLG_SYSTEM_MERTOOLS_TABS_SLIDERS_LABEL" description="PLG_SYSTEM_MERTOOLS_TABS_SLIDERS_DESC">
+                    <option value="nav">PLG_SYSTEM_MERTOOLS_TABS_SLIDERS_NAV</option>
+                    <option value="stack">PLG_SYSTEM_MERTOOLS_TABS_SLIDERS_STACK</option>
+                    <option value="off">PLG_SYSTEM_MERTOOLS_TABS_SLIDERS_OFF</option>
+                </field>
+            </fieldset>
+
+            <fieldset name="tel" label="PLG_SYSTEM_MERTOOLS_FIELDSET_TEL" page="config">
+                <field name="tel_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_TEL_ENABLED_LABEL" description="PLG_SYSTEM_MERTOOLS_TEL_ENABLED_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="tel_devices" type="list" default="all" showon="tel_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_TEL_DEVICES_LABEL" description="PLG_SYSTEM_MERTOOLS_TEL_DEVICES_DESC">
+                    <option value="all">PLG_SYSTEM_MERTOOLS_TEL_DEVICES_ALL</option>
+                    <option value="touch">PLG_SYSTEM_MERTOOLS_TEL_DEVICES_TOUCH</option>
+                </field>
+                <field name="tel_style" type="list" default="text" showon="tel_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_TEL_STYLE_LABEL" description="PLG_SYSTEM_MERTOOLS_TEL_STYLE_DESC">
+                    <option value="text">PLG_SYSTEM_MERTOOLS_TEL_STYLE_TEXT</option>
+                    <option value="link">PLG_SYSTEM_MERTOOLS_TEL_STYLE_LINK</option>
+                </field>
+                <field name="tel_country" type="text" default="" showon="tel_enabled:1" filter="string" maxlength="4"
+                    label="PLG_SYSTEM_MERTOOLS_TEL_COUNTRY_LABEL" description="PLG_SYSTEM_MERTOOLS_TEL_COUNTRY_DESC" />
+                <field name="tel_exclude" type="text" default="" showon="tel_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_TEL_EXCLUDE_LABEL" description="PLG_SYSTEM_MERTOOLS_TEL_EXCLUDE_DESC" />
+            </fieldset>
+
+            <fieldset name="dark" label="PLG_SYSTEM_MERTOOLS_FIELDSET_DARK" page="config">
+                <field name="dark_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_DARK_NOTE" />
+                <field name="dark_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_ENABLED_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_ENABLED_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="dark_palette" type="list" default="slate" showon="dark_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_PALETTE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_PALETTE_DESC">
+                    <option value="slate">PLG_SYSTEM_MERTOOLS_DARK_PAL_SLATE</option>
+                    <option value="charcoal">PLG_SYSTEM_MERTOOLS_DARK_PAL_CHARCOAL</option>
+                    <option value="midnight">PLG_SYSTEM_MERTOOLS_DARK_PAL_MIDNIGHT</option>
+                    <option value="warm">PLG_SYSTEM_MERTOOLS_DARK_PAL_WARM</option>
+                    <option value="sepia">PLG_SYSTEM_MERTOOLS_DARK_PAL_SEPIA</option>
+                    <option value="dim">PLG_SYSTEM_MERTOOLS_DARK_PAL_DIM</option>
+                    <option value="custom">PLG_SYSTEM_MERTOOLS_DARK_PAL_CUSTOM</option>
+                </field>
+                <field name="dark_picker" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1[AND]dark_toggle:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_PICKER_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_PICKER_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="dark_palettes" type="checkboxes" default="slate,midnight,warm,sepia,charcoal" showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_picker:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_PALETTES_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_PALETTES_DESC">
+                    <option value="slate">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_SLATE</option>
+                    <option value="charcoal">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_CHARCOAL</option>
+                    <option value="midnight">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_MIDNIGHT</option>
+                    <option value="warm">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_WARM</option>
+                    <option value="sepia">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_SEPIA</option>
+                    <option value="dim">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_DIM</option>
+                    <option value="custom">PLG_SYSTEM_MERTOOLS_DARK_PALNAME_CUSTOM</option>
+                </field>
+                <field name="dark_intensity" type="range" default="50" min="0" max="100" step="1" showon="dark_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_INTENSITY_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_INTENSITY_DESC" />
+                <field name="dark_preview" type="mtpreview" showon="dark_enabled:1" hiddenLabel="true"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_PREVIEW_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_PREVIEW_DESC" />
+                <field name="dark_default" type="list" default="auto" showon="dark_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_DESC">
+                    <option value="auto">PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_AUTO</option>
+                    <option value="light">PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_LIGHT</option>
+                    <option value="dark">PLG_SYSTEM_MERTOOLS_DARK_DEFAULT_DARK</option>
+                </field>
+                <field name="dark_accent_site" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_ACCENT_SITE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_ACCENT_SITE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="dark_accent" type="color" default="#34dca2" showon="dark_enabled:1[AND]dark_accent_site:0"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_ACCENT_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_ACCENT_DESC" />
+                <field name="dark_toggle" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_TOGGLE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_TOGGLE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="dark_toggle_place" type="list" default="auto" showon="dark_enabled:1[AND]dark_toggle:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_PLACE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_PLACE_DESC">
+                    <option value="auto">PLG_SYSTEM_MERTOOLS_DARK_PLACE_AUTO</option>
+                    <option value="start">PLG_SYSTEM_MERTOOLS_DARK_PLACE_START</option>
+                    <option value="end">PLG_SYSTEM_MERTOOLS_DARK_PLACE_END</option>
+                    <option value="float">PLG_SYSTEM_MERTOOLS_DARK_PLACE_FLOAT</option>
+                    <option value="float-left">PLG_SYSTEM_MERTOOLS_DARK_PLACE_FLOAT_LEFT</option>
+                    <option value="float-a11y-above">PLG_SYSTEM_MERTOOLS_DARK_PLACE_A11Y_ABOVE</option>
+                    <option value="float-a11y-beside">PLG_SYSTEM_MERTOOLS_DARK_PLACE_A11Y_BESIDE</option>
+                </field>
+                <field name="dark_float_x" type="number" default="18" min="0" max="400" step="1" filter="integer"
+                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_toggle_place:float,float-left"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_X_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_X_DESC" />
+                <field name="dark_float_y" type="number" default="18" min="0" max="400" step="1" filter="integer"
+                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_toggle_place:float,float-left"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_Y_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_Y_DESC" />
+                <field name="dark_a11y_selector" type="text" default="._access-icon"
+                    showon="dark_enabled:1[AND]dark_toggle:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_A11Y_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_A11Y_DESC" />
+                <field name="dark_mobile_place" type="list" default="same" showon="dark_enabled:1[AND]dark_toggle:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_MPLACE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_MPLACE_DESC">
+                    <option value="same">PLG_SYSTEM_MERTOOLS_DARK_MPLACE_SAME</option>
+                    <option value="burger">PLG_SYSTEM_MERTOOLS_DARK_MPLACE_BURGER</option>
+                    <option value="float">PLG_SYSTEM_MERTOOLS_DARK_PLACE_FLOAT</option>
+                    <option value="float-left">PLG_SYSTEM_MERTOOLS_DARK_PLACE_FLOAT_LEFT</option>
+                    <option value="float-a11y-above">PLG_SYSTEM_MERTOOLS_DARK_PLACE_A11Y_ABOVE</option>
+                    <option value="float-a11y-beside">PLG_SYSTEM_MERTOOLS_DARK_PLACE_A11Y_BESIDE</option>
+                    <option value="selector">PLG_SYSTEM_MERTOOLS_DARK_MPLACE_SELECTOR</option>
+                    <option value="hidden">PLG_SYSTEM_MERTOOLS_DARK_MPLACE_HIDDEN</option>
+                </field>
+                <field name="dark_mobile_bp" type="number" default="768" min="320" max="1400" step="1" filter="integer"
+                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_mobile_place!:same"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_MBP_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_MBP_DESC" />
+                <field name="dark_mobile_x" type="number" default="16" min="0" max="400" step="1" filter="integer"
+                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_mobile_place:float,float-left"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_MX_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_X_DESC" />
+                <field name="dark_mobile_y" type="number" default="16" min="0" max="400" step="1" filter="integer"
+                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_mobile_place:float,float-left"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_MY_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_FLOAT_Y_DESC" />
+                <field name="dark_mobile_selector" type="text" default=""
+                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_mobile_place:selector"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_MSEL_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_MSEL_DESC" />
+                <field name="dark_mobile_insert" type="list" default="append"
+                    showon="dark_enabled:1[AND]dark_toggle:1[AND]dark_mobile_place:selector"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_MINS_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_MINS_DESC">
+                    <option value="append">PLG_SYSTEM_MERTOOLS_DARK_MINS_APPEND</option>
+                    <option value="prepend">PLG_SYSTEM_MERTOOLS_DARK_MINS_PREPEND</option>
+                    <option value="before">PLG_SYSTEM_MERTOOLS_DARK_MINS_BEFORE</option>
+                    <option value="after">PLG_SYSTEM_MERTOOLS_DARK_MINS_AFTER</option>
+                </field>
+                <field name="dark_toggle_size" type="number" default="44" min="24" max="96" step="1" filter="integer"
+                    showon="dark_enabled:1[AND]dark_toggle:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_SIZE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_SIZE_DESC" />
+                <field name="dark_toggle_border" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1[AND]dark_toggle:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_BORDER_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_BORDER_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="dark_toggle_shadow" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1[AND]dark_toggle:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_SHADOW_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_SHADOW_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="dark_header_selector" type="text" default="header.header" showon="dark_enabled:1[AND]dark_toggle:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_SELECTOR_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_SELECTOR_DESC" />
+                <field name="dark_transition" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_TRANSITION_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_TRANSITION_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="dark_buttons" type="list" default="accent" showon="dark_enabled:1[AND]dark_adaptive:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_BUTTONS_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_BUTTONS_DESC">
+                    <option value="accent">PLG_SYSTEM_MERTOOLS_DARK_BUTTONS_ACCENT</option>
+                    <option value="outline">PLG_SYSTEM_MERTOOLS_DARK_BUTTONS_OUTLINE</option>
+                    <option value="off">PLG_SYSTEM_MERTOOLS_DARK_BUTTONS_OFF</option>
+                </field>
+                <field name="dark_vivid" type="list" default="outline" showon="dark_enabled:1[AND]dark_adaptive:1[AND]dark_buttons:off"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_VIVID_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_VIVID_DESC">
+                    <option value="outline">PLG_SYSTEM_MERTOOLS_DARK_VIVID_OUTLINE</option>
+                    <option value="soft">PLG_SYSTEM_MERTOOLS_DARK_VIVID_SOFT</option>
+                    <option value="keep">PLG_SYSTEM_MERTOOLS_DARK_VIVID_KEEP</option>
+                </field>
+                <field name="dark_logo" type="media" default="" preview="tooltip" showon="dark_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_LOGO_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_LOGO_DESC" />
+                <field name="dark_logo_selector" type="text" default="header .ba-item-logo img" showon="dark_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_LOGO_SEL_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_LOGO_SEL_DESC" />
+                <field name="dark_adaptive" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="dark_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_ADAPTIVE_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_ADAPTIVE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="dark_dim_media" type="radio" layout="joomla.form.field.radio.switcher" default="0" showon="dark_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_DARK_DIMMEDIA_LABEL" description="PLG_SYSTEM_MERTOOLS_DARK_DIMMEDIA_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="dark_custom_spacer" type="spacer" hr="true" showon="dark_enabled:1[AND]dark_palette:custom" />
+                <field name="dark_custom_note" type="note" class="alert alert-info" showon="dark_enabled:1[AND]dark_palette:custom" description="PLG_SYSTEM_MERTOOLS_DARK_CUSTOM_NOTE" />
+                <field name="dark_c_bg" type="color" default="#1b2230" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_BG" description="PLG_SYSTEM_MERTOOLS_DARK_C_BG_DESC" />
+                <field name="dark_c_surface" type="color" default="#232c3d" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_SURFACE" description="PLG_SYSTEM_MERTOOLS_DARK_C_SURFACE_DESC" />
+                <field name="dark_c_bg_dark" type="color" default="#10151f" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_BGDARK" description="PLG_SYSTEM_MERTOOLS_DARK_C_BGDARK_DESC" />
+                <field name="dark_c_title" type="color" default="#e8ecf3" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_TITLE" description="PLG_SYSTEM_MERTOOLS_DARK_C_TITLE_DESC" />
+                <field name="dark_c_text" type="color" default="#c3cbd9" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_TEXT" description="PLG_SYSTEM_MERTOOLS_DARK_C_TEXT_DESC" />
+                <field name="dark_c_muted" type="text" default="rgba(232,236,243,.45)" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_MUTED" description="PLG_SYSTEM_MERTOOLS_DARK_C_MUTED_DESC" />
+                <field name="dark_c_border" type="color" default="#333e52" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_BORDER" description="PLG_SYSTEM_MERTOOLS_DARK_C_BORDER_DESC" />
+                <field name="dark_c_hover" type="color" default="#2a3447" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_HOVER" description="PLG_SYSTEM_MERTOOLS_DARK_C_HOVER_DESC" />
+                <field name="dark_c_shadow" type="text" default="rgba(0,0,0,.5)" showon="dark_enabled:1[AND]dark_palette:custom" label="PLG_SYSTEM_MERTOOLS_DARK_C_SHADOW" description="PLG_SYSTEM_MERTOOLS_DARK_C_SHADOW_DESC" />
+            </fieldset>
+
+            <fieldset name="lists" label="PLG_SYSTEM_MERTOOLS_FIELDSET_LISTS" page="config">
+                <field name="lists_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_LISTS_NOTE" />
+                <field name="list_columns" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_LIST_COLUMNS_LABEL" description="PLG_SYSTEM_MERTOOLS_LIST_COLUMNS_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="list_quickedit" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="list_columns:1"
+                    label="PLG_SYSTEM_MERTOOLS_LIST_QUICKEDIT_LABEL" description="PLG_SYSTEM_MERTOOLS_LIST_QUICKEDIT_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="list_fields_hidden" type="textarea" rows="3" default="" filter="string" showon="list_columns:1"
+                    label="PLG_SYSTEM_MERTOOLS_LIST_FIELDS_HIDDEN_LABEL" description="PLG_SYSTEM_MERTOOLS_LIST_FIELDS_HIDDEN_DESC" />
+                <field name="list_ghosts" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_LIST_GHOSTS_LABEL" description="PLG_SYSTEM_MERTOOLS_LIST_GHOSTS_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="media_drop" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_MEDIA_DROP_LABEL" description="PLG_SYSTEM_MERTOOLS_MEDIA_DROP_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+            </fieldset>
+
+            <fieldset name="lock" label="PLG_SYSTEM_MERTOOLS_FIELDSET_LOCK" page="config">
+                <field name="lock_note" type="note" class="alert alert-info" description="PLG_SYSTEM_MERTOOLS_LOCK_NOTE" />
+                <field name="lock_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_LOCK_ENABLED_LABEL" description="PLG_SYSTEM_MERTOOLS_LOCK_ENABLED_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="lock_takeover" type="list" default="all" showon="lock_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_LOCK_TAKEOVER_LABEL" description="PLG_SYSTEM_MERTOOLS_LOCK_TAKEOVER_DESC">
+                    <option value="all">PLG_SYSTEM_MERTOOLS_LOCK_TAKEOVER_ALL</option>
+                    <option value="admins">PLG_SYSTEM_MERTOOLS_LOCK_TAKEOVER_ADMINS</option>
+                    <option value="none">PLG_SYSTEM_MERTOOLS_LOCK_TAKEOVER_NONE</option>
+                </field>
+                <field name="lock_idle" type="number" default="30" min="0" max="1440" filter="integer" showon="lock_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_LOCK_IDLE_LABEL" description="PLG_SYSTEM_MERTOOLS_LOCK_IDLE_DESC" />
             </fieldset>
         </fields>
     </config>

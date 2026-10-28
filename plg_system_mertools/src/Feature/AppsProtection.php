@@ -87,16 +87,23 @@ final class AppsProtection extends Feature
         if (!(int) $this->plugin->params->get('apps_backup_delete', 1)) {
             return;
         }
+        $required = (bool) (int) $this->plugin->params->get('apps_backup_required', 1);
         try {
             if (!$guard) {
                 throw new \RuntimeException(Text::_('PLG_SYSTEM_MERTOOLS_APPS_UI_ERROR'));
             }
             @set_time_limit(300);
-            $guard->backup($id, 'delete', (int) $user->id, MerTools::userLabel($user), gmdate('Y-m-d H:i:s'));
+            $copy = $guard->backup($id, 'delete', (int) $user->id, MerTools::userLabel($user), gmdate('Y-m-d H:i:s'));
         } catch (\Throwable $e) {
-            if ((int) $this->plugin->params->get('apps_backup_required', 1)) {
+            if ($required) {
                 $this->appRefuse(Text::sprintf('PLG_SYSTEM_MERTOOLS_APPS_BACKUP_FAILED', $title, $e->getMessage()));
             }
+
+            return;
+        }
+        // files left out of the copy (too large, unreadable) would be gone for good: no whole copy, no deletion
+        if ($required && (int) ($copy['skipped'] ?? 0) > 0) {
+            $this->appRefuse(Text::sprintf('PLG_SYSTEM_MERTOOLS_APPS_BACKUP_INCOMPLETE', $title, (int) $copy['skipped']));
         }
     }
 
@@ -204,6 +211,7 @@ final class AppsProtection extends Feature
             }
             $this->plugin->sendJson(['success' => true, 'apps' => array_values($guard->apps()), 'copies' => $guard->copies(),
                 'folder' => $folder, 'writable' => is_writable($probe),
+                'exposed' => AppGuard::exposed($folder, JPATH_ROOT, (string) $input->server->getString('SERVER_SOFTWARE', '')),
                 'protect' => $this->appsProtected(), 'unlocked' => $this->appsUnlocked()] + $extra);
         } catch (\Throwable $e) {
             $this->plugin->sendJson(['success' => false, 'message' => $e->getMessage()]);

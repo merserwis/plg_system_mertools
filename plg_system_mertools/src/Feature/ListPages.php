@@ -51,8 +51,8 @@ final class ListPages extends Feature
         }
         $uri = Uri::getInstance();
         if (strtoupper((string) $input->getMethod()) === 'GET' && $uri->getVar('sort-by') !== null) {
-            $query = implode('&', array_filter(explode('&', (string) $uri->getQuery()), static fn (string $p): bool => !preg_match('/^sort-by(=|$)/', $p)));
-            $app->redirect($uri->toString(['scheme', 'host', 'port']) . $uri->getPath() . ($query !== '' ? '?' . $query : ''), 301);
+            // every form of it out (sort-by[]=…): one left in would be refused again after the redirect
+            $app->redirect($uri->toString(['scheme', 'host', 'port']) . Pagination::without((string) $uri->getPath(), (string) $uri->getQuery(), 'sort-by'), 301);
         }
         $this->refuse(400);
     }

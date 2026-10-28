@@ -66,7 +66,21 @@ final class Hygiene extends Feature
             if ($page) {
                 $csp = HygieneTool::csp((string) $params->get('hygiene_csp_mode', 'off'), (string) $params->get('hygiene_csp', HygieneTool::CSP_DEFAULT));
                 if ($csp !== null) {
-                    $app->setHeader($csp[0], $csp[1], true);
+                    // added to a policy the site already has (Joomla's list of headers, or one sent by PHP's
+                    // header()), never put in its place: a stricter policy of the site stays in force
+                    $existing = [];
+                    foreach ($app->getHeaders() as $h) {
+                        if (strcasecmp((string) ($h['name'] ?? ''), $csp[0]) === 0) {
+                            $existing[] = (string) $h['value'];
+                        }
+                    }
+                    foreach (headers_list() as $line) {
+                        [$name, $value] = array_pad(explode(':', $line, 2), 2, '');
+                        if (strcasecmp(trim($name), $csp[0]) === 0) {
+                            $existing[] = trim($value);
+                        }
+                    }
+                    $app->setHeader($csp[0], HygieneTool::withPolicy($existing, $csp[1]), true);
                 }
             }
         } catch (\Throwable $e) {

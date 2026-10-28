@@ -44,6 +44,12 @@ $check('host case', NotFound::shouldRedirect('/kontakt', 'https://WWW.merserwis.
 $check('excluded', NotFound::shouldRedirect('/api/v1/x', $home, 'www.merserwis.pl', ['/api/']), false);
 $check('excluded, case', NotFound::shouldRedirect('/API/v1/x', $home, 'www.merserwis.pl', ['/api/']), false);
 $check('not excluded', NotFound::shouldRedirect('/apis', $home, 'www.merserwis.pl', ['/api/']), true);
+// index.php (a site without SEF): the query tells the pages apart
+$h = 'www.merserwis.pl';
+$check('no SEF: another page of index.php is a target', NotFound::shouldRedirect('/index.php?option=com_gridbox&view=page&id=99', 'https://www.merserwis.pl/index.php?option=com_gridbox&view=page&id=42', $h, []), true);
+$check('no SEF: the same page is not (any order of the parameters)', NotFound::shouldRedirect('/index.php?option=com_gridbox&view=page&id=42', 'https://www.merserwis.pl/index.php?id=42&view=page&option=com_gridbox', $h, []), false);
+$check('no SEF: the root with a query', [NotFound::shouldRedirect('/?id=99', 'https://www.merserwis.pl/?id=42', $h, []), NotFound::shouldRedirect('/?id=42', 'https://www.merserwis.pl/?id=42', $h, [])], [true, false]);
+$check('a SEF path with another query is still the same page', NotFound::shouldRedirect('/kontakt?x=1', 'https://www.merserwis.pl/kontakt?x=2', $h, []), false);
 
 // excludes from the setting
 $check('excludes lines', NotFound::excludes("/api/\r\n\n /images/ \n"), ['/api/', '/images/']);

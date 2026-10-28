@@ -68,7 +68,21 @@ final class Pagination
     /** The address without its page parameter (the other parameters kept, in their order) */
     public static function withoutPage(string $path, string $query): string
     {
-        $parts = array_filter(explode('&', $query), static fn (string $p): bool => $p !== '' && !preg_match('/^page(=|$)/', $p));
+        return self::without($path, $query, 'page');
+    }
+
+    /**
+     * The address without a parameter, the other ones kept as they are, in their order. Each part is read
+     * the way PHP reads the request, so every form of the name goes: page[]=2, page[x]=2, p%61ge=2 (a form
+     * left in would be refused again after the redirect, for ever).
+     */
+    public static function without(string $path, string $query, string $name): string
+    {
+        $parts = array_filter(explode('&', $query), static function (string $p) use ($name): bool {
+            parse_str($p, $vars);
+
+            return $p !== '' && !\array_key_exists($name, $vars);
+        });
 
         return $path . ($parts ? '?' . implode('&', $parts) : '');
     }

@@ -32,10 +32,12 @@ namespace Merserwis\Plugin\System\MerTools\Extension;
 use Joomla\CMS\Access\Access;
 use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
+use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Event\ErrorEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Plugin\CMSPlugin;
+use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Session\Session;
 use Joomla\CMS\Uri\Uri;
@@ -77,7 +79,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.6.10';
+    public const VERSION = '1.7.0';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -169,6 +171,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if ($app->isClient('administrator')) {
             $this->locks()->adminLockGuard();
             $this->handleAdministratorAction();
+            $this->settingsPage();
 
             return;
         }
@@ -238,7 +241,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $new = IntroText::fixMeta($new);
         }
         if ((int) $this->params->get('layout_post_rows', 1)) {
-            $new = PostRows::apply($new);
+            $new = PostRows::apply($new, (string) $app->get('csp_nonce', ''));
         }
         if (PriceRequest::enabled($this->params)) {
             // the separate script that did this before goes, so nothing has to be deleted on the server
@@ -495,6 +498,31 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $this->speed()->handleAction($action);
         }
         $this->carts()->handleAction($action);
+    }
+
+    /**
+     * The settings of MerTools are on its own pages (Components → MerTools): opening the plugin in
+     * Joomla's plugin manager goes to its control panel. Not inside a modal window, and not when the
+     * component is missing or off: then the plugin's own form, which holds every setting, opens as
+     * before.
+     */
+    private function settingsPage(): void
+    {
+        $input = $this->getApplication()->getInput();
+        if ($input->getCmd('option') !== 'com_plugins' || $input->getMethod() !== 'GET' || $input->getCmd('tmpl') === 'component'
+            || !($input->getCmd('task') === 'plugin.edit' || ($input->getCmd('view') === 'plugin' && $input->getCmd('layout') === 'edit'))) {
+            return;
+        }
+        $own  = PluginHelper::getPlugin('system', 'mertools');
+        $user = $this->getApplication()->getIdentity();
+        if (!\is_object($own) || (int) ($own->id ?? 0) !== $input->getInt('extension_id') || !ComponentHelper::isEnabled('com_mertools')) {
+            return;
+        }
+        // an administrator who may edit plugins but not open the component keeps the plugin's form
+        if (!$user || !$user->authorise('core.manage', 'com_mertools') || !$user->authorise('core.manage', 'com_plugins')) {
+            return;
+        }
+        $this->getApplication()->redirect(Route::_('index.php?option=com_mertools', false));
     }
 
     // ---------------------------------------------------------------- shared by the tools

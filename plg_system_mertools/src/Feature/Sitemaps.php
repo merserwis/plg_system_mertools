@@ -34,6 +34,15 @@ final class Sitemaps extends Feature
     /** Where Take over keeps Gridbox's sitemap.xml (a folder robots.txt disallows) */
     public const COPY = '/tmp/mertools-sitemap-gridbox.xml';
 
+    /**
+     * The addresses left out, for the panel: unpublished and restricted pages are among them, and the cache
+     * folder is often open to the web. A PHP file whose first line stops PHP: asked for over HTTP it runs and
+     * sends nothing, on any server (an .htaccess would not help on nginx).
+     */
+    private const EXCLUDED = 'excluded.php';
+
+    private const GUARD = "<?php __halt_compiler();\n";
+
     /** The maps are out of date: built again after the response is sent */
     private bool $rebuild = false;
 
@@ -134,9 +143,11 @@ final class Sitemaps extends Feature
             $zone    = new \DateTimeZone((string) $app->get('offset', 'UTC') ?: 'UTC');
             $source  = new SitemapSource(Factory::getContainer()->get(DatabaseInterface::class));
             $site    = $source->website();
-            $domain  = $site['domain'] !== '' ? $site['domain'] : rtrim(Uri::root(), '/');
+            // the routed paths begin with the site's folder (a site in /shop/), the maps' own addresses do not
+            $base    = rtrim(Uri::root(true), '/');
+            $domain  = Sitemap::domain($site['domain'], Uri::root(), $base);
             $robots  = self::robotsTxt();
-            $rules   = Sitemap::rules($params, $robots['text']);
+            $rules   = Sitemap::rules($params, $robots['text'], (bool) (int) $app->get('sef', 1));
             $items   = $source->collect((new \DateTimeImmutable('now', $zone))->format('Y-m-d H:i:s'), (string) $app->get('robots', ''));
 
             $seen     = [];
@@ -167,7 +178,7 @@ final class Sitemaps extends Feature
                 $xml          = Sitemap::urlset($entries);
                 $newest       = Sitemap::newest(array_column($entries, 1));
                 $files[$name] = ['etag' => md5($xml), 'count' => \count($entries), 'newest' => $newest, 'size' => \strlen($xml)];
-                $index[]      = [$domain . '/' . $name, $newest];
+                $index[]      = [$domain . $base . '/' . $name, $newest];
                 self::write($dir . '/' . $name, $xml);
             }
             if ($layout['index']) {
@@ -191,8 +202,10 @@ final class Sitemaps extends Feature
                 'robots'   => $robots['mtime'],
                 'settings' => self::settingsKey($params),
             ];
-            // what is left out, for the panel (the reasons, Why is it not in the map, Compare)
-            self::write($dir . '/excluded.json', json_encode($excluded, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE));
+            // what is left out, for the panel (the reasons, Why is it not in the map, Compare); the readable
+            // excluded.json of the versions before 1.7.0 goes
+            self::write($dir . '/' . self::EXCLUDED, self::GUARD . json_encode($excluded, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE));
+            @unlink($dir . '/excluded.json');
             self::write($dir . '/build.json', json_encode($meta, JSON_UNESCAPED_SLASHES));
             $this->error = '';
 
@@ -405,7 +418,8 @@ final class Sitemaps extends Feature
     /** @return array<int, array{0: string, 1: string, 2: string, 3: string}> the addresses left out: address, reason, type, title */
     private function excluded(): array
     {
-        $list = json_decode((string) @file_get_contents(self::dir() . '/excluded.json'), true);
+        $text = (string) @file_get_contents(self::dir() . '/' . self::EXCLUDED);
+        $list = str_starts_with($text, self::GUARD) ? json_decode(substr($text, \strlen(self::GUARD)), true) : null;
 
         return \is_array($list) ? $list : [];
     }
@@ -479,7 +493,9 @@ final class Sitemaps extends Feature
         return $built + 60 * Sitemap::ttl($this->plugin->params) < time()
             || ($changed !== false && $changed >= $built)
             || ($meta['robots'] ?? null) !== self::robotsTxt()['mtime']
-            || ($meta['settings'] ?? '') !== self::settingsKey($this->plugin->params);
+            || ($meta['settings'] ?? '') !== self::settingsKey($this->plugin->params)
+            // the readable list of a version before 1.7.0 is still there: the build replaces it
+            || is_file(self::dir() . '/excluded.json');
     }
 
     /** Another request is building the first maps: their result, waited for up to 20 s */

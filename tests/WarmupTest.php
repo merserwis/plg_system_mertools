@@ -26,6 +26,10 @@ $check('index: two files, trimmed', Warmup::locs($index)['locs'], ['https://www.
 $check('set: not an index', Warmup::locs($set)['index'], false);
 $check('set: entities decoded, CDATA read, foreign schemes and relative left out', Warmup::locs($set)['locs'], ['https://www.merserwis.pl/oferta/a?x=1&y=2', 'https://www.merserwis.pl/blog']);
 $check('garbage: nothing', Warmup::locs('<html>403</html>'), ['index' => false, 'locs' => []]);
+$big = '<urlset>' . implode('', array_map(fn ($i) => "<url><loc>https://www.merserwis.pl/p$i</loc></url>", range(1, 50))) . '</urlset>';
+$check('a large map is read up to the limit only', Warmup::locs($big, 3)['locs'], ['https://www.merserwis.pl/p1', 'https://www.merserwis.pl/p2', 'https://www.merserwis.pl/p3']);
+$check('the limit counts usable addresses', Warmup::locs($set, 1)['locs'], ['https://www.merserwis.pl/oferta/a?x=1&y=2']);
+$check('default limit: the whole map', count(Warmup::locs($big)['locs']), 50);
 
 // ---------------------------------------------------------------- the list
 $urls = ['https://www.merserwis.pl/oferta/a/b', 'https://www.merserwis.pl/oferta', 'https://www.merserwis.pl/', 'https://www.merserwis.pl/oferta/a', 'https://other.pl/x',

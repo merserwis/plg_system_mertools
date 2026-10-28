@@ -146,5 +146,64 @@ $check('weak ETag in a list', Feed::notModified('"abc"', '"x", W/"abc"'), true);
 $check('ETag differs', Feed::notModified('"abc"', '"abd"'), false);
 $check('no If-None-Match', Feed::notModified('"abc"', ''), false);
 
+// the posts (1.7.0): a post of a hidden category stays out of every feed, not only of its category's
+if (!interface_exists('Joomla\Database\DatabaseInterface')) {
+    eval('namespace Joomla\Database; interface DatabaseInterface {}');
+}
+$db = new class implements Joomla\Database\DatabaseInterface {
+    public ?object $last = null;
+
+    public function getQuery($new = false): object
+    {
+        return new class {
+            public array $parts = [];
+
+            public function __call($name, $args)
+            {
+                $this->parts[] = $name . ': ' . implode(' | ', array_map(fn ($a) => \is_array($a) ? implode(', ', $a) : (string) $a, $args));
+
+                return $this;
+            }
+        };
+    }
+
+    public function quoteName($name, $as = null)
+    {
+        return \is_array($name) ? array_map(fn ($n) => '`' . $n . '`', $name) : '`' . $name . '`' . ($as !== null ? ' AS `' . $as . '`' : '');
+    }
+
+    public function quote($text): string
+    {
+        return "'" . $text . "'";
+    }
+
+    public function getNullDate(): string
+    {
+        return '0000-00-00 00:00:00';
+    }
+
+    public function setQuery($query, $offset = 0, $limit = 0): static
+    {
+        $this->last = $query;
+
+        return $this;
+    }
+
+    public function loadAssocList(): array
+    {
+        return [];
+    }
+};
+$sql = function (?string $language) use ($db): string {
+    (new Feed($db))->posts(4, [], 0, 0, '2026-10-28 10:00:00', $language, 20);
+
+    return implode("\n", $db->last->parts);
+};
+$whole = $sql(null);
+$check('posts of a whole blog: joined to their category', str_contains($whole, 'join: INNER | `#__gridbox_categories` AS `c` | `c.id` = `p.page_category`'), true);
+$check('posts of a whole blog: the category published and public', str_contains($whole, "where: `c.published` = 1\nwhere: `c.access` = 1"), true);
+$check('one language: no category language rule', str_contains($whole, '`c.language`'), false);
+$check('multilingual: the category of the language or all', str_contains($sql('pl-PL'), "where: `c.language` IN ('pl-PL', '*')"), true);
+
 echo $fail ? "$fail FAILED\n" : "ALL PASS\n";
 exit($fail ? 1 : 0);

@@ -2,13 +2,13 @@
 <extension type="package" method="upgrade">
     <name>MerTools for Gridbox Package</name>
     <packagename>mertools</packagename>
-    <version>1.6.10</version>
-    <creationDate>2026-10-27</creationDate>
+    <version>1.7.0</version>
+    <creationDate>2026-10-28</creationDate>
     <author>Merserwis</author>
     <authorUrl>https://github.com/merserwis/</authorUrl>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <description>MerTools for Gridbox: a system plugin with fixes and optimisations for Balbooa Gridbox that its own settings cannot do, plus an administrator menu entry for its settings. The Gridbox core files are never changed. Requires Joomla 6 with Balbooa Gridbox and PHP 8.2+ (tested with Joomla 6.1 and PHP 8.5).</description>
+    <description>MerTools for Gridbox: a system plugin with fixes and optimisations for Balbooa Gridbox that its own settings cannot do, for any Joomla + Gridbox site, plus its administrator: a control panel (Components → MerTools for Gridbox), a quick setup and the settings of every tool. The Gridbox core files are never changed. After installing and after turning on any tool, check your site. Requires Joomla 6 with Balbooa Gridbox and PHP 8.2+ (tested with Joomla 6.2 and PHP 8.5).</description>
     <files folder="packages">
         <file type="plugin" id="mertools" group="system">plg_system_mertools.zip</file>
         <file type="component" id="com_mertools">com_mertools.zip</file>

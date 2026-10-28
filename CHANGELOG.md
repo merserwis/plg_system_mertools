@@ -2,6 +2,67 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.7.0 — 2026-10-28
+
+### 🧭 A control panel, a menu and a quick setup (like Admin Tools)
+
+The settings were one page of the plugin with 16 tabs and about 250 options, all at once. They are now an administrator of their own under **Components → MerTools for Gridbox**, laid out like Akeeba Admin Tools:
+
+- **Control Panel**: the tools as tiles in sections (*Speed*, *Search engines*, *Shop* — only with a Gridbox store —, *Gridbox in the administrator*, *Configuration*), each with a dot that says whether it is on; on the side the state of MerTools, shortcuts (quick setup, configuration, clear the cache, open Gridbox) and a reminder to check the site.
+- **The sidebar menu** drops down to the tools used day to day — *Page Cache*, *Images*, *Sitemap*, *404 Pages*, *Edit History* —, each with a cog that opens its settings. Every tool's page starts with its *Overview* (what it did, its buttons); its settings follow in the next tabs.
+- **Configuration**: what is set once and forgotten, on one page with a vertical tab for each tool.
+- **Quick Setup**: 15 switches for the main tools, each marked *recommended* or *optional*, with a sentence on what it does. *Turn on the recommended* switches on the recommended ones and leaves the optional ones as they are; only the switches you change are saved. A fresh install offers it first.
+- The settings are still the plugin's, so nothing changes on the site. Opening the plugin in Joomla's plugin manager leads to the control panel (the plugin's own form opens only when the component is off, or for an administrator who may edit plugins but not open the component). Saving a page keeps the settings of all the other pages.
+
+### ⚠️ Check your site after every change
+
+After installing, after updating and after every save, a message asks to check on the site itself that what was turned on or changed works as it should — as a guest, on a computer and a phone, on several kinds of pages. The control panel says the same, and which tools are on.
+
+### 🌍 For any Joomla + Gridbox site
+
+MerTools was built for one shop; some of its defaults assumed it.
+
+- The product data for search engines takes the currency of the store (the default one of its list, or the single currency of an older store) instead of falling back to PLN.
+- The address of the organization in the structured data no longer becomes Polish when no country is typed: the country of the site's language is used, or none.
+- No product field is hidden from the columns of the Gridbox lists by default (it was a field of the original shop).
+- The texts of the settings no longer quote that shop's addresses, products and measurements as if they were yours.
+- A fresh install changes no content of the site: the indexes of Gridbox's tables are created at an update only when they are on (on a fresh site by the daily check, if left on), and stored introductions with “<” are changed only on servers whose libxml needs it (older than 2.9.11), and then only for the pages just saved.
+- Click to call no longer assumes Poland: on a new site only numbers written with + or 00 become links; numbers without a prefix are linked once the country's calling code is set. A site updated from an older version that never saved this setting keeps 48, so it works as before (the same for the hidden-field default above).
+- Sites in a subfolder: sitemap addresses no longer repeat the folder, the sitemap index points to the right files, product and article images and the dark logo get correct addresses, and the PageSpeed panel measures the site's own home page.
+- Sites without SEF URLs keep their pages in the sitemap and get each page's own address in the structured data; multilingual sites keep the kept pages of each language apart and give each language's home page the home-page data.
+- Links to a tab work for titles in any alphabet, for tabs without a title and for the same title in two tab elements; links shared before still open the same tab.
+
+### 🔍 Code audit (Codex) — security, bugs and speed
+
+The whole plugin and the new administrator were reviewed by Codex, file by file; every finding was checked against the code before it was fixed (54 findings, 5 of them already fixed by the changes above; none critical, none rejected).
+
+**Security and privacy**
+- **The thank-you page after an order is never kept by the page cache.** Gridbox prints the order just placed into that page (for the shop's analytics); a kept copy could show the next buyer the previous buyer's order and count it twice in the analytics. Pages an extension marks as private (`Cache-Control: private`, `Vary: Cookie`) or excludes from Joomla's page cache are no longer kept either.
+- The list of the pages left out of the sitemap (with unpublished and restricted ones) can no longer be downloaded from the cache folder, on any server.
+- MerTools' Content-Security-Policy is added to the site's own policy instead of replacing it; the scripts and styles MerTools adds carry the policy's nonce.
+- Only people who may edit a page in Gridbox can take or hold its edit lock; an ordinary logged-in user can no longer block an editor.
+- Blog feeds no longer list posts of unpublished or restricted categories.
+- Pictures in protected folders, or shown only to logged-in users, get no public lighter copies.
+- App backups: no copy is written into a folder MerTools cannot protect, new copies have unguessable names, and the panel warns when the server (e.g. nginx) ignores the folder's protection.
+- The pages of MerTools' administrator check the rights of the user on every way in.
+
+**Bugs**
+- Kept pages are refreshed after every order or comment (a second one within 20 seconds was ignored, so stock and prices could stay stale for hours).
+- Product data for search engines shows the price a visitor pays during a Gridbox discount; the Omnibus line is left out for a visitor who views prices in another currency (the history is kept in the store's default one).
+- Omnibus: the lowest price of the 30 days is right for products with very many price changes and for prices unchanged for over two years; prices changed in the Gridbox lists reach the price history at once.
+- Discount %: stores without decimal places get whole-number sale prices (5954, not 5954.4); in the lists, a percentage works with currencies of 3 or 4 decimals and a price the list cannot keep is refused instead of clearing the sale price.
+- With *No copy, no deletion* on, an app whose copy is incomplete (a file over 20 MB or unreadable) is not deleted.
+- Two editors opening the same page at the same moment no longer both get its lock; pages created at the same moment by two people are credited to the right one; the edit history works on Gridbox sites without the store.
+- Phone and camera photos stored on their side get upright lighter copies; *Remove copies* no longer leaves broken images, and a missing copy is made again.
+- Post sliders in several rows keep their order when the screen width changes, also when another optimiser loads Gridbox's script later.
+- Dark mode applies its default theme also when the browser blocks site storage.
+- The delaying of scripts leaves alone the scripts that are not JavaScript (`type='text/plain'`, modules).
+- Structured data other extensions write as a `@graph` is replaced node by node, without duplicates; `?page[]=…` and `?sort-by[]=…` no longer make a redirect loop; a missing `index.php?…` page can be redirected to another one.
+
+**Speed**
+- Customers' cart, order and review requests no longer start a full price check of the catalogue; Gridbox requests that write no introduction no longer search all introductions.
+- App copies are read in small batches (a large app used about half the memory or less); the page warm-up never holds a server process for more than about 40 seconds; a 404 and a sitemap build run fewer database queries; the image list is written at most once a second; dark mode and click to call do less work on large pages.
+
 ## 1.6.10 — 2026-10-28
 
 ### 🔥 The warm-up works where the server cannot reach its own address

@@ -5,6 +5,7 @@ namespace Merserwis\Plugin\System\MerTools\Field;
 \defined('_JEXEC') or die;
 
 use Joomla\CMS\Component\ComponentHelper;
+use Joomla\CMS\Document\Document;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\FormField;
 use Joomla\CMS\Language\Text;
@@ -27,13 +28,18 @@ final class MtadminField extends FormField
         . '.mt-help-tip p{margin:0 0 .35rem}.mt-help-tip p:last-child{margin:0}.mt-help-tip a{color:#9ec5fe}.mt-help-tip code{color:#ffd8a8}'
         . '.control-group.mt-has-help .controls>[id$="-desc"]{display:none}';
 
-    public function renderField($options = [])
+    /** the help tooltips of the settings, also on the pages of MerTools' administrator (com_mertools) */
+    public static function assets(Document $doc): void
     {
-        $doc = Factory::getApplication()->getDocument();
-        $wa  = $doc->getWebAssetManager();
+        $wa = $doc->getWebAssetManager();
         $wa->addInlineStyle(self::CSS);
         $wa->registerAndUseScript('plg_system_mertools.admin', 'plg_system_mertools/mertools-admin.js', [], ['defer' => true]);
         $doc->addScriptOptions('plg_system_mertools.admin', ['help' => Text::_('PLG_SYSTEM_MERTOOLS_HELP')]);
+    }
+
+    public function renderField($options = [])
+    {
+        self::assets(Factory::getApplication()->getDocument());
 
         // closing the settings opens the Gridbox panel (when Gridbox is there)
         if (ComponentHelper::isInstalled('com_gridbox') && ComponentHelper::isEnabled('com_gridbox')) {

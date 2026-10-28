@@ -139,7 +139,7 @@ $check('popups: without gridbox.js unchanged', Speedup::delayPopups('<div class=
 // ---------------------------------------------------------------- 0.0.31: post sliders in rows
 $sl = '<html><head></head><body><div class="ba-item-recent-posts-slider ba-item mt-rows-2 mt-rows-phone-1" id="item-1"></div><script src="/templates/gridbox/js/gridbox.js?2.20.4.0"></script></body></html>';
 $so = PostRows::apply($sl);
-$check('rows: script right after gridbox.js', str_contains($so, 'gridbox.js?2.20.4.0"></script><script>(function(w,d){var a=w.app;if(!a||a.mtRows)return;'), true);
+$check('rows: script right after gridbox.js', str_contains($so, 'gridbox.js?2.20.4.0"></script><script>(function(w,d){var a;') && str_contains($so, 'a.mtRows=1'), true);
 $check('rows: style in head', str_contains($so, '<style id="mertools-rows">.slideshow-content .mt-rows{'), true);
 $check('rows: idempotent', PostRows::apply($so), $so);
 $check('rows: slider without class unchanged', PostRows::apply(str_replace(' mt-rows-2 mt-rows-phone-1', '', $sl)), str_replace(' mt-rows-2 mt-rows-phone-1', '', $sl));
@@ -223,6 +223,27 @@ $check('loader before </body>, no timer at 0', $has($d, '})(window,document);</s
 $check('timer when set', $has(Speedup::delayScripts($s, ['fbq('], [], 10), 'setTimeout(run,10000)'), true);
 $check('no patterns: nothing', Speedup::delayScripts($s, ['', ' '], [], 0), $s);
 $check('nothing matching: nothing', Speedup::delayScripts('<script>x()</script></body>', ['fbq('], [], 0), '<script>x()</script></body>');
+// 1.7.0: the type in any quoting HTML allows: inert blocks and modules are never made classic scripts
+$q = "<script type='text/plain'>window.runTracker();//fbq(</script><script type=module>import 'fbq(';</script>"
+    . "<script type = 'text/plain' >fbq()</script><script type=TEXT/PLAIN>fbq()</script></body>";
+$check('single-quoted, bare and spaced data types untouched', Speedup::delayScripts($q, ['fbq('], [], 0), $q);
+$dq = Speedup::delayScripts("<script type='text/javascript' async>fbq()</script><script type=application/javascript>fbq(2)</script></body>", ['fbq('], [], 0);
+$check('single-quoted and bare JavaScript delayed, its type gone', $has($dq, '<script type="text/mertools-delay" async>fbq()</script><script type="text/mertools-delay">fbq(2)</script>'), true);
+$check('data-type is not the type', substr_count(Speedup::delayScripts('<script data-type="x">fbq()</script></body>', ['fbq('], [], 0), 'text/mertools-delay"'), 2);
+
+// 1.7.0: a Content Security Policy with nonces
+$check('nonce: on a script added', Speedup::nonced('<script>x()</script>', 'TkVX+/='), '<script nonce="TkVX+/=">x()</script>');
+$check('nonce: on a style added', Speedup::nonced('<style id="a">b{}</style>', 'N1'), '<style nonce="N1" id="a">b{}</style>');
+$check('nonce: none = unchanged', Speedup::nonced('<script>x()</script>', ''), '<script>x()</script>');
+$check('nonce: quotes cannot break out', Speedup::nonced('<script>x()</script>', 'a"b'), '<script nonce="a&quot;b">x()</script>');
+$dn = Speedup::delayScripts('<script nonce="N1">fbq()</script></body>', ['fbq('], [], 0, 'N1');
+$check('nonce: delay loader carries it and passes the property on', $has($dn, '<script nonce="N1">(function(w,d){var go=0;') && $has($dn, 'if(o.nonce)s.nonce=o.nonce;')
+    && $has($dn, 'a.name!=="nonce"'), true);
+$check('nonce: the delayed script keeps its own', $has($dn, '<script type="text/mertools-delay" nonce="N1">fbq()</script>'), true);
+$check('nonce: popups wrapper', $has(Speedup::delayPopups($pg, 'N1'), '<script nonce="N1">(function(w){var o=w.initLightbox;'), true);
+$check('nonce: video delay', $has(Speedup::delayVideoBackground($g, 3, 'video', 768, '', '#000', 'N1'), '<script nonce="N1">(function(w,d){var a=w.app;'), true);
+$check('nonce: background style', $has(Speedup::backgrounds($bg, $site, $bgCopies, $vars, 'N1'), '<style nonce="N1" id="mertools-bg">'), true);
+$check('nonce: icon styles left blocking (an onload would not run)', Speedup::iconStyles($page, 'N1'), $page);
 
 // ---------------------------------------------------------------- local addresses and files
 $check('local: path', Speedup::isLocal('/images/a.jpg', $site), true);

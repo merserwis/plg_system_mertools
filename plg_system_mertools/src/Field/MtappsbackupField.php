@@ -20,7 +20,7 @@ final class MtappsbackupField extends FormField
 
     private const UI = ['APP', 'PAGES', 'COPY', 'COPY_ALL', 'WHEN', 'REASON', 'CONTENT', 'SIZE', 'WHO', 'DOWNLOAD', 'RESTORE', 'DELETE', 'NONE', 'LOADING',
         'ERROR', 'WORKING', 'MADE', 'RESTORE_CONFIRM', 'DELETE_CONFIRM', 'RESTORED', 'DELETED', 'GONE', 'MISSING', 'FOLDER', 'NOT_WRITABLE', 'SKIPPED',
-        'R_AUTO', 'R_MANUAL', 'R_DELETE', 'COPIES', 'APPS', 'LOCKED', 'UNLOCKED', 'CONTENT_FMT', 'UNKNOWN'];
+        'R_AUTO', 'R_MANUAL', 'R_DELETE', 'COPIES', 'APPS', 'LOCKED', 'UNLOCKED', 'CONTENT_FMT', 'UNKNOWN', 'EXPOSED'];
 
     protected function getInput()
     {

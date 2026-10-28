@@ -231,7 +231,9 @@ final class DarkMode
         if ($url === '' || preg_match('#^(javascript|data|vbscript):#i', $url)) {
             return null;
         }
-        if (!preg_match('#^(https?:)?//#i', $url)) {
+        // an address from the site's root (/images/…, /shop/images/… on a site in a folder) stays as it
+        // is; only a path in the Joomla folder (images/…) gets the folder of the site in front
+        if (!preg_match('#^((https?:)?//|/)#i', $url)) {
             $url = rtrim(Uri::root(true), '/') . '/' . ltrim($url, '/');
         }
 
@@ -404,11 +406,12 @@ final class DarkMode
     {
         $def = self::defaultMode($params);
 
-        // a visitor's stored "sepia" theme (0.0.8) is dark mode with the sepia palette now
-        return '(function(){try{var k=' . json_encode(self::STORAGE) . ',s=localStorage.getItem(k),d=' . json_encode($def) . ',a='
-            . json_encode(self::themes($params)) . ',o=' . json_encode(self::offered($params)) . ',p=localStorage.getItem('
-            . json_encode(self::PALETTE_STORAGE) . '),t;'
-            . 'if(s==="sepia"){s="dark";if(!p&&o.indexOf("sepia")>-1)p="sepia"}'
+        // a visitor's stored "sepia" theme (0.0.8) is dark mode with the sepia palette now;
+        // storage the browser blocks (it throws) is no stored choice: the default still applies
+        return '(function(){var k=' . json_encode(self::STORAGE) . ',s=null,d=' . json_encode($def) . ',a='
+            . json_encode(self::themes($params)) . ',o=' . json_encode(self::offered($params)) . ',p=null,t;'
+            . 'try{s=localStorage.getItem(k);p=localStorage.getItem(' . json_encode(self::PALETTE_STORAGE) . ')}catch(e){}'
+            . 'try{if(s==="sepia"){s="dark";if(!p&&o.indexOf("sepia")>-1)p="sepia"}'
             . 'if(o.indexOf(p)>-1){document.documentElement.setAttribute("data-mertools-palette",p)}'
             . 'if(a.indexOf(s)>-1){t=s}else if(a.indexOf(d)>-1){t=d}'
             . 'else{t=(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light"}'

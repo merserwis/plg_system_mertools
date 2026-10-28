@@ -56,8 +56,10 @@ final class Speedup
      * @param callable|null $copies   fn(string $url): ?array ImageOptimizer::lookup()
      * @param bool          $plain    also images Gridbox does not load by script (lazy loading off in Gridbox)
      * @param bool          $gif      a heavy animated GIF at the top: first frame first
+     * @param string        $nonce    the page's CSP nonce (nonced())
      */
-    public static function images(string $html, string $siteBase, callable $size, ?callable $copies = null, bool $plain = false, bool $gif = false): string
+    public static function images(string $html, string $siteBase, callable $size, ?callable $copies = null, bool $plain = false, bool $gif = false,
+        string $nonce = ''): string
     {
         $headerStart = stripos($html, '<header');
         $headerEnd   = stripos($html, '</header>');
@@ -152,7 +154,7 @@ final class Speedup
             }, $html, -1, $count, PREG_OFFSET_CAPTURE);
 
         if ($animated) {
-            $html = self::beforeBodyEnd($html, self::ANIMATION_SCRIPT);
+            $html = self::beforeBodyEnd($html, self::nonced(self::ANIMATION_SCRIPT, $nonce));
         }
 
         return $html;
@@ -213,8 +215,9 @@ final class Speedup
      *
      * @param callable $copies   fn(string $url): ?array ImageOptimizer::lookup()
      * @param array    $variants filled: full-width copy => [768 => copy, 480 => copy] (for a preload of the same picture)
+     * @param string   $nonce    the page's CSP nonce (nonced())
      */
-    public static function backgrounds(string $html, string $siteBase, callable $copies, array &$variants = []): string
+    public static function backgrounds(string $html, string $siteBase, callable $copies, array &$variants = [], string $nonce = ''): string
     {
         $rules = [];
         $n     = 0;
@@ -275,18 +278,19 @@ final class Speedup
         }
         $pos = stripos($html, '</head>');
 
-        return $pos === false ? $html : substr_replace($html, '<style id="mertools-bg">' . $css . '</style>', $pos, 0);
+        return $pos === false ? $html : substr_replace($html, self::nonced('<style id="mertools-bg">' . $css . '</style>', $nonce), $pos, 0);
     }
 
     /**
      * Style sheets of icon fonts (Font Awesome, Material Icons, Gridbox's icon libraries…) do not
      * hold back the first paint: they load alongside and apply when they arrive (the icons appear a
-     * moment later); a <noscript> copy keeps them for browsers without JavaScript.
+     * moment later); a <noscript> copy keeps them for browsers without JavaScript. Not under a
+     * Content Security Policy with nonces ($nonce): it stops the onload that switches them on.
      */
-    public static function iconStyles(string $html): string
+    public static function iconStyles(string $html, string $nonce = ''): string
     {
         $head = stripos($html, '</head>');
-        if ($head === false) {
+        if ($head === false || $nonce !== '') {
             return $html;
         }
         $head = substr($html, 0, $head);
@@ -390,8 +394,9 @@ final class Speedup
      *
      * @param array  $variants full-width copy => [768 => copy, 480 => copy] (backgrounds())
      * @param string $more     the text of the second and further pictures (sprintf: name, number)
+     * @param string $nonce    the page's CSP nonce (nonced())
      */
-    public static function slideImages(string $html, string $name, string $more, array $variants = []): string
+    public static function slideImages(string $html, string $name, string $more, array $variants = [], string $nonce = ''): string
     {
         if (stripos($html, 'ba-item-product-slideshow') === false || str_contains($html, 'id="mertools-slide-img"')) {
             return $html;
@@ -454,9 +459,9 @@ final class Speedup
         }
         $html = $out . substr($html, $at);
         $head = stripos($html, '</head>');
-        $html = $head === false ? $html : substr_replace($html, self::SLIDE_CSS, $head, 0);
+        $html = $head === false ? $html : substr_replace($html, self::nonced(self::SLIDE_CSS, $nonce), $head, 0);
 
-        return self::beforeBodyEnd($html, self::SLIDE_JS);
+        return self::beforeBodyEnd($html, self::nonced(self::SLIDE_JS, $nonce));
     }
 
     /**
@@ -539,7 +544,7 @@ final class Speedup
      * Gridbox shows the page (DOMContentLoaded, its items are known by then), so nothing flashes.
      */
     public static function delayVideoBackground(string $html, int $seconds, string $phone = 'video', int $phoneWidth = 768,
-        string $phoneImage = '', string $phoneColor = '#1a1a1a'): string
+        string $phoneImage = '', string $phoneColor = '#1a1a1a', string $nonce = ''): string
     {
         if (!preg_match('#<script\b[^>]*\bsrc="[^"]*templates/gridbox/js/gridbox\.js[^"]*"[^>]*>\s*</script>#i', $html, $m, PREG_OFFSET_CAPTURE)) {
             return $html;
@@ -572,7 +577,7 @@ final class Speedup
 
         $end = $m[0][1] + \strlen($m[0][0]);
 
-        return substr_replace($html, $js, $end, 0);
+        return substr_replace($html, self::nonced($js, $nonce), $end, 0);
     }
 
     // ---------------------------------------------------------------- marketing scripts
@@ -585,7 +590,7 @@ final class Speedup
      * phones. Popups opened on scrolling or on leaving the page, and Gridbox's cookie notice, stay as
      * they are. Wraps Gridbox's global initLightbox right after its script; the file is not changed.
      */
-    public static function delayPopups(string $html): string
+    public static function delayPopups(string $html, string $nonce = ''): string
     {
         if (stripos($html, 'ba-lightbox-backdrop') === false
             || !preg_match('#<script\b[^>]*\bsrc="[^"]*templates/gridbox/js/gridbox\.js[^"]*"[^>]*>\s*</script>#i', $html, $m, PREG_OFFSET_CAPTURE)) {
@@ -603,7 +608,7 @@ final class Speedup
             . 'return o.apply(this,arguments)};f.mtPopup=1;w.initLightbox=f})(window);</script>';
         $end = $m[0][1] + \strlen($m[0][0]);
 
-        return substr_replace($html, $js, $end, 0);
+        return substr_replace($html, self::nonced($js, $nonce), $end, 0);
     }
 
     /**
@@ -614,7 +619,7 @@ final class Speedup
      * @param string[] $patterns
      * @param string[] $keep
      */
-    public static function delayScripts(string $html, array $patterns, array $keep, int $seconds): string
+    public static function delayScripts(string $html, array $patterns, array $keep, int $seconds, string $nonce = ''): string
     {
         $patterns = array_values(array_filter(array_map('trim', $patterns)));
         if (!$patterns) {
@@ -624,7 +629,8 @@ final class Speedup
         $html  = (string) preg_replace_callback('#<script\b([^>]*)>(.*?)</script>#is', function (array $m) use ($patterns, $keep, &$count) {
             [$tag, $attrs, $body] = $m;
             // only classic scripts: JSON and other data blocks, modules and scripts already delayed stay as they are
-            if (preg_match('#\stype="([^"]*)"#i', $attrs, $t) && !\in_array(strtolower(trim($t[1])), ['text/javascript', 'application/javascript', ''], true)) {
+            // (the type written in any way HTML allows: "…", '…' or bare)
+            if (preg_match(self::TYPE_ATTR, $attrs, $t) && !\in_array(strtolower(trim(implode('', \array_slice($t, 1)))), ['text/javascript', 'application/javascript', ''], true)) {
                 return $tag;
             }
             $hay = $attrs . ' ' . $body;
@@ -636,7 +642,7 @@ final class Speedup
             foreach ($patterns as $p) {
                 if (stripos($hay, $p) !== false) {
                     $count++;
-                    $attrs = preg_replace('#\stype="[^"]*"#i', '', $attrs);
+                    $attrs = preg_replace(self::TYPE_ATTR, '', $attrs);
 
                     return '<script type="text/mertools-delay"' . $attrs . '>' . $body . '</script>';
                 }
@@ -648,18 +654,35 @@ final class Speedup
             return $html;
         }
 
+        // the nonce of a script is not readable as an attribute once the page is shown: it is passed on as the property
         $ms     = max(0, min(120, $seconds)) * 1000;
-        $loader = '<script>(function(w,d){var go=0;function run(){if(go)return;go=1;'
+        $loader = self::nonced('<script>(function(w,d){var go=0;function run(){if(go)return;go=1;'
             . 'var list=d.querySelectorAll(\'script[type="text/mertools-delay"]\'),i=0;'
             . 'function next(){if(i>=list.length)return;var o=list[i++],s=d.createElement("script");'
-            . '[].forEach.call(o.attributes,function(a){if(a.name!=="type")s.setAttribute(a.name,a.value)});'
+            . '[].forEach.call(o.attributes,function(a){if(a.name!=="type"&&a.name!=="nonce")s.setAttribute(a.name,a.value)});if(o.nonce)s.nonce=o.nonce;'
             . 'if(o.src){s.async=false;s.onload=s.onerror=next;s.src=o.src;o.replaceWith(s)}else{s.text=o.text;o.replaceWith(s);next()}}next()}'
             . self::EVENTS . '.forEach(function(e){w.addEventListener(e,run,{once:true,passive:true})});'
             . ($ms ? 'var t=function(){setTimeout(run,' . $ms . ')};d.readyState==="complete"?t():w.addEventListener("load",t);' : '')
-            . '})(window,document);</script>';
+            . '})(window,document);</script>', $nonce);
         $pos = strripos($html, '</body>');
 
         return $pos === false ? $html . $loader : substr_replace($html, $loader, $pos, 0);
+    }
+
+    /** a type attribute of a tag: "…", '…' or bare */
+    private const TYPE_ATTR = '#\stype\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'=<>`]+))#i';
+
+    /**
+     * The nonce of the page's Content Security Policy (Joomla's csp_nonce) on a <script> or <style>
+     * MerTools adds: under a policy with nonces nothing without one runs.
+     */
+    public static function nonced(string $code, string $nonce): string
+    {
+        if ($nonce === '' || !preg_match('#^<(script|style)\b#i', $code, $m)) {
+            return $code;
+        }
+
+        return '<' . $m[1] . ' nonce="' . htmlspecialchars($nonce, ENT_QUOTES) . '"' . substr($code, \strlen($m[0]));
     }
 
     // ---------------------------------------------------------------- helpers

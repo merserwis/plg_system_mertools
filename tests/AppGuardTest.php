@@ -34,6 +34,18 @@ $check('name without slug', AppGuard::validName('app-12-20261016-114159-9690b0c9
 $check('name climbing out', AppGuard::validName('../app-3-x-20261016-114159-9690b0c9.jsonl.gz'), false);
 $check('name other file', AppGuard::validName('configuration.php'), false);
 $check('name .part', AppGuard::validName('app-3-x-20261016-114159-9690b0c9.jsonl.gz.part'), false);
+$check('name with 32 random digits (1.7.0)', AppGuard::validName('app-3-sklep-20261016-114159-9690b0c99690b0c99690b0c99690b0c9.jsonl.gz'), true);
+$check('name with 12 random digits', AppGuard::validName('app-3-sklep-20261016-114159-9690b0c99690.jsonl.gz'), false);
+
+// copies that the web server may hand out (it ignores .htaccess / web.config)
+$check('nginx, folder in the site', AppGuard::exposed('/srv/site/administrator/backups/mertools', '/srv/site', 'nginx/1.24.0'), true);
+$check('nginx, folder outside', AppGuard::exposed('/home/u/copies', '/srv/site', 'nginx/1.24.0'), false);
+$check('nginx, folder next to the site', AppGuard::exposed('/srv/site-copies', '/srv/site', 'nginx'), false);
+$check('Apache, folder in the site', AppGuard::exposed('/srv/site/administrator/backups/mertools', '/srv/site/', 'Apache/2.4.62 (Debian)'), false);
+$check('LiteSpeed', AppGuard::exposed('/srv/site/bk', '/srv/site', 'LiteSpeed'), false);
+$check('IIS', AppGuard::exposed('C:/inetpub/site/bk', 'C:\\inetpub\\site', 'Microsoft-IIS/10.0'), false);
+$check('Caddy', AppGuard::exposed('/srv/site/bk', '/srv/site', 'Caddy'), true);
+$check('unknown server', AppGuard::exposed('/srv/site/bk', '/srv/site', ''), true);
 
 $check('path css', AppGuard::safePath('components/com_gridbox/assets/css/storage/style-5.css'), true);
 $check('path upload', AppGuard::safePath('components/com_gridbox/assets/uploads/app-3/plik ze spacją.pdf'), true);

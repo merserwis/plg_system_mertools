@@ -9,6 +9,7 @@ require __DIR__ . '/../plg_system_mertools/src/Tool/ImageSize.php';
 require __DIR__ . '/../plg_system_mertools/src/Tool/ImageOptimizer.php';
 
 use Merserwis\Plugin\System\MerTools\Tool\ImageOptimizer;
+use Merserwis\Plugin\System\MerTools\Tool\ImageSize;
 
 $fail = 0;
 $check = function (string $label, $got, $exp) use (&$fail) {
@@ -119,6 +120,128 @@ $check('allowed: hidden folder refused', ImageOptimizer::allowed('images/.privat
 $check('allowed: hidden file refused', ImageOptimizer::allowed('images/.x.jpg'), false);
 $check('relative: protected folder gives null', (new ImageOptimizer($root, $site, '', $cache))->relative('/administrator/x.jpg'), null);
 $check('relative: public folder', (new ImageOptimizer($root, $site, '', $cache))->relative('/images/sub/alpha.png'), 'images/sub/alpha.png');
+$check('relative: a name that is not UTF-8 is left alone', (new ImageOptimizer($root, $site, '', $cache))->relative('/images/caf%E9.jpg'), null);
+$check('relative: a UTF-8 name', (new ImageOptimizer($root, $site, '', $cache))->relative('/images/caf%C3%A9.jpg'), "images/caf\u{e9}.jpg");
+
+// ---------------------------------------------------------------- 1.7.0: copies never more public than the picture
+$fresh = new ImageOptimizer($root, $site, '', $cache, 1000);
+$fresh->lookup('/images/sub/alpha.png', false);
+$check('a page only logged-in users see queues nothing', $fresh->pending(), 0);
+@mkdir($root . '/images/members/deep', 0777, true);
+@mkdir($root . '/images/hardened', 0777, true);
+@mkdir($root . '/images/old', 0777, true);
+file_put_contents($root . '/images/members/.htaccess', "AuthType Basic\nAuthName \"Members\"\nAuthUserFile /home/x/.htpasswd\nRequire valid-user\n");
+file_put_contents($root . '/images/hardened/.htaccess', "<FilesMatch \"\\.(php|phtml)$\">\n  Require all denied\n</FilesMatch>\nOptions -Indexes\n");
+file_put_contents($root . '/images/old/.htaccess', "Order deny,allow\nDeny from all\n");
+$check('guarded: password', ImageOptimizer::guarded($root, 'images/members/a.jpg'), true);
+$check('guarded: a folder below', ImageOptimizer::guarded($root, 'images/members/deep/a.jpg'), true);
+$check('guarded: everybody refused', ImageOptimizer::guarded($root, 'images/old/a.jpg'), true);
+$check('not guarded: rules for PHP files only', ImageOptimizer::guarded($root, 'images/hardened/a.jpg'), false);
+$check('not guarded: no .htaccess', ImageOptimizer::guarded($root, 'images/sub/alpha.png'), false);
+copy($root . '/images/photo one.jpg', $root . '/images/members/deep/photo.jpg');
+$check('guarded picture: no copies made', $fresh->make('images/members/deep/photo.jpg')['x'] ?? null, 'skip');
+
+// ---------------------------------------------------------------- 1.7.0: a copy gone is made again
+$gone = new ImageOptimizer($root, $site, '', $cache, 1000);
+$gone->lookup('/images/sub/alpha.png');
+$gone->save();
+$gone->work(60.0);
+$ready = (new ImageOptimizer($root, $site, '', $cache, 1000))->lookup('/images/sub/alpha.png');
+preg_match('#(/media/mertools-img/\S+-480\.webp)#', $ready['srcset'] ?? '', $one);
+@unlink($root . ($one[1] ?? '/none'));
+$lost = new ImageOptimizer($root, $site, '', $cache, 1000);
+$check('copy removed: not offered, queued again', [$lost->lookup('/images/sub/alpha.png'), $lost->pending()], [null, 1]);
+$lost->save();
+$lost->work(60.0);
+$check('copy removed: made again under the same name', is_file($root . ($one[1] ?? '/none')), true);
+
+// ---------------------------------------------------------------- 1.7.0: EXIF orientation
+// a 480x360 photo, red in its stored top-left corner, green in its stored top-right corner
+$exif = function (int $o, bool $motorola = false): string {
+    $tiff = $motorola
+        ? 'MM' . pack('n', 42) . pack('N', 8) . pack('n', 1) . pack('n', 0x0112) . pack('n', 3) . pack('N', 1) . pack('n', $o) . "\0\0" . pack('N', 0)
+        : 'II' . pack('v', 42) . pack('V', 8) . pack('v', 1) . pack('v', 0x0112) . pack('v', 3) . pack('V', 1) . pack('v', $o) . "\0\0" . pack('V', 0);
+    $data = "Exif\0\0" . $tiff;
+
+    return "\xFF\xE1" . pack('n', strlen($data) + 2) . $data;
+};
+$im = imagecreatetruecolor(480, 360);
+for ($i = 0; $i < 2500; $i++) {
+    imagefilledellipse($im, mt_rand(0, 480), mt_rand(0, 360), mt_rand(5, 40), mt_rand(5, 40), imagecolorallocate($im, mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255)));
+}
+imagefilledrectangle($im, 0, 0, 79, 79, imagecolorallocate($im, 255, 0, 0));
+imagefilledrectangle($im, 400, 0, 479, 79, imagecolorallocate($im, 0, 255, 0));
+ob_start();
+imagejpeg($im, null, 92);
+$jpeg = (string) ob_get_clean();
+$check('test photo heavy enough for copies', strlen($jpeg) > ImageOptimizer::MIN_BYTES, true);
+$color = function (\GdImage $img, int $x, int $y): string {
+    $c = imagecolorat($img, $x, $y);
+    [$r, $g, $b] = [($c >> 16) & 255, ($c >> 8) & 255, $c & 255];
+
+    return $r > 150 && $g < 110 && $b < 110 ? 'red' : ($g > 150 && $r < 110 && $b < 110 ? 'green' : 'other');
+};
+// where red and green are seen (TL, TR, BR, BL) once the browser has turned the photo
+$seen = [1 => ['TL', 'TR'], 2 => ['TR', 'TL'], 3 => ['BR', 'BL'], 4 => ['BL', 'BR'], 5 => ['TL', 'BL'], 6 => ['TR', 'BR'], 7 => ['BR', 'TR'], 8 => ['BL', 'TL']];
+$turnOpt = new ImageOptimizer($root, $site, '', $cache, 1000);
+foreach (range(1, 8) as $o) {
+    file_put_contents($root . "/images/turn-$o.jpg", "\xFF\xD8" . $exif($o) . substr($jpeg, 2));
+    $turnOpt->lookup("/images/turn-$o.jpg");
+}
+file_put_contents($root . '/images/turn-mm.jpg', "\xFF\xD8" . $exif(6, true) . substr($jpeg, 2));
+$check('orientation: none', ImageSize::orientation($root . '/images/photo one.jpg'), 1);
+$check('orientation: Intel byte order', ImageSize::orientation($root . '/images/turn-6.jpg'), 6);
+$check('orientation: Motorola byte order', ImageSize::orientation($root . '/images/turn-mm.jpg'), 6);
+$check('orientation: not a JPEG', ImageSize::orientation($root . '/images/sub/alpha.png'), 1);
+$sizes = new ImageSize($root, $site, '', $cache . '/sizes.json');
+$check('size: stored on its side = shown turned', [$sizes->get('/images/turn-6.jpg'), $sizes->get('/images/turn-3.jpg')], [[360, 480], [480, 360]]);
+file_put_contents($cache . '/sizes-old.json', json_encode([$root . '/images/turn-8.jpg' => [480, 360, filemtime($root . '/images/turn-8.jpg')]]));
+$check('size: an entry read before 1.7.0 is read again', (new ImageSize($root, $site, '', $cache . '/sizes-old.json'))->get('/images/turn-8.jpg'), [360, 480]);
+$turnOpt->save();
+$turnOpt->work(60.0);
+$turned = new ImageOptimizer($root, $site, '', $cache, 1000);
+$corners = [];
+foreach (range(1, 8) as $o) {
+    $srcset = $turned->lookup("/images/turn-$o.jpg")['srcset'] ?? '';
+    preg_match('#^(\S+) (\d+)w$#', $srcset, $c);
+    $copy = $c ? @imagecreatefromwebp($root . $c[1]) : false;
+    if (!$copy) {
+        $corners[$o] = 'no copy: ' . $srcset;
+        continue;
+    }
+    [$w, $h] = [imagesx($copy), imagesy($copy)];
+    $at      = ['TL' => [30, 30], 'TR' => [$w - 31, 30], 'BR' => [$w - 31, $h - 31], 'BL' => [30, $h - 31]];
+    $corners[$o] = [$w . 'x' . $h, $color($copy, ...$at[$seen[$o][0]]), $color($copy, ...$at[$seen[$o][1]])];
+}
+$expect = [];
+foreach (range(1, 8) as $o) {
+    $expect[$o] = [$o >= 5 ? '360x480' : '480x360', 'red', 'green'];
+}
+$check('copies upright for all 8 orientations', $corners, $expect);
+$oldName = fn (int $o) => substr(md5("images/turn-$o.jpg|" . filemtime($root . "/images/turn-$o.jpg") . '|' . filesize($root . "/images/turn-$o.jpg")), 0, 10);
+$check('turned copies get other names than copies made before 1.7.0, upright ones keep theirs',
+    [str_contains($turned->lookup('/images/turn-6.jpg')['srcset'] ?? '', $oldName(6)), str_contains($turned->lookup('/images/turn-1.jpg')['srcset'] ?? '', $oldName(1))], [false, true]);
+
+// entries of copies made before 1.7.0 (no "o"): a photo stored on its side is made again, others stay as they are
+$manifest = json_decode(file_get_contents($cache . '/mertools-images.json'), true);
+unset($manifest['images/turn-6.jpg']['o'], $manifest['images/turn-1.jpg']['o']);
+file_put_contents($cache . '/mertools-images.json', json_encode($manifest, JSON_UNESCAPED_SLASHES));
+$older = new ImageOptimizer($root, $site, '', $cache, 1000);
+$check('before 1.7.0, upright photo: copies still offered', isset($older->lookup('/images/turn-1.jpg')['srcset']), true);
+$check('before 1.7.0, photo on its side: made again', [$older->lookup('/images/turn-6.jpg'), $older->pending()], [null, 1]);
+$check('new entries say how they were turned', [$manifest['images/turn-8.jpg']['o'] ?? null, $manifest['images/sub/alpha.png']['o'] ?? null], [8, 1]);
+
+// ---------------------------------------------------------------- 1.7.0: clearing waits for a worker
+$lockFile = $cache . '/mertools-img.lock';
+$code     = '$f=fopen(' . var_export($lockFile, true) . ',"c");flock($f,LOCK_EX);echo "L\n";usleep(1200000);flock($f,LOCK_UN);';
+$child    = proc_open([PHP_BINARY, '-r', $code], [1 => ['pipe', 'w']], $pipes);
+fgets($pipes[1]);
+$t = microtime(true);
+(new ImageOptimizer($root, $site, '', $cache, 1000))->clear();
+$waited = microtime(true) - $t;
+proc_close($child);
+$check('clear: waits until the worker has finished', $waited > 0.8, true);
+$check('clear: then everything gone', is_dir($root . '/media/mertools-img') && (new FilesystemIterator($root . '/media/mertools-img'))->valid(), false);
 
 exec('rm -rf ' . escapeshellarg($root));
 echo $fail ? "\n$fail FAILED\n" : "\nALL PASS\n";

@@ -26,6 +26,19 @@ foreach (DbIndexes::LIST as [$table, $name, $column]) {
     $check("$column: plain column name", (bool) preg_match('/^[a-z_]+$/', $column), true);
 }
 $check('8 indexes', count(DbIndexes::LIST), 8);
+
+// an index found in the rows of SHOW INDEX (read once per table)
+$show = [
+    ['Key_name' => 'PRIMARY', 'Seq_in_index' => '1', 'Column_name' => 'id'],
+    ['Key_name' => 'idx_mt_page_id', 'Seq_in_index' => '1', 'Column_name' => 'page_id'],
+    ['Key_name' => 'gb_both', 'Seq_in_index' => '1', 'Column_name' => 'Category_ID'],
+    ['Key_name' => 'gb_both', 'Seq_in_index' => '2', 'Column_name' => 'page_id'],
+    ['Key_name' => 'only_second', 'Seq_in_index' => '2', 'Column_name' => 'tag_id'],
+];
+$check('our index', DbIndexes::indexOn($show, 'page_id'), 'idx_mt_page_id');
+$check('another index starting with the column (any case)', DbIndexes::indexOn($show, 'category_id'), 'gb_both');
+$check('column only second in an index: missing', DbIndexes::indexOn($show, 'tag_id'), '');
+$check('no rows', DbIndexes::indexOn([], 'page_id'), '');
 $check('no table/column twice', max($pairs), 1);
 
 echo $fail ? "$fail FAILED\n" : "ALL PASS\n";

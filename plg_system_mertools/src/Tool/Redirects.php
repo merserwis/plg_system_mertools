@@ -218,17 +218,31 @@ final class Redirects
         $done = true;
         $db   = $this->db;
         $tail = ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 DEFAULT COLLATE=utf8mb4_unicode_ci';
-        $db->setQuery('CREATE TABLE IF NOT EXISTS ' . $db->quoteName(self::ALIASES) . ' (`kind` CHAR(1) NOT NULL, `item_id` INT UNSIGNED NOT NULL,'
-            . ' `alias` VARCHAR(255) NOT NULL, PRIMARY KEY (`kind`, `item_id`), KEY `idx_alias` (`alias`))' . $tail)->execute();
-        $db->setQuery('CREATE TABLE IF NOT EXISTS ' . $db->quoteName(self::MOVED) . ' (`id` INT UNSIGNED NOT NULL AUTO_INCREMENT, `kind` CHAR(1) NOT NULL,'
-            . ' `item_id` INT UNSIGNED NOT NULL, `alias` VARCHAR(255) NOT NULL, `changed` DATETIME NOT NULL, `hits` INT UNSIGNED NOT NULL DEFAULT 0,'
-            . ' `last_hit` DATETIME NULL, PRIMARY KEY (`id`), KEY `idx_alias` (`alias`), KEY `idx_item` (`kind`, `item_id`))' . $tail)->execute();
-        $db->setQuery('CREATE TABLE IF NOT EXISTS ' . $db->quoteName(self::GONE) . ' (`kind` CHAR(1) NOT NULL, `item_id` INT UNSIGNED NOT NULL,'
-            . ' `alias` VARCHAR(255) NOT NULL, `gone` DATETIME NOT NULL, PRIMARY KEY (`kind`, `item_id`), KEY `idx_alias` (`alias`))' . $tail)->execute();
-        $db->setQuery('CREATE TABLE IF NOT EXISTS ' . $db->quoteName(self::LOG) . ' (`id` INT UNSIGNED NOT NULL AUTO_INCREMENT, `hash` CHAR(40) NOT NULL,'
-            . ' `path` VARCHAR(1024) NOT NULL, `hits` INT UNSIGNED NOT NULL DEFAULT 1, `first_seen` DATETIME NOT NULL, `last_seen` DATETIME NOT NULL,'
-            . ' `referer` VARCHAR(512) NOT NULL DEFAULT \'\', `result` VARCHAR(8) NOT NULL DEFAULT \'\', `result_url` VARCHAR(1024) NOT NULL DEFAULT \'\','
-            . ' `target` VARCHAR(1024) NULL, PRIMARY KEY (`id`), UNIQUE KEY `idx_hash` (`hash`), KEY `idx_last` (`last_seen`))' . $tail)->execute();
+        $all  = [
+            self::ALIASES => ' (`kind` CHAR(1) NOT NULL, `item_id` INT UNSIGNED NOT NULL,'
+                . ' `alias` VARCHAR(255) NOT NULL, PRIMARY KEY (`kind`, `item_id`), KEY `idx_alias` (`alias`))',
+            self::MOVED   => ' (`id` INT UNSIGNED NOT NULL AUTO_INCREMENT, `kind` CHAR(1) NOT NULL,'
+                . ' `item_id` INT UNSIGNED NOT NULL, `alias` VARCHAR(255) NOT NULL, `changed` DATETIME NOT NULL, `hits` INT UNSIGNED NOT NULL DEFAULT 0,'
+                . ' `last_hit` DATETIME NULL, PRIMARY KEY (`id`), KEY `idx_alias` (`alias`), KEY `idx_item` (`kind`, `item_id`))',
+            self::GONE    => ' (`kind` CHAR(1) NOT NULL, `item_id` INT UNSIGNED NOT NULL,'
+                . ' `alias` VARCHAR(255) NOT NULL, `gone` DATETIME NOT NULL, PRIMARY KEY (`kind`, `item_id`), KEY `idx_alias` (`alias`))',
+            self::LOG     => ' (`id` INT UNSIGNED NOT NULL AUTO_INCREMENT, `hash` CHAR(40) NOT NULL,'
+                . ' `path` VARCHAR(1024) NOT NULL, `hits` INT UNSIGNED NOT NULL DEFAULT 1, `first_seen` DATETIME NOT NULL, `last_seen` DATETIME NOT NULL,'
+                . ' `referer` VARCHAR(512) NOT NULL DEFAULT \'\', `result` VARCHAR(8) NOT NULL DEFAULT \'\', `result_url` VARCHAR(1024) NOT NULL DEFAULT \'\','
+                . ' `target` VARCHAR(1024) NULL, PRIMARY KEY (`id`), UNIQUE KEY `idx_hash` (`hash`), KEY `idx_last` (`last_seen`))',
+        ];
+        // this runs on every missing page: one look at the list of tables, the ones missing created (all of
+        // them when the list cannot be read), instead of four CREATE TABLE each time
+        try {
+            $have = array_flip(array_map('strtolower', (array) $db->getTableList()));
+        } catch (\Throwable $e) {
+            $have = [];
+        }
+        foreach ($all as $table => $columns) {
+            if (!isset($have[strtolower($db->replacePrefix($table))])) {
+                $db->setQuery('CREATE TABLE IF NOT EXISTS ' . $db->quoteName($table) . $columns . $tail)->execute();
+            }
+        }
     }
 
     // ---------------------------------------------------------------- moved pages

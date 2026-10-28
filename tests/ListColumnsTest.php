@@ -58,6 +58,16 @@ $check('money empty (sale)', ListColumns::clean('money', ''), '');
 $check('money bad', ListColumns::clean('money', '12a'), null);
 $check('money 3 decimals', ListColumns::clean('money', '1,234'), null);
 $check('money negative', ListColumns::clean('money', '-5'), null);
+// a currency with 3 or 4 decimals: as many decimals are kept (a percentage discount gives them)
+$check('money 3 decimals, currency of 3', ListColumns::clean('money', '90.000', 3), '90');
+$check('money 3 decimals kept', ListColumns::clean('money', '12,345', 3), '12.345');
+$check('money grouped, 3 decimals', ListColumns::clean('money', '1.234,567', 3), '1234.567');
+$check('money 4 decimals, currency of 4', ListColumns::clean('money', '0.1235', 4), '0.1235');
+$check('money 5 decimals refused (4 at most)', ListColumns::clean('money', '0.12345', 4), null);
+$check('money 3 decimals, currency of 2', ListColumns::clean('money', '12.345', 2), null);
+$check('money currency of 0 still takes 2', ListColumns::clean('money', '12.5', 0), '12.5');
+$check('percent price, currency of 3', ListColumns::clean('money', number_format(100 * (1 - 10 / 100), 3, '.', ''), 3), '90');
+$check('percent price, currency of 4', ListColumns::clean('money', number_format(10.0005 * (1 - 20 / 100), 4, '.', ''), 4), '8.0004');
 $check('int', ListColumns::clean('int', ' 7 '), '7');
 $check('int bad', ListColumns::clean('int', '7.5'), null);
 $check('text', ListColumns::clean('text', ' ABC/1 '), 'ABC/1');

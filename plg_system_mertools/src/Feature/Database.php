@@ -66,13 +66,23 @@ final class Database extends Feature
     }
 
     /**
-     * After anything sent to Gridbox by a logged-in user (the editor's save, the settings of a page,
-     * a CSV import…): a "<" Gridbox's lists would lose with an old libxml is kept as &lt; (IntroText).
-     * Looks only for the rows that have one, so it costs a few ms.
+     * The stored introductions are repaired only where it is needed: the setting on, and a libxml that
+     * loses such a "<" (older than 2.9.11). A newer one reads it as text, so nothing is changed there.
+     */
+    public function introRepairOn(): bool
+    {
+        return $this->introLtOn() && IntroText::oldLibxml(\defined('LIBXML_VERSION') ? (int) LIBXML_VERSION : 0);
+    }
+
+    /**
+     * After a save of a logged-in user in Gridbox that writes introductions (the editor's save, the
+     * settings of a page: only that page; a CSV or Joomla import, a page sent from the site's form: all
+     * pages): a "<" Gridbox's lists would lose with an old libxml is kept as &lt; (IntroText). Other
+     * requests of Gridbox (the editor's many small ones) look for nothing: the daily check finds the rest.
      */
     public function introGuard(): void
     {
-        if (!$this->introLtOn()) {
+        if (!$this->introRepairOn()) {
             return;
         }
         $app   = $this->plugin->app();
@@ -81,9 +91,26 @@ final class Database extends Feature
         if (strtoupper((string) $input->getMethod()) !== 'POST' || $input->getCmd('option') !== 'com_gridbox' || !$user || $user->guest) {
             return;
         }
-        register_shutdown_function(static function (): void {
+        $task = strtolower((string) $input->getString('task', ''));
+        if (\in_array($task, ['editor.gridboxsave', 'editor.gridboxajaxsave'], true)) {
+            $obj = json_decode($this->plugin->editorSaveObj($task));
+            // a layout, header or system page has no introduction
+            $ids = \is_object($obj) && empty($obj->edit_type) && !empty($obj->page->id) ? [(int) $obj->page->id] : [];
+        } elseif ($task === 'gridbox.updateparams') {
+            $ids = [$input->getInt('ba_id', 0)];
+        } elseif ($task === 'gridbox.save') {
+            $ids = [(int) ($input->post->get('jform', [], 'array')['id'] ?? 0)];
+        } elseif (str_contains($task, 'import') || $task === 'editor.submitnewitem') {
+            $ids = null;
+        } else {
+            return;
+        }
+        if ($ids !== null && !array_filter($ids)) {
+            return;
+        }
+        register_shutdown_function(static function () use ($ids): void {
             try {
-                IntroText::repair(Factory::getContainer()->get(DatabaseInterface::class));
+                IntroText::repair(Factory::getContainer()->get(DatabaseInterface::class), $ids);
             } catch (\Throwable $e) {
             }
         });
@@ -92,7 +119,7 @@ final class Database extends Feature
     /** Once a day: introductions changed past Gridbox (another import, the database directly). */
     public function dailyIntroCheck(): void
     {
-        if (!$this->introLtOn()) {
+        if (!$this->introRepairOn()) {
             return;
         }
         $gate = MerTools::cacheBase() . '/mertools-intro-tick';

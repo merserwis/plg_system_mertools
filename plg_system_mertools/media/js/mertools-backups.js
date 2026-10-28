@@ -125,6 +125,8 @@
       var folder = el('p', 'small text-muted mb-3', T.FOLDER + ' ' + d.folder);
       if (!d.writable) { folder.append(el('span', 'text-danger fw-bold', ' — ' + T.NOT_WRITABLE)); }
       appsBox.replaceChildren(head, apps, folder);
+      // a server that does not obey the .htaccess / web.config of the folder (nginx…): say how to close it
+      if (d.exposed) { appsBox.append(el('div', 'alert alert-warning small', T.EXPOSED)); }
 
       // the copies
       var title = el('strong', 'd-block mb-2', T.COPIES);

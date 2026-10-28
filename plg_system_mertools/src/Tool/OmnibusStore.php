@@ -7,7 +7,7 @@
  * The price history behind Omnibus (see there for the rules).
  *
  * #__mertools_omnibus_log: one row per change of the prices of an item (a product or a version):
- * regular and sale price from that moment on. Kept two years.
+ * regular and sale price from that moment on. Kept two years, and of the older rows the last of each item.
  * #__mertools_omnibus: the state of each item — its prices, since when, and while it is on sale the
  * moment of the reduction, the lowest price of the 30 days before it and where that came from:
  * 'history' (MerTools' own history), 'import' (the separate Omnibus plugin, at the start, for the same
@@ -149,9 +149,13 @@ final class OmnibusStore
             switch (Omnibus::change($oldRegular, $oldSale, $regular, $sale)) {
                 case 'reduction':
                     $reduced++;
+                    // the price in force when the 30 days began (the last change at or before then) and
+                    // every change since, however many there were
+                    $from    = gmdate('Y-m-d H:i:s', $now - Omnibus::WINDOW);
                     $history = $db->setQuery('SELECT regular, sale, changed FROM ' . $db->quoteName(self::LOG) . ' WHERE item = ' . $db->quote($key)
-                        . ' ORDER BY changed DESC, id DESC', 0, 500)->loadAssocList() ?: [];
-                    $lowest = Omnibus::lowest($history, gmdate('Y-m-d H:i:s', $now - Omnibus::WINDOW), $stamp);
+                        . ' AND changed >= COALESCE((SELECT MAX(changed) FROM ' . $db->quoteName(self::LOG) . ' WHERE item = ' . $db->quote($key)
+                        . ' AND changed <= ' . $db->quote($from) . '), ' . $db->quote($from) . ') ORDER BY changed DESC, id DESC')->loadAssocList() ?: [];
+                    $lowest = Omnibus::lowest($history, $from, $stamp);
                     $set += ['promo_since' => $stamp, 'lowest' => $lowest ?? $sale, 'source' => $lowest !== null ? 'history' : 'new'];
                     break;
                 case 'clear':
@@ -173,10 +177,28 @@ final class OmnibusStore
             $db->setQuery('DELETE FROM ' . $db->quoteName(self::STATE) . ' WHERE item IN (' . implode(',', array_map([$db, 'quote'], $chunk)) . ')')->execute();
         }
         if ($start || mt_rand(1, 24) === 1) {
-            $db->setQuery('DELETE FROM ' . $db->quoteName(self::LOG) . ' WHERE changed < ' . $db->quote(gmdate('Y-m-d H:i:s', $now - self::KEEP_DAYS * 86400)))->execute();
+            // of what is older than two years, the last change of each item stays: it holds the price that
+            // was in force until its next change (a price kept that long still counts in the 30 days after it)
+            $db->setQuery('DELETE l FROM ' . $db->quoteName(self::LOG) . ' l JOIN (SELECT item, MAX(changed) AS last FROM ' . $db->quoteName(self::LOG)
+                . ' WHERE changed < ' . $db->quote(gmdate('Y-m-d H:i:s', $now - self::KEEP_DAYS * 86400)) . ' GROUP BY item) k ON k.item = l.item AND l.changed < k.last')->execute();
         }
 
         return ['items' => \count($items), 'changed' => $changed + \count($inserts) * (int) !$start, 'reductions' => $reduced, 'started' => $start, 'next' => $next];
+    }
+
+    /**
+     * The items of rows of Gridbox's product data with the prices a guest is shown now: Gridbox's own
+     * sales running applied as sync() applies them ('via' = the sale). For the product data (JSON-LD).
+     *
+     * @return array<string, array<string, mixed>> as Omnibus::items()
+     */
+    public function shownPrices(array $rows, ?int $now = null): array
+    {
+        $items   = Omnibus::items($rows);
+        $local   = $this->localTime($now ?? time());
+        $running = $items ? array_values(array_filter($this->sales(), static fn ($s) => Omnibus::saleRuns($s, $local))) : [];
+
+        return $running ? Omnibus::withSales($items, $running, $this->productCategories($items, $running), $this->levels) : $items;
     }
 
     /** A UTC timestamp as the site's local time, in which Gridbox keeps and compares the dates of its sales. */

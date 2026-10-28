@@ -22,6 +22,7 @@ use Merserwis\Plugin\System\MerTools\Extension\MerTools;
 use Merserwis\Plugin\System\MerTools\Tool\EditLock;
 use Merserwis\Plugin\System\MerTools\Tool\History;
 use Merserwis\Plugin\System\MerTools\Tool\ListColumns;
+use Merserwis\Plugin\System\MerTools\Tool\Omnibus;
 
 final class GridboxLists extends Feature
 {
@@ -502,7 +503,7 @@ final class GridboxLists extends Feature
     }
 
     /** Fields hidden from the columns window by default (a link to a manual is no column for a list). */
-    public const LIST_FIELDS_HIDDEN = 'Instrukcja obsługi Metrel';
+    public const LIST_FIELDS_HIDDEN = '';
 
     /** @return array<string, true> the hidden fields of the setting: names (lower case, without a final ":") and ids */
     private static function hiddenFields(string $setting): array
@@ -660,9 +661,10 @@ final class GridboxLists extends Feature
         if ($id <= 0 || !isset(ListColumns::EDITABLE[$field])) {
             return ['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_ERROR')];
         }
-        $typed   = (string) $input->post->get('value', '', 'raw');
-        $percent = $field === 'sale_price' ? ListColumns::percent($typed) : null;
-        $value   = $percent === null ? ListColumns::clean(ListColumns::EDITABLE[$field], $typed) : '';
+        $typed    = (string) $input->post->get('value', '', 'raw');
+        $decimals = max(0, min(4, (int) ($this->plugin->storeCurrency()['decimals'] ?? 2)));
+        $percent  = $field === 'sale_price' ? ListColumns::percent($typed) : null;
+        $value    = $percent === null ? ListColumns::clean(ListColumns::EDITABLE[$field], $typed, $decimals) : '';
         if ($value === null || ($field === 'price' && $value === '')) {
             return ['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_BAD_' . strtoupper(ListColumns::EDITABLE[$field]))];
         }
@@ -681,13 +683,25 @@ final class GridboxLists extends Feature
         // "10%" in the sale price: the regular price minus 10 % (0 % = no sale price)
         if ($percent !== null) {
             $value = $percent > 0 && (float) $row['base_price'] > 0
-                ? (string) ListColumns::clean('money', number_format((float) $row['base_price'] * (1 - $percent / 100), max(0, min(4, (int) ($this->plugin->storeCurrency()['decimals'] ?? 2))), '.', ''))
+                ? ListColumns::clean('money', number_format((float) $row['base_price'] * (1 - $percent / 100), $decimals, '.', ''), $decimals)
                 : '';
+            // a price the list could not keep: refused, the sale price stays as it is
+            if ($value === null) {
+                return ['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_BAD_MONEY')];
+            }
         }
         $old = (string) $row['value'];
         if ($old !== $value) {
             $db->setQuery('UPDATE ' . $db->quoteName('#__gridbox_store_product_data') . ' SET ' . $db->quoteName($field) . ' = ' . $db->quote($value)
                 . ' WHERE id = ' . (int) $row['id'])->execute();
+            // the price history of Omnibus: told now, not at its next hourly check (a price lowered and raised
+            // again within the hour would be missed), and before the kept pages go
+            if (($field === 'price' || $field === 'sale_price') && Omnibus::enabled($this->plugin->params)) {
+                try {
+                    Shop::omnibusNext(Shop::newOmnibusStore()->sync());
+                } catch (\Throwable $e) {
+                }
+            }
             if ($this->plugin->history()->historyOn()) {
                 try {
                     $history = new History($db);

@@ -215,29 +215,43 @@ final class History
             $select[] = 'CRC32(CONCAT_WS(' . $db->quote("\x1F") . ', ' . implode(', ', array_map(fn ($c) => 'IFNULL(p.' . $db->quoteName($c) . ', \'\')', $columns)) . ')) AS '
                 . $db->quoteName('crc_' . $key);
         }
-        foreach (self::PRODUCT as $field) {
-            $select[] = 'd.' . $db->quoteName($field) . ' AS ' . $db->quoteName('product_' . $field);
+        // the store's tables only where Gridbox has them (a site without the store): the page is kept all the same
+        $have    = $this->tables();
+        $product = isset($have['#__gridbox_store_product_data']);
+        if ($product) {
+            foreach (self::PRODUCT as $field) {
+                $select[] = 'd.' . $db->quoteName($field) . ' AS ' . $db->quoteName('product_' . $field);
+            }
+            $select[] = 'CRC32(CONCAT_WS(' . $db->quote("\x1F") . ', ' . implode(', ', array_map(fn ($c) => 'IFNULL(d.' . $db->quoteName($c) . ', \'\')', self::PRODUCT_CONTENT))
+                . ')) AS ' . $db->quoteName('crc_product_options');
         }
-        $select[] = 'CRC32(CONCAT_WS(' . $db->quote("\x1F") . ', ' . implode(', ', array_map(fn ($c) => 'IFNULL(d.' . $db->quoteName($c) . ', \'\')', self::PRODUCT_CONTENT))
-            . ')) AS ' . $db->quoteName('crc_product_options');
         // the fields of the app (a product's description, specifications, producer…), the extra
         // categories and the tags: Gridbox keeps them in their own tables
-        $select[] = '(SELECT CRC32(GROUP_CONCAT(f.field_id, \':\', CRC32(IFNULL(f.value, \'\')) ORDER BY f.field_id, f.id)) FROM '
-            . $db->quoteName('#__gridbox_page_fields') . ' AS f WHERE f.page_id = p.id) AS ' . $db->quoteName('crc_fields');
-        $select[] = '(SELECT CRC32(GROUP_CONCAT(m.category_id ORDER BY m.category_id)) FROM ' . $db->quoteName('#__gridbox_category_page_map')
-            . ' AS m WHERE m.page_id = p.id) AS ' . $db->quoteName('crc_categories');
-        $select[] = '(SELECT CRC32(GROUP_CONCAT(t.tag_id ORDER BY t.tag_id)) FROM ' . $db->quoteName('#__gridbox_tags_map')
-            . ' AS t WHERE t.page_id = p.id) AS ' . $db->quoteName('crc_tags');
-        $select[] = '(SELECT CRC32(GROUP_CONCAT(b.badge_id ORDER BY b.order_list, b.id)) FROM ' . $db->quoteName('#__gridbox_store_badges_map')
-            . ' AS b WHERE b.product_id = p.id) AS ' . $db->quoteName('crc_badges');
+        if (isset($have['#__gridbox_page_fields'])) {
+            $select[] = '(SELECT CRC32(GROUP_CONCAT(f.field_id, \':\', CRC32(IFNULL(f.value, \'\')) ORDER BY f.field_id, f.id)) FROM '
+                . $db->quoteName('#__gridbox_page_fields') . ' AS f WHERE f.page_id = p.id) AS ' . $db->quoteName('crc_fields');
+        }
+        if (isset($have['#__gridbox_category_page_map'])) {
+            $select[] = '(SELECT CRC32(GROUP_CONCAT(m.category_id ORDER BY m.category_id)) FROM ' . $db->quoteName('#__gridbox_category_page_map')
+                . ' AS m WHERE m.page_id = p.id) AS ' . $db->quoteName('crc_categories');
+        }
+        if (isset($have['#__gridbox_tags_map'])) {
+            $select[] = '(SELECT CRC32(GROUP_CONCAT(t.tag_id ORDER BY t.tag_id)) FROM ' . $db->quoteName('#__gridbox_tags_map')
+                . ' AS t WHERE t.page_id = p.id) AS ' . $db->quoteName('crc_tags');
+        }
+        if (isset($have['#__gridbox_store_badges_map'])) {
+            $select[] = '(SELECT CRC32(GROUP_CONCAT(b.badge_id ORDER BY b.order_list, b.id)) FROM ' . $db->quoteName('#__gridbox_store_badges_map')
+                . ' AS b WHERE b.product_id = p.id) AS ' . $db->quoteName('crc_badges');
+        }
 
-        $rows = $db->setQuery('SELECT ' . implode(', ', $select) . ' FROM ' . $db->quoteName('#__gridbox_pages') . ' AS p LEFT JOIN '
-            . $db->quoteName('#__gridbox_store_product_data') . ' AS d ON d.product_id = p.id WHERE p.id IN (' . implode(',', $ids) . ')')->loadAssocList() ?: [];
+        $rows = $db->setQuery('SELECT ' . implode(', ', $select) . ' FROM ' . $db->quoteName('#__gridbox_pages') . ' AS p'
+            . ($product ? ' LEFT JOIN ' . $db->quoteName('#__gridbox_store_product_data') . ' AS d ON d.product_id = p.id' : '')
+            . ' WHERE p.id IN (' . implode(',', $ids) . ')')->loadAssocList() ?: [];
         $out = [];
         foreach ($rows as $row) {
             $id = (int) $row['id'];
             // a page without product data: no product fields (a NULL would read as a change later)
-            if ($row['product_price'] === null && $row['product_sku'] === null) {
+            if (($row['product_price'] ?? null) === null && ($row['product_sku'] ?? null) === null) {
                 foreach (self::PRODUCT as $field) {
                     unset($row['product_' . $field]);
                 }
@@ -246,6 +260,69 @@ final class History
             // several product rows of one page: the first one
             $out[$id] ??= $row;
         }
+
+        return $out;
+    }
+
+    /** @return array<string, true> the tables of the snapshot next to the pages that this Gridbox has (read once a request) */
+    private function tables(): array
+    {
+        static $have = null;
+        if ($have !== null) {
+            return $have;
+        }
+        $prefix = $this->db->getPrefix();
+        $list   = array_flip(array_map('strtolower', (array) $this->db->getTableList()));
+        $have   = [];
+        foreach (['#__gridbox_store_product_data', '#__gridbox_page_fields', '#__gridbox_category_page_map', '#__gridbox_tags_map', '#__gridbox_store_badges_map'] as $table) {
+            if (isset($list[strtolower($prefix . substr($table, 3))])) {
+                $have[$table] = true;
+            }
+        }
+
+        return $have;
+    }
+
+    /**
+     * Of the pages added while a request ran, the ones that request made: somebody else may add pages at
+     * the same moment. A copy has the content and the app of the page it copies, a new page the title,
+     * app and category the request asked for. Pages that cannot be told apart from somebody else's are
+     * left out (no entry is better than one with the wrong person).
+     *
+     * @param array<int, array<string, mixed>> $added    snapshots of the pages added (id => row)
+     * @param array<int, array<string, mixed>> $sources  snapshots of the pages the request copies (duplicate)
+     * @param array{title: string, app_id: int, page_category: string}|null $asked  the page the request makes (create)
+     *
+     * @return array<int, int>  page id => the page it copies (0: a new page, or not clear which one)
+     */
+    public static function ownNew(array $added, array $sources, ?array $asked): array
+    {
+        $out = [];
+        if ($asked !== null) {
+            $match = array_keys(array_filter($added, static fn (array $row): bool => trim((string) ($row['title'] ?? '')) === trim($asked['title'])
+                && (int) ($row['app_id'] ?? 0) === (int) $asked['app_id'] && (string) ($row['page_category'] ?? '') === (string) $asked['page_category']));
+
+            return \count($match) === 1 ? [(int) $match[0] => 0] : [];
+        }
+        $sign = static fn (array $row): string => (string) ($row['crc_content'] ?? '') . '|' . (int) ($row['app_id'] ?? 0);
+        $from = [];
+        foreach ($sources as $id => $row) {
+            $from[$sign($row)][] = (int) $id;
+        }
+        $made = [];
+        foreach ($added as $id => $row) {
+            $made[$sign($row)][] = (int) $id;
+        }
+        foreach ($made as $key => $ids) {
+            // each page is copied once: more copies of it than pages copied = somebody else copied it too
+            if (!isset($from[$key]) || \count($ids) > \count($from[$key])) {
+                continue;
+            }
+            foreach ($ids as $id) {
+                $out[$id] = \count($from[$key]) === 1 ? $from[$key][0] : 0;
+            }
+        }
+        ksort($out);
 
         return $out;
     }

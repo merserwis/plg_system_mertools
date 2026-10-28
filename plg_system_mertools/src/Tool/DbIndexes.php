@@ -50,12 +50,15 @@ final class DbIndexes
      */
     public function status(): array
     {
-        $out    = [];
-        $tables = [];
+        $out     = [];
+        $tables  = [];
+        $indexes = [];
         foreach (self::LIST as [$table, $name, $column]) {
             $real = $this->db->replacePrefix($table);
             $tables[$real] ??= $this->tableExists($real);
-            $by    = $tables[$real] ? $this->indexOn($real, $column) : '';
+            // a table with two indexes of the list is read once
+            $indexes[$real] ??= $tables[$real] ? $this->indexes($real) : [];
+            $by    = self::indexOn($indexes[$real], $column);
             $out[] = ['table' => $real, 'name' => $name, 'column' => $column,
                 'state' => !$tables[$real] ? 'no-table' : ($by !== '' ? 'ok' : 'missing'), 'by' => $by];
         }
@@ -103,10 +106,20 @@ final class DbIndexes
         return (bool) $this->db->setQuery('SHOW TABLES LIKE ' . $this->db->quote($like))->loadResult();
     }
 
-    /** The name of an index whose first column is $column ('' if there is none). */
-    private function indexOn(string $table, string $column): string
+    /** @return array<int, array<string, mixed>> the rows of SHOW INDEX of the table */
+    private function indexes(string $table): array
     {
-        foreach ($this->db->setQuery('SHOW INDEX FROM ' . $this->db->quoteName($table))->loadAssocList() ?: [] as $row) {
+        return $this->db->setQuery('SHOW INDEX FROM ' . $this->db->quoteName($table))->loadAssocList() ?: [];
+    }
+
+    /**
+     * The name of an index whose first column is $column ('' if there is none).
+     *
+     * @param array<int, array<string, mixed>> $indexes  the rows of SHOW INDEX
+     */
+    public static function indexOn(array $indexes, string $column): string
+    {
+        foreach ($indexes as $row) {
             $row = array_change_key_case($row, CASE_LOWER);
             if ((int) ($row['seq_in_index'] ?? 0) === 1 && strcasecmp((string) ($row['column_name'] ?? ''), $column) === 0) {
                 return (string) ($row['key_name'] ?? '');

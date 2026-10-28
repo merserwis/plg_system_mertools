@@ -122,4 +122,28 @@ final class Hygiene
 
         return [$mode === 'report' ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy', $policy];
     }
+
+    /**
+     * The value of the header with the policies the response already has (Joomla's HTTP Headers, another
+     * extension) and this one after them, separated by commas: one header holding a list of policies is the
+     * same to a browser as one header for each, and it applies all of them. Joomla sends only the last value
+     * of a header set twice, so the policy of the site would otherwise be lost. A policy already there is not
+     * added again.
+     *
+     * @param string[] $existing the values of the header the response has now
+     */
+    public static function withPolicy(array $existing, string $policy): string
+    {
+        $all = [];
+        foreach ([...$existing, $policy] as $value) {
+            foreach (explode(',', (string) $value) as $one) {
+                $one = trim((string) preg_replace('/\s+/', ' ', $one));
+                if ($one !== '' && !\in_array($one, $all, true)) {
+                    $all[] = $one;
+                }
+            }
+        }
+
+        return implode(', ', $all);
+    }
 }

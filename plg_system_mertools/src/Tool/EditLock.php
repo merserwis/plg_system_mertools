@@ -44,6 +44,21 @@ final class EditLock
     }
 
     /**
+     * The edit type and the id of a key, as key() makes it ("page:12" = edit type "", 12); null for
+     * anything else (a key sent by a browser is checked with it).
+     *
+     * @return array{0: string, 1: int}|null
+     */
+    public static function parse(string $key): ?array
+    {
+        if (!preg_match('/^([a-z0-9_-]{1,40}):(\d{1,10})$/', $key, $m) || (int) $m[2] <= 0) {
+            return null;
+        }
+
+        return [$m[1] === 'page' ? '' : $m[1], (int) $m[2]];
+    }
+
+    /**
      * Is a lock row still held? Free when the editor stopped confirming it or its holder was idle.
      *
      * @param array<string, mixed>|null $row  seen, active (Y-m-d H:i:s, UTC)
@@ -93,7 +108,10 @@ final class EditLock
 
     /**
      * Take the lock: free, already ours, or $force (taking it over). Keeps "since" while the same user
-     * holds it. @return array<string, mixed>|null  the holder when somebody else holds it (not taken)
+     * holds it. Two editors opening the page at the same moment: only one gets it (the row is written
+     * only if nobody wrote it since it was read), the other gets the holder.
+     *
+     * @return array<string, mixed>|null  the holder when somebody else holds it (not taken)
      */
     public function acquire(string $key, int $pageId, int $userId, string $userName, string $tab, int $now, int $idleSeconds, bool $force = false): ?array
     {
@@ -101,14 +119,34 @@ final class EditLock
         if (!$force && self::blocks($row, $userId, $now, $idleSeconds)) {
             return $row;
         }
-        $db    = $this->db;
-        $stamp = $db->quote(gmdate('Y-m-d H:i:s', $now));
-        $since = $row && (int) $row['user_id'] === $userId && self::held($row, $now, $idleSeconds) ? $db->quote((string) $row['since']) : $stamp;
-        $db->setQuery('REPLACE INTO ' . $db->quoteName(self::TABLE) . ' (lock_key, page_id, user_id, user_name, tab, since, seen, active) VALUES ('
-            . $db->quote($key) . ', ' . max(0, $pageId) . ', ' . $userId . ', ' . $db->quote(mb_substr($userName, 0, 255)) . ', ' . $db->quote(substr($tab, 0, 32)) . ', ' . $since . ', '
-            . $stamp . ', ' . $stamp . ')')->execute();
+        $db     = $this->db;
+        $stamp  = $db->quote(gmdate('Y-m-d H:i:s', $now));
+        $since  = $row && (int) $row['user_id'] === $userId && self::held($row, $now, $idleSeconds) ? $db->quote((string) $row['since']) : $stamp;
+        $values = $db->quote($key) . ', ' . max(0, $pageId) . ', ' . $userId . ', ' . $db->quote(mb_substr($userName, 0, 255)) . ', ' . $db->quote(substr($tab, 0, 32)) . ', '
+            . $since . ', ' . $stamp . ', ' . $stamp;
+        if ($force) {
+            // taking it over: whoever has it now loses it
+            $db->setQuery('REPLACE INTO ' . $db->quoteName(self::TABLE) . ' (lock_key, page_id, user_id, user_name, tab, since, seen, active) VALUES (' . $values . ')')->execute();
 
-        return null;
+            return null;
+        }
+        if (!$row) {
+            // nobody had it: the row is ours unless somebody else wrote it in the meantime
+            $db->setQuery('INSERT IGNORE INTO ' . $db->quoteName(self::TABLE) . ' (lock_key, page_id, user_id, user_name, tab, since, seen, active) VALUES (' . $values . ')')->execute();
+        } else {
+            // a free lock, or ours: changed only while it is still the row read above
+            $db->setQuery('UPDATE ' . $db->quoteName(self::TABLE) . ' SET page_id = ' . max(0, $pageId) . ', user_id = ' . $userId . ', user_name = ' . $db->quote(mb_substr($userName, 0, 255))
+                . ', tab = ' . $db->quote(substr($tab, 0, 32)) . ', since = ' . $since . ', seen = ' . $stamp . ', active = ' . $stamp
+                . ' WHERE lock_key = ' . $db->quote($key) . ' AND user_id = ' . (int) $row['user_id'] . ' AND tab = ' . $db->quote((string) $row['tab'])
+                . ' AND seen = ' . $db->quote((string) $row['seen']))->execute();
+        }
+        if ((int) $db->getAffectedRows() > 0) {
+            return null;
+        }
+        // not written: somebody else was faster (or the row was already exactly this one)
+        $current = $this->get($key);
+
+        return self::blocks($current, $userId, $now, $idleSeconds) ? $current : null;
     }
 
     /**

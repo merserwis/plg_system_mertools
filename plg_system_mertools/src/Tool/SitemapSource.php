@@ -44,6 +44,9 @@ final class SitemapSource
     /** The pages not in the trash, by id (from collect) */
     private array $pages = [];
 
+    /** The tags and the authors of the live pages by app, loaded once (filters) */
+    private array $filters = [];
+
     public function __construct(private DatabaseInterface $db)
     {
     }
@@ -105,7 +108,7 @@ final class SitemapSource
                             $this->withDefault((string) $helper::getGridboxCategoryLinks($cat['id'], $app['id'])), '');
                     }
                 }
-                foreach ($this->filters('tag', $app['id'], $now) as $tag) {
+                foreach ($this->filters('tag', $now)[$app['id']] ?? [] as $tag) {
                     if (!$helper::getGridboxMenuItemidByTag($tag['id'], $app['id'])) {
                         $items[] = $this->item('tag', $tag['id'], $app, $app['live'],
                             Sitemap::flagged($tag['sitemap_override'], $tag['sitemap_include'], $this->defaults['tag'][0] ?? null),
@@ -113,7 +116,7 @@ final class SitemapSource
                             $this->withDefault((string) $helper::getGridboxTagLinks($tag['id'], $app['id'])), '');
                     }
                 }
-                foreach ($this->filters('author', $app['id'], $now) as $author) {
+                foreach ($this->filters('author', $now)[$app['id']] ?? [] as $author) {
                     $items[] = $this->item('author', $author['id'], $app, $app['live'],
                         Sitemap::flagged($author['sitemap_override'], $author['sitemap_include'], $this->defaults['author'][0] ?? null),
                         Sitemap::effectiveRobots('', $author['robots'], $robots), $author['title'],
@@ -161,7 +164,8 @@ final class SitemapSource
                 if ($view === 'page' && isset($pages[(int) $q['id']])) {
                     $page  = $pages[(int) $q['id']];
                     $app   = $apps[$page['app_id']] ?? $app;
-                    $live  = $page['live'];
+                    // as without a menu item: the page and its app (unpublished or not public: out)
+                    $live  = $page['live'] && ($app['live'] ?? true);
                     $flag  = Sitemap::flagged($page['sitemap_override'], $page['sitemap_include'], $this->defaults['page'][$page['app_id']] ?? null);
                     [$own, $title] = [$page['robots'], $page['title']];
                     $target = ['page', $page['id']];
@@ -535,21 +539,26 @@ final class SitemapSource
     }
 
     /**
-     * The tags (published, public) or authors (published) of the live pages of an app, as Gridbox
-     * lists them: a tag or author without such a page is not in its sitemap.
+     * The tags (published, public) or authors (published) of the live pages of each app, as Gridbox
+     * lists them: a tag or author without such a page is not in its sitemap. One query for all the apps,
+     * kept for the next app.
+     *
+     * @return array<int, array> app => its tags or authors, in the order of their ids
      */
-    private function filters(string $kind, int $appId, string $now): array
+    private function filters(string $kind, string $now): array
     {
+        if (isset($this->filters[$kind . $now])) {
+            return $this->filters[$kind . $now];
+        }
         $db    = $this->db;
         $nowQ  = $db->quote($now);
         $table = $kind === 'tag' ? '#__gridbox_tags' : '#__gridbox_authors';
         $map   = $kind === 'tag' ? ['#__gridbox_tags_map', 'tag_id'] : ['#__gridbox_authors_map', 'author_id'];
         $query = $db->getQuery(true)
-            ->select('DISTINCT ' . implode(', ', $db->quoteName(['t.id', 't.title', 't.robots', 't.sitemap_override', 't.sitemap_include'])))
+            ->select('DISTINCT ' . implode(', ', $db->quoteName(['p.app_id', 't.id', 't.title', 't.robots', 't.sitemap_override', 't.sitemap_include'])))
             ->from($db->quoteName('#__gridbox_pages', 'p'))
             ->join('INNER', $db->quoteName($map[0], 'm') . ' ON ' . $db->quoteName('m.page_id') . ' = ' . $db->quoteName('p.id'))
             ->join('INNER', $db->quoteName($table, 't') . ' ON ' . $db->quoteName('t.id') . ' = ' . $db->quoteName('m.' . $map[1]))
-            ->where($db->quoteName('p.app_id') . ' = ' . $appId)
             ->where($db->quoteName('p.page_category') . ' <> ' . $db->quote('trashed'))
             ->where($db->quoteName('p.published') . ' = 1')
             ->where($db->quoteName('p.page_access') . ' = 1')
@@ -560,13 +569,13 @@ final class SitemapSource
         if ($kind === 'tag') {
             $query->where($db->quoteName('t.access') . ' = 1');
         }
-        $rows = (array) $db->setQuery($query)->loadAssocList();
-        foreach ($rows as &$row) {
-            $row = ['id' => (int) $row['id'], 'title' => (string) $row['title'], 'robots' => (string) $row['robots'],
+        $list = [];
+        foreach ((array) $db->setQuery($query)->loadAssocList() as $row) {
+            $list[(int) $row['app_id']][] = ['id' => (int) $row['id'], 'title' => (string) $row['title'], 'robots' => (string) $row['robots'],
                 'sitemap_override' => (int) $row['sitemap_override'], 'sitemap_include' => (int) $row['sitemap_include']];
         }
 
-        return $rows;
+        return $this->filters[$kind . $now] = $list;
     }
 
     /** Gridbox's defaults of the include flag: item_type => item_id (the app, 0 for tags and authors) => value */

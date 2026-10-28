@@ -6,9 +6,10 @@
  *
  * Images in the size of the screen and a lighter format, made by PHP's GD on the site itself:
  *
- *  - every JPEG and PNG of this site shown on a page gets WebP copies in a few widths (480 … 1920 px,
- *    never wider than the picture); the page offers them in srcset and the browser takes the one
- *    that fits its screen, the original stays the fallback in src;
+ *  - every JPEG and PNG of this site shown on a page to a guest gets WebP copies in a few widths
+ *    (480 … 1920 px, never wider than the picture, turned upright as its EXIF data says); the page
+ *    offers them in srcset and the browser takes the one that fits its screen, the original stays the
+ *    fallback in src. Pictures in a folder the web server guards (.htaccess) get none;
  *  - a heavy animated GIF gets its first frame as a small WebP: shown at once, the animation is
  *    loaded after the page (see Speedup::images()).
  *
@@ -92,9 +93,10 @@ final class ImageOptimizer
     /**
      * What a page may use for the picture at $url: ['srcset' => "url 480w, …", 'frame' => [srcset of
      * the first frame], 'anim' => url of the animation] — or null (not local, not a JPEG/PNG/GIF,
-     * not ready yet: then the picture is queued).
+     * not ready yet: then the picture is queued, if $queue: a page only a logged-in user sees does not
+     * queue its pictures, their copies would be public).
      */
-    public function lookup(string $url): ?array
+    public function lookup(string $url, bool $queue = true): ?array
     {
         $rel = $this->relative($url);
         if ($rel === null || !preg_match('#\.(jpe?g|png|gif)$#i', $rel)) {
@@ -106,8 +108,12 @@ final class ImageOptimizer
             return null;
         }
         $entry = $this->manifest[$rel] ?? null;
-        if (!$entry || $entry['m'] !== (int) $stat['mtime'] || $entry['s'] !== (int) $stat['size']) {
-            if (!isset($this->queue[$rel]) && \count($this->queue) < self::MAX_QUEUE) {
+        // made again: a copy that is gone (removed by hand, a site copied without media/mertools-img), and
+        // the copies of a photo stored on its side made before 1.7.0 (sideways; their entry has no "o")
+        if (!$entry || $entry['m'] !== (int) $stat['mtime'] || $entry['s'] !== (int) $stat['size']
+            || (($entry['x'] ?? '') === 'ok' && (!$this->copiesThere($entry)
+                || (!isset($entry['o']) && preg_match('#\.jpe?g$#i', $rel) && ImageSize::orientation($path) > 1)))) {
+            if ($queue && !isset($this->queue[$rel]) && \count($this->queue) < self::MAX_QUEUE) {
                 $this->queue[$rel] = true;
                 $this->added[$rel] = true;
                 $this->dirtyQueue  = true;
@@ -132,6 +138,18 @@ final class ImageOptimizer
         return $out ?: null;
     }
 
+    /** Are all the files of the copies of an entry there? */
+    private function copiesThere(array $entry): bool
+    {
+        foreach (array_merge(array_values((array) ($entry['v'] ?? [])), array_values((array) ($entry['f'] ?? []))) as $copy) {
+            if (!is_file($this->root . '/' . $copy)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /** Pictures waiting for their copies. */
     public function pending(): int
     {
@@ -141,9 +159,10 @@ final class ImageOptimizer
     /**
      * A page adds its new pictures to the queue file as it is now (the worker of another request
      * may have taken pictures out meanwhile; writing the page's older copy would put them back and
-     * make them again); the worker itself writes the queue as it has it.
+     * make them again); the worker itself writes the queue as it has it. $manifest false: the queue
+     * only (the worker writes the large manifest less often, see work()).
      */
-    public function save(): void
+    public function save(bool $manifest = true): void
     {
         if ($this->dirtyQueue) {
             if ($this->working) {
@@ -158,7 +177,7 @@ final class ImageOptimizer
             $this->added      = [];
             $this->dirtyQueue = false;
         }
-        if ($this->dirtyManifest) {
+        if ($manifest && $this->dirtyManifest) {
             if (\count($this->manifest) > self::MAX_ENTRIES) {
                 $this->manifest = \array_slice($this->manifest, -self::MAX_ENTRIES, null, true);
             }
@@ -189,6 +208,7 @@ final class ImageOptimizer
         $this->added    = [];
         $this->working  = true;
         $start          = microtime(true);
+        $saved          = $start;
         $made           = 0;
         try {
             foreach (array_keys($this->queue) as $rel) {
@@ -199,15 +219,20 @@ final class ImageOptimizer
                 // not come first again with every page, blocking the rest of the queue
                 unset($this->queue[$rel]);
                 $this->dirtyQueue = true;
-                $this->save();
+                $this->save(false);
                 $entry = $this->make((string) $rel, $maxPixels);
                 if ($entry !== null) {
                     $this->manifest[$rel] = $entry;
                     $this->dirtyManifest  = true;
                     $made += $entry['x'] === 'ok' ? 1 : 0;
                 }
-                $this->save();
+                // the manifest (all the pictures of the site) at most once a second and at the end, not
+                // after every picture; a round cut short loses a second of work at most (made again)
+                $flush = microtime(true) - $saved >= 1.0;
+                $this->save($flush);
+                $saved = $flush ? microtime(true) : $saved;
             }
+            $this->save();
         } finally {
             $this->working = false;
             flock($lock, LOCK_UN);
@@ -226,8 +251,9 @@ final class ImageOptimizer
         if ($stat === false) {
             return null;
         }
-        $entry = ['m' => (int) $stat['mtime'], 's' => (int) $stat['size'], 'x' => 'skip', 'v' => [], 'f' => [], 't' => time()];
-        if (!\is_array($info) || $info[0] < 1 || $info[1] < 1 || $info[0] * $info[1] > self::MAX_PIXELS) {
+        // o: the EXIF orientation the copies were made upright from (1.7.0)
+        $entry = ['m' => (int) $stat['mtime'], 's' => (int) $stat['size'], 'x' => 'skip', 'v' => [], 'f' => [], 't' => time(), 'o' => 1];
+        if (!\is_array($info) || $info[0] < 1 || $info[1] < 1 || $info[0] * $info[1] > self::MAX_PIXELS || self::guarded($this->root, $rel)) {
             return $entry;
         }
         if ($info[0] * $info[1] > $maxPixels) {
@@ -238,12 +264,16 @@ final class ImageOptimizer
             return null;
         }
         [$w, $h, $type] = [(int) $info[0], (int) $info[1], (int) $info[2]];
-        // memory: about 5 bytes a pixel for the picture and as much for the largest copy; a limit that
-        // cannot be raised enough makes the picture a skip instead of a fatal error
-        if (!self::raiseMemory($w * $h * 10 + 32 * 1024 * 1024)) {
+        // a photo of a camera or phone may be stored on its side, with the way to turn it in its EXIF
+        // data (browsers turn it): the copies are made upright, under other names than copies made before
+        $turn       = $type === IMAGETYPE_JPEG ? ImageSize::orientation($path) : 1;
+        $entry['o'] = $turn;
+        // memory: about 5 bytes a pixel for the picture and as much for the largest copy (and the turned
+        // picture); a limit that cannot be raised enough makes the picture a skip instead of a fatal error
+        if (!self::raiseMemory($w * $h * ($turn > 1 ? 15 : 10) + 32 * 1024 * 1024)) {
             return $entry;
         }
-        $hash = substr(md5($rel . '|' . $entry['m'] . '|' . $entry['s']), 0, 10);
+        $hash = substr(md5($rel . '|' . $entry['m'] . '|' . $entry['s'] . ($turn > 1 ? '|' . $turn : '')), 0, 10);
         $name = substr((string) preg_replace('#[^a-z0-9]+#', '-', strtolower(pathinfo($rel, PATHINFO_FILENAME))), 0, 40);
         $dir  = self::DIR . '/' . substr($hash, 0, 2);
 
@@ -263,7 +293,7 @@ final class ImageOptimizer
 
             return $entry;
         }
-        if (($type !== IMAGETYPE_JPEG && $type !== IMAGETYPE_PNG) || $w < self::MIN_WIDTH || $entry['s'] < self::MIN_BYTES) {
+        if (($type !== IMAGETYPE_JPEG && $type !== IMAGETYPE_PNG) || ($turn >= 5 ? $h : $w) < self::MIN_WIDTH || $entry['s'] < self::MIN_BYTES) {
             return $entry;
         }
         $img = $type === IMAGETYPE_JPEG ? @imagecreatefromjpeg($path) : @imagecreatefrompng($path);
@@ -272,7 +302,17 @@ final class ImageOptimizer
 
             return $entry;
         }
-        $img        = self::trueColor($img, $w, $h, $type === IMAGETYPE_PNG);
+        $img = self::trueColor($img, $w, $h, $type === IMAGETYPE_PNG);
+        if ($turn > 1) {
+            $img = self::upright($img, $turn);
+            if (!$img) {
+                // a copy on its side would be worse than none
+                $entry['x'] = 'fail';
+
+                return $entry;
+            }
+            [$w, $h] = [imagesx($img), imagesy($img)];
+        }
         $entry['v'] = $this->copies($img, $w, $h, $dir, $hash . '-' . $name, self::WIDTHS, $entry['s']);
         $entry['x'] = $entry['v'] ? 'ok' : 'skip';
 
@@ -348,20 +388,34 @@ final class ImageOptimizer
             'files' => $files, 'bytes' => $bytes];
     }
 
-    /** Removes every copy, the manifest and the queue (the pages fall back to the originals). */
+    /**
+     * Removes every copy, the manifest and the queue (the pages fall back to the originals). Waits for
+     * a worker making copies right now (its lock): it would write a manifest naming removed files.
+     */
     public function clear(): void
     {
-        $dir = $this->root . '/' . self::DIR;
-        if (is_dir($dir)) {
-            foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
-                \RecursiveIteratorIterator::CHILD_FIRST) as $f) {
-                $f->isDir() ? @rmdir($f->getPathname()) : @unlink($f->getPathname());
+        $lock = @fopen($this->cacheDir . '/mertools-img.lock', 'c');
+        if ($lock) {
+            flock($lock, LOCK_EX);
+        }
+        try {
+            $dir = $this->root . '/' . self::DIR;
+            if (is_dir($dir)) {
+                foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+                    \RecursiveIteratorIterator::CHILD_FIRST) as $f) {
+                    $f->isDir() ? @rmdir($f->getPathname()) : @unlink($f->getPathname());
+                }
+            }
+            @unlink($this->manifestFile());
+            @unlink($this->queueFile());
+            $this->manifest = [];
+            $this->queue    = [];
+        } finally {
+            if ($lock) {
+                flock($lock, LOCK_UN);
+                fclose($lock);
             }
         }
-        @unlink($this->manifestFile());
-        @unlink($this->queueFile());
-        $this->manifest = [];
-        $this->queue    = [];
     }
 
     // ---------------------------------------------------------------- helpers
@@ -400,7 +454,30 @@ final class ImageOptimizer
         }
         $rel = ltrim(substr($path, \strlen($this->root)), '/');
 
-        return self::allowed($rel) ? $rel : null;
+        // a name that is not UTF-8 (an old upload, "%E9" in the address) could not be kept in the manifest
+        return self::allowed($rel) && preg_match('//u', $rel) ? $rel : null;
+    }
+
+    /**
+     * Is the picture in a folder the web server guards: an Apache .htaccess in its folder or one above
+     * it (below the site root) that asks for a password or limits who may see the files? A copy would
+     * be public, so none is made. Rules for some files only (<Files…>, e.g. "no PHP here") do not count.
+     */
+    public static function guarded(string $root, string $rel): bool
+    {
+        $dir = \dirname(str_replace('\\', '/', $rel));
+        while ($dir !== '.' && $dir !== '' && $dir !== '/') {
+            $file = rtrim($root, '/') . '/' . $dir . '/.htaccess';
+            if (is_file($file)) {
+                $rules = (string) preg_replace('#<Files(?:Match)?\b.*?</Files(?:Match)?\s*>#is', '', (string) @file_get_contents($file, false, null, 0, 65536));
+                if (preg_match('/^\s*(?:Auth(?:Type|Name|UserFile|GroupFile|BasicProvider)\b|Require\s+(?:valid-user|user|group|ip|host|all\s+denied)\b|Deny\s+from\b)/im', $rules)) {
+                    return true;
+                }
+            }
+            $dir = \dirname($dir);
+        }
+
+        return false;
     }
 
     /** Is this relative path in one of the public asset folders, with no hidden part? */
@@ -434,6 +511,32 @@ final class ImageOptimizer
         }
 
         return implode(', ', $parts);
+    }
+
+    /**
+     * The picture as its EXIF orientation (2–8, ImageSize::orientation()) says it is shown: mirrored
+     * (2, 4), half a turn (3), a quarter turn clockwise (6) or anticlockwise (8), or a quarter turn and
+     * mirrored (5, 7). Null when GD could not do it.
+     */
+    private static function upright(\GdImage $img, int $orientation): ?\GdImage
+    {
+        // imagerotate() turns anticlockwise
+        $angle = [3 => 180, 5 => 270, 6 => 270, 7 => 90, 8 => 90][$orientation] ?? 0;
+        if ($angle) {
+            $turned = @imagerotate($img, $angle, 0);
+            if (!$turned) {
+                return null;
+            }
+            $img = $turned;
+        }
+        if (\in_array($orientation, [2, 5, 7], true) && !@imageflip($img, IMG_FLIP_HORIZONTAL)) {
+            return null;
+        }
+        if ($orientation === 4 && !@imageflip($img, IMG_FLIP_VERTICAL)) {
+            return null;
+        }
+
+        return $img;
     }
 
     private static function trueColor(\GdImage $img, int $w, int $h, bool $alpha): \GdImage
@@ -505,8 +608,10 @@ final class ImageOptimizer
 
     private static function writeJson(string $file, array $data): void
     {
-        $tmp = $file . '.' . getmypid() . '.tmp';
-        if (@file_put_contents($tmp, json_encode($data, JSON_UNESCAPED_SLASHES)) !== false) {
+        // what cannot be written as JSON never replaces the file (an empty one would lose every entry)
+        $json = json_encode($data, JSON_UNESCAPED_SLASHES);
+        $tmp  = $file . '.' . getmypid() . '.tmp';
+        if ($json !== false && @file_put_contents($tmp, $json) !== false) {
             @rename($tmp, $file);
         }
     }

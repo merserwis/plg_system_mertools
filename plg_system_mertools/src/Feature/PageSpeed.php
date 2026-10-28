@@ -13,9 +13,13 @@ namespace Merserwis\Plugin\System\MerTools\Feature;
 
 \defined('_JEXEC') or die;
 
+use Joomla\CMS\Component\ComponentHelper;
+use Joomla\CMS\Event\PageCache\IsExcludedEvent;
+use Joomla\CMS\Event\PageCache\SetCachingEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Session\Session;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
@@ -179,8 +183,11 @@ final class PageSpeed extends Feature
         ignore_user_abort(true);
         try {
             $warm = new Warmup($base . '/mertools-warm.json');
+            // one clock for the whole round, every request, redirect and second way included: the time
+            // limit of PHP does not count the waiting for an answer on most servers
+            $end = microtime(true) + 25.0;
             if ($warm->listDue($now)) {
-                $urls = $this->warmupList($site, $warm, $now);
+                $urls = $this->warmupList($site, $warm, $now, $end + 15.0);
                 // an empty answer (the sitemap is not there, a block) is tried again in a round, not in 6 hours
                 $warm->setUrls($urls, $urls ? $now : $now - Warmup::LIST_TTL + 300);
                 $warm->save();
@@ -192,13 +199,13 @@ final class PageSpeed extends Feature
             $fresh  = fn (string $url): bool => $cache->fresh($cache->key('page', $url), $ttl, microtime(true));
             $batch  = max(1, min(20, (int) $this->plugin->params->get('speed_warm_batch', 5)));
             $purged = $cache->purgedAt();
-            $end    = microtime(true) + 25.0;
             foreach (Warmup::next($warm->urls(), $fresh, $warm->skips($now, $purged), $now, $batch) as $url) {
                 if (microtime(true) > $end) {
                     break;
                 }
                 $warm->tried($url, $now, $ttl, $purged);
-                $this->warmupFetch($url, 15, 0, $site, $warm);
+                // a page begun just before the end may take its usual 15 s, not more
+                $this->warmupFetch($url, 15, 0, $site, $warm, $end + 15.0);
                 $warm->note('page', $now, $url, $this->warmResult);
             }
             $warm->save();
@@ -211,9 +218,10 @@ final class PageSpeed extends Feature
 
     /**
      * The addresses of the sitemap of the site: from MerTools' own maps (no request needed, see
-     * Sitemaps::currentLocs()), else over HTTP (an index is followed, up to 30 files of the site).
+     * Sitemaps::currentLocs()), else over HTTP (an index is followed, up to 30 files of the site, each
+     * once, until $deadline or until there are enough addresses).
      */
-    private function warmupList(string $site, Warmup $warm, int $now): array
+    private function warmupList(string $site, Warmup $warm, int $now, float $deadline): array
     {
         // up to date: built again here when a change made them old
         $urls  = $this->plugin->sitemaps()->currentLocs() ?? [];
@@ -221,14 +229,15 @@ final class PageSpeed extends Feature
         if (!$urls) {
             $from  = 'http';
             $files = [$site . '/sitemap.xml'];
-            for ($i = 0; $i < \count($files) && $i < 30; $i++) {
-                $xml = $this->warmupFetch($files[$i], 20, 8388608, $site, $warm);
+            for ($i = 0; $i < \count($files) && $i < 30 && \count($urls) < Warmup::MAX_URLS && microtime(true) < $deadline; $i++) {
+                $xml = $this->warmupFetch($files[$i], 20, 8388608, $site, $warm, $deadline);
                 if ($xml === null) {
                     continue;
                 }
                 $found = Warmup::locs($xml);
+                unset($xml);
                 if ($found['index']) {
-                    $files = array_merge($files, array_filter($found['locs'], fn (string $loc) => Warmup::sameSite($loc, $site)));
+                    $files = array_values(array_unique(array_merge($files, array_filter($found['locs'], fn (string $loc) => Warmup::sameSite($loc, $site)))));
                 } else {
                     $urls = array_merge($urls, $found['locs']);
                 }
@@ -252,8 +261,11 @@ final class PageSpeed extends Feature
      * with the site's name (a server often cannot reach its own public name: a firewall, the DNS, a proxy
      * such as Cloudflare in front); 'public' — the public name as anybody resolves it. The way that worked
      * last is tried first, the other one when it fails to connect or is refused.
+     *
+     * Each request waits at most $timeout seconds, and all of them (redirects, the second way) end by
+     * $deadline (microtime).
      */
-    private function warmupFetch(string $url, int $timeout, int $max, string $site, Warmup $warm): ?string
+    private function warmupFetch(string $url, int $timeout, int $max, string $site, Warmup $warm, float $deadline): ?string
     {
         $routes = $warm->route() === 'public' ? ['public', 'direct'] : ['direct', 'public'];
         $tried  = [];
@@ -262,7 +274,7 @@ final class PageSpeed extends Feature
             if ($route === 'direct' && $resolve === null) {
                 continue;
             }
-            $answer = $this->warmupGet($url, $timeout, $max, $site, $resolve);
+            $answer = $this->warmupGet($url, $timeout, $max, $site, $resolve, $deadline);
             $tried[] = $route . ' ' . $this->warmResult;
             if ($answer['reached']) {
                 $warm->setRoute($route);
@@ -298,7 +310,7 @@ final class PageSpeed extends Feature
      *
      * @return array{reached: bool, body: ?string}
      */
-    private function warmupGet(string $url, int $timeout, int $max, string $site, ?string $resolve): array
+    private function warmupGet(string $url, int $timeout, int $max, string $site, ?string $resolve, float $deadline): array
     {
         for ($hop = 0; $hop <= 3; $hop++) {
             if (!Warmup::sameSite($url, $site)) {
@@ -306,11 +318,18 @@ final class PageSpeed extends Feature
 
                 return ['reached' => true, 'body' => null];
             }
+            $left = (int) floor($deadline - microtime(true));
+            if ($left < 1) {
+                // not an answer of the site: the way that worked is not changed by it
+                $this->warmResult = 'out of time';
+
+                return ['reached' => false, 'body' => null];
+            }
             $body = '';
             $over = false;
             $ch   = curl_init($url);
             $opts = [
-                CURLOPT_TIMEOUT        => $timeout, CURLOPT_CONNECTTIMEOUT => 5, CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_TIMEOUT        => min($timeout, $left), CURLOPT_CONNECTTIMEOUT => min(5, $left), CURLOPT_FOLLOWLOCATION => false,
                 CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
                 CURLOPT_USERAGENT      => Warmup::AGENT . '/' . MerTools::VERSION, CURLOPT_ENCODING => '', CURLOPT_HTTPHEADER => ['Accept: text/html,application/xml'],
                 CURLOPT_WRITEFUNCTION  => static function ($ch, string $chunk) use (&$body, &$over, $max): int {
@@ -401,6 +420,36 @@ final class PageSpeed extends Feature
         return max(5, min(1440, (int) $this->plugin->params->get('speed_cache_ttl', 240))) * 60;
     }
 
+    /** The site's default language (Joomla's own choice for a visitor nothing else decides for). */
+    private function defaultLanguage(): string
+    {
+        return (string) ComponentHelper::getParams('com_languages')->get('site', $this->plugin->app()->get('language', 'en-GB'));
+    }
+
+    /**
+     * Does a plugin keep this page out of a page cache, as it would out of Joomla's own (a "pagecache"
+     * plugin, or a tool of the page such as Joomla's accessibility checker)? The same questions Joomla's
+     * page cache asks: onPageCacheSetCaching (false: no cache for this request) and, before a page is
+     * kept ($keep), onPageCacheIsExcluded (true: not this page).
+     */
+    private function cacheRefused(bool $keep): bool
+    {
+        try {
+            $dispatcher = $this->plugin->app()->getDispatcher();
+            PluginHelper::importPlugin('pagecache', null, true, $dispatcher);
+            $caching = $dispatcher->dispatch('onPageCacheSetCaching', new SetCachingEvent('onPageCacheSetCaching'))->getArgument('result', []);
+            if (\in_array(false, (array) $caching, true)) {
+                return true;
+            }
+
+            return $keep && \in_array(true, (array) $dispatcher->dispatch('onPageCacheIsExcluded', new IsExcludedEvent('onPageCacheIsExcluded'))
+                ->getArgument('result', []), true);
+        } catch (\Throwable $e) {
+            // unsure: not kept, not served
+            return true;
+        }
+    }
+
     /**
      * A request that changes what pages show (a save in Joomla or in the Gridbox editor, an order, a
      * comment): the kept pages go once it has finished — Gridbox ends its requests with exit, so after
@@ -425,18 +474,26 @@ final class PageSpeed extends Feature
             try {
                 // anybody can send the address of an order or payment step: for a guest it counts only
                 // when Gridbox answered as it does to a real one (a POST answered 2xx/3xx, or a 302/303
-                // redirect on — a 301 is the SEF plugin's, a 404 nothing done), and not more often than
-                // every 20 s: a loop of such requests must not keep the cache cold
+                // redirect on — a 301 is the SEF plugin's, a 404 nothing done)
+                $soon = false;
                 if ($guest) {
                     $code = (int) http_response_code();
                     $real = $method === 'POST' ? ($code >= 200 && $code < 400) : ($code === 302 || $code === 303);
-                    if (!$real || $cache->purgedAt() > microtime(true) - 20) {
+                    if (!$real) {
                         return;
                     }
+                    // a second order within 20 s still counts (the stock it changed must not wait for the
+                    // end of the TTL): only the removal of the files waits, a loop of such requests must
+                    // not make the server delete files all the time (they go with the next one or the
+                    // hourly tidy-up, they are never served again)
+                    $soon = $cache->purgedAt() > microtime(true) - 20;
                 }
                 // the time first (nothing older is served from now on); the files after the visitor has
                 // the answer
                 $cache->purge(false);
+                if ($soon) {
+                    return;
+                }
                 $finish();
                 $cache->removePurged();
             } catch (\Throwable $e) {
@@ -486,10 +543,24 @@ final class PageSpeed extends Feature
                 return;
             }
         }
+        // right after an order: the thank-you page shows this visitor's order (once, from the session)
+        try {
+            $session = $app->getSession();
+            foreach (PageCache::SKIP_SESSION as $name) {
+                if ($session->has($name)) {
+                    return;
+                }
+            }
+        } catch (\Throwable $e) {
+            return;
+        }
+        if ($this->cacheRefused(false)) {
+            return;
+        }
 
         $url   = $uri->toString(['scheme', 'host', 'port', 'path']);
         $cache = $this->pageCache();
-        $key   = $cache->key('page', $url);
+        $key   = $cache->key('page', PageCache::pageAddress($url, (string) $app->getLanguage()->getTag(), $this->defaultLanguage()));
         $entry = null;
         try {
             $entry = $cache->read($key, $this->cacheTtl(), microtime(true));
@@ -615,7 +686,7 @@ final class PageSpeed extends Feature
         $app    = $this->plugin->app();
         $viewed = PageCache::cookieCheck($headers, (string) $app->getSession()->getName());
         $body   = (string) ($store['body'] ?? '');
-        if ($viewed === null || !PageCache::storable($body)) {
+        if ($viewed === null || !PageCache::storable($body) || !PageCache::shared($headers) || $this->cacheRefused(true)) {
             return;
         }
         $input = $app->getInput();
@@ -770,12 +841,15 @@ final class PageSpeed extends Feature
         $p          = $this->plugin->params;
         $bgVariants = [];
         try {
-            $site = Uri::getInstance()->toString(['scheme', 'host', 'port']);
+            $app   = $this->plugin->app();
+            $site  = Uri::getInstance()->toString(['scheme', 'host', 'port']);
+            // the nonce of Joomla's Content Security Policy, when it uses them: on every script and style added here
+            $nonce = (string) $app->get('csp_nonce', '');
             if ((int) $p->get('speed_show', 1)) {
                 $html = Speedup::showAtOnce($html);
             }
             if ((int) $p->get('speed_icons', 1)) {
-                $html = Speedup::iconStyles($html);
+                $html = Speedup::iconStyles($html, $nonce);
             }
             if ((int) $p->get('speed_images', 1)) {
                 $sizes  = new ImageSize(JPATH_ROOT, $site, Uri::root(true), MerTools::cacheBase() . '/mertools-image-sizes.json');
@@ -783,21 +857,24 @@ final class PageSpeed extends Feature
                 $gif    = (int) $p->get('speed_gif', 1) === 1;
                 $copies = null;
                 $images = ($webp || $gif) && ImageOptimizer::supported() ? $this->imageOptimizer() : null;
+                // pictures get public copies only from pages a guest sees: one shown only behind a login is never copied
+                $user   = $app->getIdentity();
+                $guest  = !$user || $user->guest;
                 if ($images) {
                     // only what is switched on is looked up (and queued)
-                    $copies = function (string $url) use ($images, $webp, $gif): ?array {
+                    $copies = function (string $url) use ($images, $webp, $gif, $guest): ?array {
                         $isGif = (bool) preg_match('#\.gif(?:[?\#]|$)#i', $url);
                         if ($isGif ? !$gif : !$webp) {
                             return null;
                         }
 
-                        return $images->lookup($url);
+                        return $images->lookup($url, $guest);
                     };
                 }
-                $html = Speedup::images($html, $site, fn (string $url) => $sizes->get($url), $copies, true, $gif);
+                $html = Speedup::images($html, $site, fn (string $url) => $sizes->get($url), $copies, true, $gif, $nonce);
                 $html = Speedup::headerBackgrounds($html);
                 if ($copies && $webp) {
-                    $html = Speedup::backgrounds($html, $site, $copies, $bgVariants);
+                    $html = Speedup::backgrounds($html, $site, $copies, $bgVariants, $nonce);
                 }
                 $sizes->save();
                 $images?->save();
@@ -810,7 +887,7 @@ final class PageSpeed extends Feature
             }
             if ((int) $p->get('speed_slideimg', 1) && stripos($html, 'ba-item-product-slideshow') !== false) {
                 $this->plugin->loadLanguage();
-                $html = Speedup::slideImages($html, Speedup::productName($html), Text::_('PLG_SYSTEM_MERTOOLS_SLIDE_IMG_ALT_MORE'), $bgVariants);
+                $html = Speedup::slideImages($html, Speedup::productName($html), Text::_('PLG_SYSTEM_MERTOOLS_SLIDE_IMG_ALT_MORE'), $bgVariants, $nonce);
             }
             if ((int) $p->get('speed_video', 1)) {
                 $image = trim((string) $p->get('speed_video_phone_image', ''));
@@ -819,15 +896,15 @@ final class PageSpeed extends Feature
                     $image = preg_match('#^(https?:)?//#i', $image) ? $image : Uri::root(true) . '/' . ltrim($image, '/');
                 }
                 $html = Speedup::delayVideoBackground($html, (int) $p->get('speed_video_delay', 3), (string) $p->get('speed_video_phone', 'none'),
-                    (int) $p->get('speed_video_phone_width', 768), $image, (string) $p->get('speed_video_phone_color', '#1a1a1a'));
+                    (int) $p->get('speed_video_phone_width', 768), $image, (string) $p->get('speed_video_phone_color', '#1a1a1a'), $nonce);
             }
             if ((int) $p->get('speed_popups', 1)) {
-                $html = Speedup::delayPopups($html);
+                $html = Speedup::delayPopups($html, $nonce);
             }
             if ((int) $p->get('speed_scripts', 0)) {
                 $lines = fn (string $s) => preg_split('/\R/', $s) ?: [];
                 $html  = Speedup::delayScripts($html, $lines((string) $p->get('speed_scripts_list', self::SCRIPT_PATTERNS)),
-                    $lines((string) $p->get('speed_scripts_keep', 'cookieconsent' . "\n" . 'cookie-consent')), (int) $p->get('speed_scripts_timeout', 0));
+                    $lines((string) $p->get('speed_scripts_keep', 'cookieconsent' . "\n" . 'cookie-consent')), (int) $p->get('speed_scripts_timeout', 0), $nonce);
             }
         } catch (\Throwable $e) {
             // a page is never broken by a speed-up: shown as Gridbox made it

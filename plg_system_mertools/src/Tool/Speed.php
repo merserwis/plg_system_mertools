@@ -45,8 +45,10 @@ final class Speed
     // ---------------------------------------------------------------- pure helpers (unit tested)
 
     /**
-     * The pages to measure from the setting: one per line, a path on this site ("/oferta") or a full
-     * http(s) address (also of another site, e.g. to compare); anything else is left out; at most 10.
+     * The pages to measure from the setting: one per line, a path of the site's address ("/oferta") or
+     * a full http(s) address (also of another site, e.g. to compare); anything else is left out; at
+     * most 10. "/" alone and an empty setting: the home page of the site, also of one installed in a
+     * folder ("/" was the default setting before 1.7.0). Mirrored in media/js/mertools-speed.js.
      *
      * @return string[] absolute URLs
      */
@@ -60,7 +62,9 @@ final class Speed
             if ($line === '' || preg_match('/[\s"<>\\\\]/', $line)) {
                 continue;
             }
-            if ($line[0] === '/' && !str_starts_with($line, '//')) {
+            if ($line === '/') {
+                $url = $root . '/';
+            } elseif ($line[0] === '/' && !str_starts_with($line, '//')) {
                 $url = $base . $line;
             } elseif (preg_match('#^https?://[^/]+#i', $line)) {
                 $url = $line;

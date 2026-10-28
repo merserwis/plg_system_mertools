@@ -11,7 +11,9 @@
   if (!node) return;
   let cfg;
   try { cfg = JSON.parse(node.textContent); } catch (e) { return; }
-  const decimals = Math.max(0, Math.min(4, Number(cfg.decimals) || 2));
+  // 0 is a real number of decimals (a store of whole prices); only a missing one means 2
+  const places = parseInt(cfg.decimals, 10);
+  const decimals = Math.max(0, Math.min(4, Number.isNaN(places) ? 2 : places));
   const round = (value, places) => { const m = 10 ** places; return Math.round(value * m) / m; };
   const num = (text) => { const n = parseFloat(String(text || '').replace(/\s|%/g, '').replace(',', '.')); return Number.isFinite(n) ? n : NaN; };
   const money = (value) => String(round(value, decimals));

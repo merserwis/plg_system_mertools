@@ -9,7 +9,10 @@
  *
  * Links to a tab (cfg.links): choosing a tab — or opening its row — writes its name in the address
  * ("Dane techniczne" → ?dane_techniczne, history.replaceState, no reload); an address with such a
- * name opens that tab when the page has loaded and scrolls to it, below a fixed header.
+ * name opens that tab when the page has loaded and scrolls to it, below a fixed header. Titles in
+ * other alphabets keep their letters ("Характеристики" → ?характеристики), a tab without a title
+ * gets the id of its content, and the same title twice on a page (two tabs items) gets a number
+ * the second time (?specifications_2), so every tab has its own address.
  */
 (function () {
   'use strict';
@@ -239,13 +242,32 @@
 
   // ---------------------------------------------------------------- links to a tab
 
-  var names = {};
+  // tab name → link (the names of 1.6 and earlier too, so the addresses shared then still work)
+  var names = Object.create(null);
+
+  /** lower case without accents (ł → l) */
+  function plain(text) {
+    var t = String(text).toLowerCase().replace(/ł/g, 'l');
+    if (t.normalize) { t = t.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+    return t;
+  }
 
   /** "Dane techniczne" → "dane_techniczne": lower case, no accents (ł → l), anything else "_" */
   function slug(text) {
-    var t = String(text).toLowerCase().replace(/ł/g, 'l');
-    if (t.normalize) { t = t.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
-    return t.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80);
+    return plain(text).replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80);
+  }
+
+  // letters of other alphabets (ß, ø, Greek, Cyrillic, Arabic, Hebrew, Indic, Chinese, Japanese,
+  // Korean…), which slug() would drop; punctuation and symbols (– „ ” ° × Ω €) are not among them
+  var LETTERS = '\\u00c0-\\u00d6\\u00d8-\\u00f6\\u00f8-\\u1fff\\u2c00-\\u2dff\\u3040-\\u9fff\\ua000-\\ud7ff\\uf900-\\ufaff';
+  var OTHER = new RegExp('[' + LETTERS + ']');
+  var NOT_WORD = new RegExp('[^a-z0-9' + LETTERS + ']+', 'g');
+
+  /** "Характеристики" → "характеристики": the title's own letters, anything else "_" */
+  function letters(text) {
+    var t = String(text).toLowerCase();
+    if (t.normalize) { t = t.normalize('NFC'); }
+    return t.replace(NOT_WORD, '_').replace(/^_+|_+$/g, '').slice(0, 80);
   }
 
   function decoded(p) {
@@ -255,10 +277,17 @@
   /** the address with this tab name instead of any other tab name (other parameters kept as they are) */
   function address(name) {
     var parts = location.search.replace(/^\?/, '').split('&').filter(function (p) {
-      return p !== '' && !(p.indexOf('=') < 0 && names[decoded(p)]);
+      return p !== '' && !(p.indexOf('=') < 0 && names[decoded(p).toLowerCase()]);
     });
-    if (name) { parts.push(name); }
+    if (name) { parts.push(encodeURIComponent(name)); }
     return location.pathname + (parts.length ? '?' + parts.join('&') : '') + location.hash;
+  }
+
+  /** is this tab's name (or its name of 1.6) in the address? */
+  function named(link) {
+    return location.search.replace(/^\?/, '').split('&').some(function (p) {
+      return p && p.indexOf('=') < 0 && names[decoded(p).toLowerCase()] === link;
+    });
   }
 
   function mark(link) {
@@ -270,7 +299,7 @@
   }
 
   function unmark(link) {
-    if (!cfg.links || !link || !link.mtTab || location.search.split(/[?&]/).indexOf(link.mtTab) < 0) { return; }
+    if (!cfg.links || !link || !link.mtTab || !named(link)) { return; }
     try { history.replaceState(history.state, '', address('')); } catch (e) { /* a sandboxed page */ }
   }
 
@@ -337,12 +366,23 @@
   }
 
   function links() {
-    [].forEach.call(document.querySelectorAll('.ba-item-tabs ul.nav-tabs > li > a[href^="#"]'), function (link) {
+    var all = [].map.call(document.querySelectorAll('.ba-item-tabs ul.nav-tabs > li > a[href^="#"]'), function (link) {
       var title = link.querySelector('.tabs-title');
-      var name = slug((title || link).textContent.trim());
+      var text = (title || link).textContent.trim();
+      var old = slug(text);
+      // first the names 1.6 and earlier gave, to the same tabs (the first tab with the name), so the
+      // addresses shared then open what they opened
+      if (old && !names[old]) { names[old] = link; }
+      // a title with letters slug() drops keeps them; a tab without a title: the id of its content
+      return { link: link, name: (OTHER.test(plain(text)) ? letters(text) : old) || slug(link.getAttribute('href').slice(1)) };
+    });
+    all.forEach(function (t) {
+      var link = t.link, name = t.name, base = name, k = 2;
       if (!name) { return; }
+      // the same title on another tab of the page (two tabs items): _2, _3…
+      while (names[name] && names[name] !== link) { name = base + '_' + k++; }
       link.mtTab = name;
-      if (!names[name]) { names[name] = link; }
+      names[name] = link;
       link.addEventListener('click', function () { mark(link); });
     });
     if (!Object.keys(names).length) { return; }

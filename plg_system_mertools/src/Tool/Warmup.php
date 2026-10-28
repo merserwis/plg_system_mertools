@@ -39,20 +39,21 @@ final class Warmup
     }
 
     /**
-     * The addresses of a sitemap file or of a sitemap index.
+     * The addresses of a sitemap file or of a sitemap index: the first $max (a huge map is not read
+     * further than the warm-up could use).
      *
      * @return array{index: bool, locs: string[]}
      */
-    public static function locs(string $xml): array
+    public static function locs(string $xml, int $max = self::MAX_URLS): array
     {
         $index = (bool) preg_match('#<sitemapindex[\s>]#i', $xml);
         $locs  = [];
-        if (preg_match_all('#<loc>\s*(?:<!\[CDATA\[)?\s*(.*?)\s*(?:\]\]>)?\s*</loc>#is', $xml, $m)) {
-            foreach ($m[1] as $loc) {
-                $loc = html_entity_decode(trim($loc), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                if (preg_match('#^https?://[^\s]+$#i', $loc)) {
-                    $locs[] = $loc;
-                }
+        $at    = 0;
+        while (\count($locs) < $max && preg_match('#<loc>\s*(?:<!\[CDATA\[)?\s*(.*?)\s*(?:\]\]>)?\s*</loc>#is', $xml, $m, PREG_OFFSET_CAPTURE, $at)) {
+            $at  = $m[0][1] + \strlen($m[0][0]);
+            $loc = html_entity_decode(trim($m[1][0]), ENT_QUOTES | ENT_XML1, 'UTF-8');
+            if (preg_match('#^https?://[^\s]+$#i', $loc)) {
+                $locs[] = $loc;
             }
         }
 

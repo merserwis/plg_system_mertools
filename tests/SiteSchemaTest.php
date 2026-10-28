@@ -50,13 +50,16 @@ $check('members', S::members(['POLLAB', 'X | notaurl']), [['@type' => 'Organizat
 // organization
 $base = ['id' => 'https://x.pl/#organization', 'url' => 'https://x.pl/'];
 $check('organization: nothing given, nothing invented', S::organization($base, null), ['@type' => 'Organization', '@id' => 'https://x.pl/#organization', 'url' => 'https://x.pl/']);
-$d = $base + ['type' => 'LocalBusiness', 'name' => 'Firma', 'logo' => 'https://x.pl/l.png', 'street' => 'Andersa 1', 'city' => 'Warszawa', 'postal' => '00-001',
+$d = $base + ['type' => 'LocalBusiness', 'name' => 'Firma', 'logo' => 'https://x.pl/l.png', 'street' => 'Andersa 1', 'city' => 'Warszawa', 'postal' => '00-001', 'countryFallback' => 'PL',
     'lat' => '52,2297', 'lng' => '21.0122', 'vat' => 'PL123', 'krs' => '0000000001', 'founded' => '1990', 'map' => 'https://maps.google.com/?cid=1',
     'sameAs' => ['https://facebook.com/f', 'javascript:x', 'twitter'], 'knows' => ['a', ' ', 'b']];
 $o = S::organization($d, null);
 $check('organization: type and id', [$o['@type'], $o['@id']], ['LocalBusiness', 'https://x.pl/#organization']);
 $check('organization: logo as image object', $o['logo'], ['@type' => 'ImageObject', 'url' => 'https://x.pl/l.png']);
-$check('organization: address with default country', $o['address'], ['@type' => 'PostalAddress', 'streetAddress' => 'Andersa 1', 'postalCode' => '00-001', 'addressLocality' => 'Warszawa', 'addressCountry' => 'PL']);
+$check('organization: address with the country of the site language', $o['address'], ['@type' => 'PostalAddress', 'streetAddress' => 'Andersa 1', 'postalCode' => '00-001', 'addressLocality' => 'Warszawa', 'addressCountry' => 'PL']);
+$check('organization: no country typed and none from the language: none invented', S::organization(['street' => 'Main St 1', 'city' => 'Leeds'] + $base, null)['address'],
+    ['@type' => 'PostalAddress', 'streetAddress' => 'Main St 1', 'addressLocality' => 'Leeds']);
+$check('organization: a typed country wins', S::organization(['street' => 'Main St 1', 'country' => 'GB', 'countryFallback' => 'PL'] + $base, null)['address']['addressCountry'], 'GB');
 $check('organization: geo (comma accepted)', $o['geo'], ['@type' => 'GeoCoordinates', 'latitude' => 52.2297, 'longitude' => 21.0122]);
 $check('organization: ids', [$o['vatID'], $o['identifier'], $o['foundingDate']], ['PL123', ['@type' => 'PropertyValue', 'propertyID' => 'KRS', 'value' => '0000000001'], '1990']);
 $check('organization: sameAs only addresses', $o['sameAs'], ['https://facebook.com/f']);

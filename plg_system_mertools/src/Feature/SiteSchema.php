@@ -4,6 +4,7 @@ namespace Merserwis\Plugin\System\MerTools\Feature;
 
 \defined('_JEXEC') or die;
 
+use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
 use Merserwis\Plugin\System\MerTools\Tool\JsonLd;
@@ -26,12 +27,13 @@ final class SiteSchema extends Feature
             $root    = rtrim(Uri::root(), '/');
             $current = Uri::current();
             $path    = SchemaTool::path($current, $root);
-            $home    = $this->isHome($path);
+            $home    = $this->isHome($path, $root);
             $orgId   = $root . '/#organization';
 
             if ((int) $params->get('schema_org', 1)) {
                 $own = SchemaTool::lines((string) $params->get('schema_org_pages', ''));
-                $own = array_map(static fn (string $p): string => SchemaTool::path($p, $root), $own);
+                // a line that comes out as the root (index.php?… of a site without SEF) is not a page of its own
+                $own = array_filter(array_map(static fn (string $p): string => SchemaTool::path($p, $root), $own), static fn (string $p): bool => $p !== '');
                 if ($home || \in_array($path, $own, true)) {
                     $original = JsonLd::find($html, SchemaTool::ORG_TYPES)[0][1] ?? null;
                     $node     = SchemaTool::organization($this->organizationData($root, $orgId), $original);
@@ -59,14 +61,46 @@ final class SiteSchema extends Feature
         return $html;
     }
 
-    private function isHome(string $path): bool
+    /**
+     * The home page: the root of the site, or the address of the home menu item of a language on a
+     * multilingual site ("/en/"). Without SEF every address is index.php and its query tells the pages
+     * apart: the home page is the one whose query names no component, or only the menu item of a home.
+     */
+    private function isHome(string $path, string $root): bool
     {
+        $app  = $this->plugin->app();
+        $menu = $app->getMenu();
+        if (!(int) $app->get('sef', 1)) {
+            $vars   = (array) Uri::getInstance()->getQuery(true);
+            $itemId = (int) ($vars['Itemid'] ?? 0);
+
+            return $path === '' && !isset($vars['option']) && ($itemId === 0 || (int) ($menu->getItem($itemId)->home ?? 0) === 1);
+        }
         if ($path === '') {
             return true;
         }
-        $default = $this->plugin->app()->getMenu()->getDefault();
+        $default = $menu->getDefault();
+        if ($default && $path === strtolower(trim((string) $default->route, '/')) && !$app->getInput()->getInt('id', 0)) {
+            return true;
+        }
+        // a home menu item at its own address (with the language's code), not a page routed below it
+        $active = $menu->getActive();
+        if (!$active || !(int) $active->home) {
+            return false;
+        }
+        try {
+            return $path === SchemaTool::path(Route::link('site', 'index.php?Itemid=' . (int) $active->id, false, Route::TLS_IGNORE, true), $root);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
 
-        return $default && $path === strtolower(trim((string) $default->route, '/')) && !$this->plugin->app()->getInput()->getInt('id', 0);
+    /** The country of the site's default language ("pl-PL" → "PL", "de-AT" → "AT"), or '' when the tag has none. */
+    private static function siteCountry(): string
+    {
+        $tag = (string) ComponentHelper::getParams('com_languages')->get('site', '');
+
+        return preg_match('/^[a-z]{2,3}-([A-Z]{2})$/', $tag, $m) ? $m[1] : '';
     }
 
     private function text(string $key, string $default = ''): string
@@ -97,7 +131,7 @@ final class SiteSchema extends Feature
             'telephone'   => $this->text('schema_org_phone'),
             'email'       => $this->text('schema_org_email'),
             'street'      => $this->text('schema_addr_street'), 'postal' => $this->text('schema_addr_postal'), 'city' => $this->text('schema_addr_city'),
-            'region'      => $this->text('schema_addr_region'), 'country' => $this->text('schema_addr_country'),
+            'region'      => $this->text('schema_addr_region'), 'country' => $this->text('schema_addr_country'), 'countryFallback' => self::siteCountry(),
             'lat'         => $this->text('schema_geo_lat'), 'lng' => $this->text('schema_geo_lng'), 'map' => $this->text('schema_org_map'),
             'vat'         => $this->text('schema_org_vat'), 'krs' => $this->text('schema_org_krs'), 'founded' => $this->text('schema_org_founded'),
             'hours'       => $line((string) $p->get('schema_hours', '')),

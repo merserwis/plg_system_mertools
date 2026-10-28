@@ -3,17 +3,55 @@
     <name>com_mertools</name>
     <author>Merserwis</author>
     <authorUrl>https://github.com/merserwis/</authorUrl>
-    <creationDate>2026-10-16</creationDate>
+    <creationDate>2026-10-28</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.1.1</version>
-    <description>MerTools for Gridbox — administrator menu entry that opens the plugin settings.</description>
+    <version>1.7.0</version>
+    <description>COM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Component\MerTools</namespace>
+    <media destination="com_mertools" folder="media">
+        <filename>joomla.asset.json</filename>
+        <folder>css</folder>
+        <folder>js</folder>
+    </media>
     <administration>
-        <menu img="class:tools">MerTools for Gridbox</menu>
+        <menu img="class:tools">COM_MERTOOLS</menu>
+        <!-- the tools used day to day; the cog opens their settings (Helper/Catalog.php: the first tab after the overview) -->
+        <submenu>
+            <menu link="option=com_mertools&amp;view=cpanel" alias="mertools-cpanel">COM_MERTOOLS_MENU_CPANEL</menu>
+            <menu link="option=com_mertools&amp;view=setup" alias="mertools-setup">COM_MERTOOLS_MENU_SETUP</menu>
+            <menu link="option=com_mertools&amp;view=page&amp;page=cache" alias="mertools-cache">COM_MERTOOLS_MENU_CACHE<params>
+                    <menu-quicktask>index.php?option=com_mertools&amp;view=page&amp;page=cache&amp;tab=cache</menu-quicktask>
+                    <menu-quicktask-title>COM_MERTOOLS_MENU_SETTINGS</menu-quicktask-title>
+                    <menu-quicktask-icon>cog</menu-quicktask-icon>
+                </params></menu>
+            <menu link="option=com_mertools&amp;view=page&amp;page=images" alias="mertools-images">COM_MERTOOLS_MENU_IMAGES<params>
+                    <menu-quicktask>index.php?option=com_mertools&amp;view=page&amp;page=images&amp;tab=images</menu-quicktask>
+                    <menu-quicktask-title>COM_MERTOOLS_MENU_SETTINGS</menu-quicktask-title>
+                    <menu-quicktask-icon>cog</menu-quicktask-icon>
+                </params></menu>
+            <menu link="option=com_mertools&amp;view=page&amp;page=sitemap" alias="mertools-sitemap">COM_MERTOOLS_MENU_SITEMAP<params>
+                    <menu-quicktask>index.php?option=com_mertools&amp;view=page&amp;page=sitemap&amp;tab=sitemap</menu-quicktask>
+                    <menu-quicktask-title>COM_MERTOOLS_MENU_SETTINGS</menu-quicktask-title>
+                    <menu-quicktask-icon>cog</menu-quicktask-icon>
+                </params></menu>
+            <menu link="option=com_mertools&amp;view=page&amp;page=notfound" alias="mertools-notfound">COM_MERTOOLS_MENU_NOTFOUND<params>
+                    <menu-quicktask>index.php?option=com_mertools&amp;view=page&amp;page=notfound&amp;tab=notfound_log</menu-quicktask>
+                    <menu-quicktask-title>COM_MERTOOLS_MENU_SETTINGS</menu-quicktask-title>
+                    <menu-quicktask-icon>cog</menu-quicktask-icon>
+                </params></menu>
+            <menu link="option=com_mertools&amp;view=page&amp;page=history" alias="mertools-history">COM_MERTOOLS_MENU_HISTORY<params>
+                    <menu-quicktask>index.php?option=com_mertools&amp;view=page&amp;page=history&amp;tab=history</menu-quicktask>
+                    <menu-quicktask-title>COM_MERTOOLS_MENU_SETTINGS</menu-quicktask-title>
+                    <menu-quicktask-icon>cog</menu-quicktask-icon>
+                </params></menu>
+            <menu link="option=com_mertools&amp;view=page&amp;page=config" alias="mertools-config">COM_MERTOOLS_MENU_CONFIG</menu>
+        </submenu>
         <files folder="admin">
+            <folder>language</folder>
             <folder>services</folder>
             <folder>src</folder>
+            <folder>tmpl</folder>
         </files>
     </administration>
 </extension>

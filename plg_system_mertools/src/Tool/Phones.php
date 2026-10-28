@@ -8,6 +8,10 @@
  * pages) become tel: links, so a tap on a phone dials them. The numbers are found by
  * media/js/mertools-tel.js in the browser, once the page is idle; the HTML of the pages and their
  * content in Gridbox are not changed.
+ *
+ * Numbers written with an international prefix (+ or 00) are always found. Numbers written without
+ * one only when the country of the site's numbers is set (tel_country): its code is added to them, and
+ * without it they could be numbers of any country (a Spanish 612 345 678 must not dial Poland).
  */
 
 namespace Merserwis\Plugin\System\MerTools\Tool;
@@ -38,7 +42,8 @@ final class Phones
     public static function jsConfig(Registry $params): array
     {
         return [
-            'cc'      => preg_replace('/\D/', '', (string) $params->get('tel_country', '48')),
+            // empty (the default): only numbers written with + or 00 become links
+            'cc'      => preg_replace('/\D/', '', (string) $params->get('tel_country', '')),
             'touch'   => (string) $params->get('tel_devices', 'all') === 'touch',
             'exclude' => trim(str_replace(['{', '}', '<', '>', ';'], '', (string) $params->get('tel_exclude', ''))),
         ];

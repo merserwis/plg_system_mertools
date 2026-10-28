@@ -229,7 +229,10 @@ final class SiteSchema
         if ($address) {
             $before = \is_array($node['address'] ?? null) ? $node['address'] : [];
             $node['address'] = ['@type' => 'PostalAddress'] + $address + array_diff_key($before, ['@type' => 1]);
-            $node['address'] += ['addressCountry' => 'PL'];
+            // no country typed: the one of the site's language (Feature\SiteSchema), else none
+            if ($get('countryFallback') !== '') {
+                $node['address'] += ['addressCountry' => $get('countryFallback')];
+            }
         }
         $lat = self::coordinate($get('lat'), 90.0);
         $lng = self::coordinate($get('lng'), 180.0);

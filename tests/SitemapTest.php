@@ -96,10 +96,38 @@ $seen = [];
 $check('filters switched off', Sitemap::reason($item(['flag' => false, 'robots' => 'noindex', 'loc' => 'https://x.pl/oferta/tag/a']), $off, $seen), null);
 $seen = [];
 $check('no robots.txt: nothing blocked', Sitemap::reason($item(['loc' => 'https://x.pl/oferta/tag/a']), Sitemap::rules($none, null), $seen), null);
+$check('SEF by default', Sitemap::rules($none, null)['sef'], true);
+
+// a site without SEF: index.php?… is the page itself; robots.txt read with the query
+$nosef = Sitemap::rules($none, "User-agent: *\nDisallow: /index.php?option=com_users\n", false);
+$seen  = [];
+$check('no SEF: pages with a query kept, duplicates still out', [
+    Sitemap::reason($item(['loc' => 'https://x.pl/index.php?option=com_gridbox&view=page&id=42&Itemid=101']), $nosef, $seen),
+    Sitemap::reason($item(['loc' => 'https://x.pl/index.php?option=com_gridbox&view=page&id=43&Itemid=101']), $nosef, $seen),
+    Sitemap::reason($item(['loc' => 'https://x.pl/index.php?option=com_gridbox&view=page&id=42&Itemid=101']), $nosef, $seen),
+    Sitemap::reason($item(['loc' => 'https://x.pl/index.php?option=com_users&view=login&Itemid=9']), $nosef, $seen),
+], [null, null, 'dup', 'robots-txt']);
+$seen = [];
+$check('SEF: a query still out, the same robots.txt rule does not apply to a path', [
+    Sitemap::reason($item(['loc' => 'https://x.pl/oferta/a?page=2']), Sitemap::rules($none, "User-agent: *\nDisallow: /index.php?option=com_users\n"), $seen),
+    Sitemap::reason($item(['loc' => 'https://x.pl/index.php?option=com_users']), Sitemap::rules($none, "User-agent: *\nDisallow: /index.php?option=com_users\n"), $seen),
+], ['query', 'query']);
 
 // addresses as Gridbox writes them
 $check('no trailing slash (merserwis.pl)', [Sitemap::loc('/', 'https://www.merserwis.pl', false), Sitemap::loc('/oferta/', 'https://www.merserwis.pl', false)], ['https://www.merserwis.pl', 'https://www.merserwis.pl/oferta']);
 $check('trailing slash added', [Sitemap::loc('/oferta', 'https://x.pl/', true), Sitemap::loc('/a?b=1', 'https://x.pl', true)], ['https://x.pl/oferta/', 'https://x.pl/a/?b=1']);
+$check('no SEF: index.php?… never gets or loses a slash', [Sitemap::loc('/index.php?id=4', 'https://x.pl', true), Sitemap::loc('/shop/index.php?id=4', 'https://x.pl', false)],
+    ['https://x.pl/index.php?id=4', 'https://x.pl/shop/index.php?id=4']);
+$check('a SEF path ending in .php keeps the rule', Sitemap::loc('/a.php', 'https://x.pl', true), 'https://x.pl/a.php/');
+
+// the domain before the routed paths
+$check('root site: Gridbox\'s domain as it is', Sitemap::domain('https://www.merserwis.pl/', 'https://www.merserwis.pl/', ''), 'https://www.merserwis.pl');
+$check('root site, no domain set: the site\'s address', Sitemap::domain('', 'https://x.pl/', ''), 'https://x.pl');
+$check('site in a folder, no domain set: without the folder', Sitemap::domain('', 'https://example.com/shop/', '/shop'), 'https://example.com');
+$check('site in a folder, the domain set with the folder: taken off', Sitemap::domain('https://example.com/Shop', 'https://example.com/shop/', '/shop'), 'https://example.com');
+$check('site in a folder, the domain set without it: as it is', Sitemap::domain('https://example.com', 'https://example.com/shop/', '/shop'), 'https://example.com');
+$check('a folder that only ends the same is not taken off', Sitemap::domain('https://myshop.pl', 'https://myshop.pl/', '/shop'), 'https://myshop.pl');
+$check('site in a folder: the folder once in the address', Sitemap::loc('/shop/catalog/item', Sitemap::domain('', 'https://example.com/shop/', '/shop'), false), 'https://example.com/shop/catalog/item');
 $check('requested files', array_map([Sitemap::class, 'requested'], ['/sitemap.xml', '/sitemap-products-2.xml', '/sitemap-blog-4-p2.xml', '/sitemap-pages.xml']), ['sitemap.xml', 'sitemap-products-2.xml', 'sitemap-blog-4-p2.xml', 'sitemap-pages.xml']);
 $check('not a map', array_map([Sitemap::class, 'requested'], ['/sitemap.xml/x', '/Sitemap.xml', '/sitemap-.xml', '/sitemap-a--b.xml', '/x/sitemap.xml', '/sitemap-../a.xml', '/sitemap.xml.gz']), [null, null, null, null, null, null, null]);
 $check('group names', [Sitemap::group('products', 2), Sitemap::group('blog', 4), Sitemap::group('single', 0), Sitemap::group('', 9)], ['products-2', 'blog-4', 'pages', 'app-9']);

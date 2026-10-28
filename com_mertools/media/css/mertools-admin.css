@@ -1,0 +1,49 @@
+/*
+ * MerTools for Gridbox — the control panel (tiles of the tools in sections, as in Admin Tools), the
+ * pages of settings and the quick setup. Colours from Atum's variables, so its dark mode applies.
+ */
+
+/* ------------------------------------------------------------------ control panel */
+.mt-cpanel .card-header { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem 1rem; }
+.mt-section-desc { margin: 0; font-size: .875rem; color: var(--bs-secondary-color, #6c757d); }
+.mt-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: 1rem; margin: 0; padding: 0; list-style: none; }
+.mt-tile { display: flex; flex-direction: column; align-items: center; gap: .35rem; height: 100%; padding: 0 0 .5rem; text-align: center;
+  text-decoration: none; color: var(--template-text-dark, #22262a); border-radius: .375rem; }
+.mt-tile:hover, .mt-tile:focus-visible { text-decoration: none; color: var(--template-link-color, #2a69b8); }
+.mt-tile:focus-visible { outline: 2px solid var(--template-link-color, #2a69b8); outline-offset: 2px; }
+.mt-tile-icon { display: flex; align-items: center; justify-content: center; width: 100%; height: 3.5rem; border-radius: .25rem;
+  background: var(--mt-tile, #132f53); color: #fff; font-size: 1.5rem; transition: filter .15s; }
+.mt-tile:hover .mt-tile-icon { filter: brightness(1.15); }
+.mt-tile-name { font-size: .9rem; line-height: 1.3; }
+.mt-tile-state { display: inline-flex; align-items: center; gap: .3rem; font-size: .75rem; color: var(--bs-secondary-color, #6c757d); }
+.mt-dot { width: .55rem; height: .55rem; border-radius: 50%; background: #adb5bd; }
+.mt-tile-on .mt-dot { background: #2f7d32; }
+.mt-tile-off .mt-tile-icon { filter: saturate(.35) opacity(.8); }
+.mt-tile-off:hover .mt-tile-icon { filter: none; }
+
+/* the colours of the sections */
+.mt-group-speed { --mt-tile: #132f53; }
+.mt-group-seo { --mt-tile: #2f6f4f; }
+.mt-group-shop { --mt-tile: #b26a00; }
+.mt-group-gridbox { --mt-tile: #23272b; }
+.mt-group-config { --mt-tile: #5a6470; }
+
+.mt-start { border-inline-start: .3rem solid var(--template-link-color, #2a69b8); }
+.mt-start-icon { font-size: 2.25rem; color: var(--template-link-color, #2a69b8); }
+.mt-check { border-inline-start: .3rem solid #c77c02; }
+.mt-status-count { font-size: 1.1rem; font-weight: 600; }
+.mt-status dt { font-weight: 400; color: var(--bs-secondary-color, #6c757d); }
+.mt-status dd { margin-bottom: .35rem; }
+
+/* ------------------------------------------------------------------ pages of settings */
+.mt-page-desc { max-width: 60rem; font-size: 1rem; }
+.mt-page-config joomla-tab[orientation="vertical"] > div[role="tablist"] { min-width: 14rem; }
+
+/* ------------------------------------------------------------------ quick setup */
+.mt-setup-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 2rem;
+  padding: .85rem 0; border-bottom: 1px solid var(--template-bg-dark-7, #e9ecef); }
+.mt-setup-row:last-child { border-bottom: 0; }
+.mt-setup-text { flex: 1 1 24rem; max-width: 48rem; }
+.mt-setup-label { font-weight: 600; margin-inline-end: .5rem; }
+.mt-setup-desc { margin: .25rem 0 0; font-size: .875rem; color: var(--bs-secondary-color, #6c757d); }
+.mt-setup-switch { flex: none; margin: 0; }

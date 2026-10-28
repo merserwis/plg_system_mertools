@@ -1,0 +1,23 @@
+{
+  "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
+  "name": "com_mertools",
+  "version": "1.7.0",
+  "description": "MerTools for Gridbox: the control panel, the pages of the tools and the quick setup",
+  "license": "GPL-3.0-or-later",
+  "assets": [
+    {
+      "name": "com_mertools.admin",
+      "type": "style",
+      "uri": "com_mertools/mertools-admin.css"
+    },
+    {
+      "name": "com_mertools.setup",
+      "type": "script",
+      "uri": "com_mertools/mertools-setup.js",
+      "dependencies": ["core"],
+      "attributes": {
+        "defer": true
+      }
+    }
+  ]
+}

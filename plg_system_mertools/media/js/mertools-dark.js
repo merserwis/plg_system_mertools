@@ -205,10 +205,20 @@
         || /url\(/.test(cs.backgroundImage)
         || /video-background|parallax|slideshow/.test(typeof c.className === 'string' ? c.className : '')
         || !!c.querySelector('img, video, picture, iframe, [style*="url("]')
-        || [].some.call(c.querySelectorAll('*'), function (d, i) { return i < 20 && /url\(/.test(css(d).backgroundImage); });
+        || pictureWithin(c);
     }
     P.media.set(e, found);
     return found;
+  }
+
+  /** A background picture on one of the first 20 elements inside (only those are walked, not the
+   *  whole content of a large layer). */
+  function pictureWithin(c) {
+    var w = document.createTreeWalker(c, NodeFilter.SHOW_ELEMENT, null), d, i = 0;
+    while (i++ < 20 && (d = w.nextNode())) {
+      if (/url\(/.test(css(d).backgroundImage)) return true;
+    }
+    return false;
   }
 
   /** The colour behind the content of an element (after the fixes), or null over an image. */

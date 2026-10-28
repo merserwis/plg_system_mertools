@@ -63,6 +63,9 @@ final class EditHistory extends Feature
         if (!$ids && !$creates) {
             return;
         }
+        // the page the window "Create" asks for (Gridbox makes it with these): to tell it from pages others add
+        $asked = $creates && !$copies ? ['title' => strip_tags($input->getString('title', '')), 'app_id' => $input->getInt('app_id', 0),
+            'page_category' => $input->getString('category', '')] : null;
         try {
             $history = new History(Factory::getContainer()->get(DatabaseInterface::class));
             $history->ensureTables();
@@ -78,18 +81,22 @@ final class EditHistory extends Feature
         $username = (string) $user->username;
         $toLog    = (int) $this->plugin->params->get('history_actionlog', 1) === 1;
         $days     = max(0, (int) $this->plugin->params->get('history_days', 365));
-        register_shutdown_function(function () use ($history, $ids, $before, $creates, $copies, $max, $editor, $client, $userId, $userName, $username, $toLog, $days): void {
+        register_shutdown_function(function () use ($history, $ids, $before, $creates, $copies, $asked, $max, $editor, $client, $userId, $userName, $username, $toLog, $days): void {
             try {
                 $new   = $creates ? $history->newPages($max) : [];
                 $after = $history->snapshot(array_merge($ids, $new));
+                // of the pages added meanwhile only those this request made (another editor may add pages at the same time)
+                $own   = $creates ? History::ownNew(array_intersect_key($after, array_flip(array_diff($new, $ids))),
+                    $copies ? array_intersect_key($before, array_flip($ids)) : [], $asked) : [];
+                $new   = array_keys($own);
                 $now   = gmdate('Y-m-d H:i:s');
                 foreach (array_values(array_unique(array_merge($ids, $new))) as $id) {
                     $diff = History::diff($before[$id] ?? null, $after[$id] ?? null, $editor);
                     if (!$diff) {
                         continue;
                     }
-                    if ($copies && \in_array($id, $new, true)) {
-                        $diff = ['action' => 'duplicated', 'changes' => \count($ids) === 1 ? [['f' => 'source', 'to' => (string) $ids[0]]] : []];
+                    if ($copies && isset($own[$id])) {
+                        $diff = ['action' => 'duplicated', 'changes' => $own[$id] > 0 ? [['f' => 'source', 'to' => (string) $own[$id]]] : []];
                     }
                     $row   = $after[$id] ?? $before[$id];
                     $title = (string) ($row['title'] ?? '');

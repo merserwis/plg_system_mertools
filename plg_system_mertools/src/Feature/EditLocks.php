@@ -125,6 +125,68 @@ final class EditLocks extends Feature
         }
     }
 
+    /**
+     * May the user edit this item in the Gridbox editor? Gridbox's own rule (its editor and its save): a page
+     * with Edit on the page, or Edit Own on its category for one of its authors; a blog or post layout with
+     * Edit Layouts on the app; a system page with Edit on Gridbox. Anything that is not there: no.
+     */
+    public function mayEdit($user, string $editType, int $id): bool
+    {
+        if (!$user || $user->guest || $id <= 0) {
+            return false;
+        }
+        $db = Factory::getContainer()->get(DatabaseInterface::class);
+        if ($editType === 'blog' || $editType === 'post-layout') {
+            return (bool) $db->setQuery('SELECT COUNT(*) FROM ' . $db->quoteName('#__gridbox_app') . ' WHERE id = ' . $id . ' AND type <> ' . $db->quote('system_apps'))->loadResult()
+                && $user->authorise('core.edit.layouts', 'com_gridbox.app.' . $id);
+        }
+        if ($editType === 'system') {
+            return (bool) $db->setQuery('SELECT COUNT(*) FROM ' . $db->quoteName('#__gridbox_system_pages') . ' WHERE id = ' . $id)->loadResult()
+                && $user->authorise('core.edit', 'com_gridbox');
+        }
+        if ($editType !== '') {
+            return false;
+        }
+        $page     = $db->setQuery('SELECT id, page_category, app_id FROM ' . $db->quoteName('#__gridbox_pages') . ' WHERE id = ' . $id)->loadAssoc();
+        $category = (string) ($page['page_category'] ?? '');
+        if (!$page || $category === 'trashed') {
+            return false;
+        }
+        // Gridbox makes the permission entry of a page in its category and app when the editor first opens it;
+        // until then the nearest one that is there decides, as it would
+        $parents = ctype_digit($category) && (int) $category > 0 ? ['com_gridbox.category.' . (int) $category] : [];
+        if ((int) $page['app_id'] > 0) {
+            $parents[] = 'com_gridbox.app.' . (int) $page['app_id'];
+        }
+        if ($user->authorise('core.edit', $this->nearestAsset(array_merge(['com_gridbox.page.' . $id], $parents)))) {
+            return true;
+        }
+        if (empty($category) || !$user->authorise('core.edit.own', $this->nearestAsset($parents))) {
+            return false;
+        }
+
+        return (bool) $db->setQuery('SELECT COUNT(*) FROM ' . $db->quoteName('#__gridbox_authors') . ' AS a INNER JOIN ' . $db->quoteName('#__gridbox_authors_map')
+            . ' AS m ON m.author_id = a.id WHERE m.page_id = ' . $id . ' AND a.user_id = ' . (int) $user->id)->loadResult();
+    }
+
+    /** The first of these permission entries that exists, else Gridbox's own. */
+    private function nearestAsset(array $names): string
+    {
+        if (!$names) {
+            return 'com_gridbox';
+        }
+        $db    = Factory::getContainer()->get(DatabaseInterface::class);
+        $found = array_flip((array) $db->setQuery('SELECT name FROM ' . $db->quoteName('#__assets') . ' WHERE name IN ('
+            . implode(', ', array_map([$db, 'quote'], $names)) . ')')->loadColumn());
+        foreach ($names as $name) {
+            if (isset($found[$name])) {
+                return $name;
+            }
+        }
+
+        return 'com_gridbox';
+    }
+
     /** Opening the Gridbox editor: the lock is ours (taken, or taken over), else the page of who edits it. */
     private function lockEditorGate(): void
     {
@@ -133,6 +195,10 @@ final class EditLocks extends Feature
         $user     = $app->getIdentity();
         $id       = $input->getInt('id', 0);
         $editType = $input->getCmd('edit_type', '');
+        if (!$this->mayEdit($user, $editType, $id)) {
+            // Gridbox shows its own login or refusal: nothing is locked for somebody who may not edit
+            return;
+        }
         $key      = EditLock::key($editType, $id);
         $locks    = $this->editLocks();
         $now      = time();
@@ -220,18 +286,25 @@ final class EditLocks extends Feature
         if (!\in_array($action, ['ping', 'release'], true) || strtoupper((string) $input->getMethod()) !== 'POST' || !Session::checkToken('request')) {
             $this->plugin->sendJson(['ok' => false], 403);
         }
-        $key = $input->getString('key', '');
-        if (!preg_match('/^[a-z0-9_-]{1,40}:\d{1,10}$/', $key)) {
+        $key    = $input->getString('key', '');
+        $target = EditLock::parse($key);
+        if (!$target) {
             $this->plugin->sendJson(['ok' => false], 400);
         }
+        [$editType, $id] = $target;
         $tab = substr(preg_replace('/[^a-f0-9]/', '', $input->getString('tab', '')), 0, 32);
         try {
             $locks = $this->editLocks();
             if ($action === 'release') {
+                // only the user's own lock goes: nothing to check
                 $locks->release($key, (int) $user->id, $tab);
                 $this->plugin->sendJson(['ok' => true]);
             }
-            $holder = $locks->ping($key, max(0, $input->getInt('page', 0)), (int) $user->id, MerTools::userLabel($user), $tab,
+            // a confirmation can take a free lock: only for whoever may edit the item
+            if (!$this->mayEdit($user, $editType, $id)) {
+                $this->plugin->sendJson(['ok' => false], 403);
+            }
+            $holder = $locks->ping($key, $editType === '' ? $id : 0, (int) $user->id, MerTools::userLabel($user), $tab,
                 $input->getInt('active', 0) === 1, time(), $this->lockIdle());
             if ($holder) {
                 $this->plugin->loadLanguage();

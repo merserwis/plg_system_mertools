@@ -181,9 +181,10 @@ final class ListColumns
 
     /**
      * A value typed in the list, checked and in the form Gridbox keeps: money "12.5" / "" (no sale
-     * price), stock "7" / "" (not counted), SKU as text. null = not accepted.
+     * price), stock "7" / "" (not counted), SKU as text. null = not accepted. Money takes as many
+     * decimals as the store's currency shows (2 at least, 4 at most).
      */
-    public static function clean(string $kind, string $value): ?string
+    public static function clean(string $kind, string $value, int $decimals = 2): ?string
     {
         $value = trim(str_replace(["\u{00A0}", "\u{202F}"], ' ', $value));
         if ($kind === 'text') {
@@ -197,14 +198,15 @@ final class ListColumns
             return preg_match('/^\d{1,9}$/', $value) ? (string) (int) $value : null;
         }
         // money: 1234,5 / 1234.50 / 1.234,50 / 1,234.50
-        if (preg_match('/^\d{1,3}([.,])\d{3}([.,])\d{1,2}$/', $value, $g) && $g[1] !== $g[2]) {
+        $places = max(2, min(4, $decimals));
+        if (preg_match('/^\d{1,3}([.,])\d{3}([.,])\d{1,' . $places . '}$/', $value, $g) && $g[1] !== $g[2]) {
             $value = str_replace($g[1], '', $value);
         }
         $value = str_replace(',', '.', $value);
-        if (!preg_match('/^\d{1,10}(\.\d{1,2})?$/', $value)) {
+        if (!preg_match('/^\d{1,10}(\.\d{1,' . $places . '})?$/', $value)) {
             return null;
         }
-        $number = rtrim(rtrim(number_format((float) $value, 2, '.', ''), '0'), '.');
+        $number = rtrim(rtrim(number_format((float) $value, $places, '.', ''), '0'), '.');
 
         return $number === '' ? '0' : $number;
     }

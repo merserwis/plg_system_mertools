@@ -30,6 +30,18 @@ foreach ([
 $check('needs 1', IntroText::needsEscape('x <3'), true);
 $check('needs 2', IntroText::needsEscape('<p>x</p> &lt;3'), false);
 
+// the stored introductions are repaired only with a libxml that loses the "<"
+$check('libxml 2.9.10 (merserwis.pl) repairs', IntroText::oldLibxml(20910), true);
+$check('libxml 2.9.11 does not', IntroText::oldLibxml(20911), false);
+$check('libxml 2.13 does not', IntroText::oldLibxml(21308), false);
+$check('no libxml known: nothing', IntroText::oldLibxml(0), false);
+// this server: a newer libxml keeps a bare "<" as text (an old one would cut it off)
+if (!IntroText::oldLibxml(LIBXML_VERSION)) {
+    $d = new DOMDocument();
+    @$d->loadHTML('<?xml encoding="utf-8"?><div class="i">czułość <30 mK, RE < 0,5 Ω.</div><div class="c">CENA</div>');
+    $check('newer libxml reads a bare "<" as text', $d->getElementsByTagName('div')->item(0)->textContent, 'czułość <30 mK, RE < 0,5 Ω.');
+}
+
 // libxml 2.9.10 keeps the escaped text whole (what Gridbox's phpQuery does to its lists)
 $d = new DOMDocument();
 @$d->loadHTML('<?xml encoding="utf-8"?><div class="i">' . IntroText::escape('czułość <30 mK, RE < 0,5 Ω.') . '</div><div class="c">CENA</div>');
