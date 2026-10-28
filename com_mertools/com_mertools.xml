@@ -6,7 +6,7 @@
     <creationDate>2026-10-28</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.7.0</version>
+    <version>1.7.1</version>
     <description>COM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Component\MerTools</namespace>
     <media destination="com_mertools" folder="media">

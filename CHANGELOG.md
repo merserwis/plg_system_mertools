@@ -2,6 +2,17 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.7.1 — 2026-10-28
+
+### 👁 Folding the fields in the product editor
+
+A product with many fields (descriptions, accessories, calibration, service, files…) is a long page in the Gridbox editor. Each field now has an **eye** right of its name: a click folds the field down to its name, another click shows it again. The browser remembers which fields are folded, so the editor of every other product of the app opens with the same ones folded. It works in the editor of any Gridbox app (products, posts).
+
+- A required field Gridbox points out as empty when saving is shown even when folded.
+- A text editor folded when the page opens shows its content and toolbar as usual once unfolded.
+- Folding is only a view: nothing of it is saved with the product. Where the browser cannot store it (private mode, full storage), the folds last until the editor is closed.
+- On by default; *Configuration → Shop → Folding fields in the editor*.
+
 ## 1.7.0 — 2026-10-28
 
 ### 🧭 A control panel, a menu and a quick setup (like Admin Tools)

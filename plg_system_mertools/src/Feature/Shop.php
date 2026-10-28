@@ -165,8 +165,34 @@ final class Shop extends Feature
         $currency = $this->plugin->storeCurrency();
         $cfg      = ['decimals' => (int) ($currency['decimals'] ?? 2), 'label' => Text::_('PLG_SYSTEM_MERTOOLS_DISCOUNT_LABEL'),
             'placeholder' => Text::_('PLG_SYSTEM_MERTOOLS_DISCOUNT_PLACEHOLDER'), 'hint' => Text::_('PLG_SYSTEM_MERTOOLS_DISCOUNT_HINT')];
-        $tail = '<script type="application/json" id="mertools-discount-config">' . json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP)
-            . '</script><script src="' . Uri::root(true) . '/media/plg_system_mertools/js/mertools-discount' . (JDEBUG ? '' : '.min') . '.js?' . MerTools::VERSION . '" defer></script>';
+        $this->editorScript('discount', $cfg);
+    }
+
+    /**
+     * Folding the fields in the Gridbox editor of a page of an app (mertools-fold.js): an eye next to
+     * the name of a field hides the field down to its name; which fields are folded, this browser keeps.
+     */
+    public function foldScript(): void
+    {
+        $app   = $this->plugin->app();
+        $input = $app->getInput();
+        if (!(int) $this->plugin->params->get('shop_field_fold', 1) || $input->getCmd('option') !== 'com_gridbox' || $input->getCmd('view') !== 'editor') {
+            return;
+        }
+        $user = $app->getIdentity();
+        if (!$user || $user->guest) {
+            return;
+        }
+        $this->plugin->loadLanguage();
+        $this->editorScript('fold', ['hide' => Text::_('PLG_SYSTEM_MERTOOLS_FOLD_HIDE'), 'show' => Text::_('PLG_SYSTEM_MERTOOLS_FOLD_SHOW')]);
+    }
+
+    /** a script of the Gridbox editor (media/js/mertools-{name}.js) with its settings, put before </body> */
+    private function editorScript(string $name, array $cfg): void
+    {
+        $app  = $this->plugin->app();
+        $tail = '<script type="application/json" id="mertools-' . $name . '-config">' . json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP)
+            . '</script><script src="' . Uri::root(true) . '/media/plg_system_mertools/js/mertools-' . $name . (JDEBUG ? '' : '.min') . '.js?' . MerTools::VERSION . '" defer></script>';
         $body = (string) $app->getBody();
         $pos  = strripos($body, '</body>');
         $app->setBody($pos === false ? $body . $tail : substr($body, 0, $pos) . $tail . substr($body, $pos));
