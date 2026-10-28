@@ -27,7 +27,7 @@ final class Warmup
     /** The most addresses taken from one sitemap file and from all of them */
     public const MAX_URLS = 5000;
 
-    private array $state = ['urls' => [], 'built' => 0, 'skip' => []];
+    private array $state = ['urls' => [], 'built' => 0, 'skip' => [], 'route' => '', 'last' => []];
 
     public function __construct(private string $file)
     {
@@ -221,6 +221,55 @@ final class Warmup
         }
         $keep[$url]          = [microtime(true), $now + $seconds];
         $this->state['skip'] = $keep;
+    }
+
+    /** The CURLOPT_RESOLVE line "host:port:address" (an IPv6 address in brackets), or null for a bad host */
+    public static function resolveLine(string $host, int $port, string $addr): ?string
+    {
+        if ($host === '' || !preg_match('#^[a-z0-9.-]+$#i', $host) || $port < 1 || $port > 65535 || filter_var($addr, FILTER_VALIDATE_IP) === false) {
+            return null;
+        }
+
+        return strtolower($host) . ':' . $port . ':' . (str_contains($addr, ':') ? '[' . $addr . ']' : $addr);
+    }
+
+    /**
+     * Did the request reach the site as it is (so the other way would give the same)? 2xx, 3xx and 404,
+     * 410: yes. No answer, a refusal (401, 403, 429), a server error: no, the other way may do better.
+     */
+    public static function reached(int $code): bool
+    {
+        return ($code >= 200 && $code < 400) || $code === 404 || $code === 410;
+    }
+
+    /** How the pages were reached the last time it worked: 'direct' (this server) or 'public' ('' = not yet) */
+    public function route(): string
+    {
+        return \in_array($this->state['route'], ['direct', 'public'], true) ? $this->state['route'] : '';
+    }
+
+    public function setRoute(string $route): void
+    {
+        $this->state['route'] = $route;
+    }
+
+    /**
+     * What came of the last reading of the list ('list') and the last page asked for ('page'): the time,
+     * the address and 'ok' or what went wrong, for the panel (an empty list must not stay a mystery).
+     */
+    public function note(string $what, int $now, string $url, string $result): void
+    {
+        $this->state['last'] = (array) $this->state['last'];
+        $this->state['last'][$what] = ['time' => $now, 'url' => $url, 'result' => $result];
+    }
+
+    /** @return array{route: string, urls: int, built: int, list: ?array, page: ?array} */
+    public function status(): array
+    {
+        $last = (array) $this->state['last'];
+
+        return ['route' => $this->route(), 'urls' => \count($this->urls()), 'built' => (int) $this->state['built'],
+            'list' => \is_array($last['list'] ?? null) ? $last['list'] : null, 'page' => \is_array($last['page'] ?? null) ? $last['page'] : null];
     }
 
     public function save(): bool

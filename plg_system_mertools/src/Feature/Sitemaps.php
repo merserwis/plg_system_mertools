@@ -440,6 +440,27 @@ final class Sitemaps extends Feature
         }
     }
 
+    /**
+     * The addresses of the maps for the warm-up of the page cache, without a request: the maps built
+     * again first when out of date (a change marks them so, but only a request of /sitemap.xml would build
+     * them), the files of the last build only. Null: MerTools does not make the sitemap, or nothing built.
+     *
+     * @return string[]|null
+     */
+    public function currentLocs(): ?array
+    {
+        if (!Sitemap::enabled($this->plugin->params)) {
+            return null;
+        }
+        $meta = $this->meta();
+        if ($meta === null || $this->stale($meta)) {
+            // null: another request is building them now (the last maps meanwhile)
+            $meta = $this->build() ?? $meta;
+        }
+
+        return $meta === null ? null : $this->locs();
+    }
+
     /** What the last build left: time, files with their ETag…; null when nothing was built yet */
     public function meta(): ?array
     {

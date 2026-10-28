@@ -35,6 +35,13 @@
       row(T.SIZE, mb(s.size));
       row(T.OLDEST, s.oldest ? when(s.oldest) : '–');
       row(T.PURGED, when(s.purged));
+      // the warm-up: what came of reading the list and of the last page asked for
+      if (s.warm) {
+        var note = function (n) { return n ? when(n.time) + ' — ' + n.result + (n.url ? ' (' + n.url + ')' : '') : T.NEVER; };
+        row(T.WARM_LIST, num(s.warm.urls) + ' · ' + note(s.warm.list));
+        row(T.WARM_PAGE, note(s.warm.page));
+        row(T.WARM_ROUTE, s.warm.route === 'direct' ? T.WARM_DIRECT : (s.warm.route === 'public' ? T.WARM_PUBLIC : T.NEVER));
+      }
     }
     function message(kind, text) {
       var div = document.createElement('div');

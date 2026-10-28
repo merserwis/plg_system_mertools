@@ -2,6 +2,16 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.6.10 — 2026-10-28
+
+### 🔥 The warm-up works where the server cannot reach its own address
+
+The warm-up asked for the site's sitemap and pages at the site's public address. Some servers cannot reach their own public address (a firewall, the DNS, a proxy such as Cloudflare in front): the list of addresses stayed empty, and the warm-up did nothing, without a word.
+
+- The list of addresses is read from the sitemap files MerTools builds, without a request; the sitemap is asked for over HTTP only when there are none.
+- The pages are asked for on this server itself, under the site's name. When that fails to connect or is refused, the public address is tried, and the way that worked is tried first next time.
+- The page cache panel in the settings shows the warm-up: how many addresses it has and when they were read, the last page asked for and what came of it, and how the pages are reached. A failure reads as it is (e.g. `curl 7: …` or `HTTP 403`).
+
 ## 1.6.9 — 2026-10-27
 
 ### 🛠 Background jobs run once at a time

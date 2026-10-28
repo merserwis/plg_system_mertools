@@ -20,7 +20,7 @@ final class MtpagecacheField extends FormField
         $wa->registerAndUseScript('plg_system_mertools.pcache', 'plg_system_mertools/mertools-pcache.js', [], ['defer' => true]);
 
         $texts = [];
-        foreach (['PAGES', 'DATA', 'SIZE', 'OLDEST', 'PURGED', 'NEVER', 'CLEAR', 'CLEARED', 'LOADING', 'ERROR'] as $key) {
+        foreach (['PAGES', 'DATA', 'SIZE', 'OLDEST', 'PURGED', 'NEVER', 'CLEAR', 'CLEARED', 'LOADING', 'ERROR', 'WARM_LIST', 'WARM_PAGE', 'WARM_ROUTE', 'WARM_DIRECT', 'WARM_PUBLIC'] as $key) {
             $texts[$key] = Text::_('PLG_SYSTEM_MERTOOLS_PCACHE_UI_' . $key);
         }
         $data = htmlspecialchars(json_encode(['token' => Session::getFormToken(), 'texts' => $texts]), ENT_QUOTES, 'UTF-8');

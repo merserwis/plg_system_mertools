@@ -92,6 +92,30 @@ $r->tried('https://s/e', $t, 600, microtime(true));
 $check('state: tried() drops the entries an emptying made void', array_keys($r->skips($t)), ['https://s/e']);
 file_put_contents($file, 'not json');
 $check('state: a broken file = empty state', (new Warmup($file))->urls(), []);
+
+// ---------------------------------------------------------------- the way to the site, what came of it
+$check('resolve: IPv4', Warmup::resolveLine('WWW.Merserwis.pl', 443, '10.0.0.5'), 'www.merserwis.pl:443:10.0.0.5');
+$check('resolve: IPv6 in brackets', Warmup::resolveLine('www.merserwis.pl', 443, '2001:db8::1'), 'www.merserwis.pl:443:[2001:db8::1]');
+$check('resolve: no address', Warmup::resolveLine('www.merserwis.pl', 443, ''), null);
+$check('resolve: not an address', Warmup::resolveLine('www.merserwis.pl', 443, 'localhost'), null);
+$check('resolve: a host with a colon is refused', Warmup::resolveLine('a:1:b', 443, '10.0.0.5'), null);
+$check('reached: 200, 301, 404 yes', [Warmup::reached(200), Warmup::reached(301), Warmup::reached(404)], [true, true, true]);
+$check('reached: none, 403, 429, 503 no', [Warmup::reached(0), Warmup::reached(403), Warmup::reached(429), Warmup::reached(503)], [false, false, false, false]);
+$w = new Warmup($file);
+$check('route: none yet', $w->route(), '');
+$check('status: nothing noted yet', $w->status(), ['route' => '', 'urls' => 0, 'built' => 0, 'list' => null, 'page' => null]);
+$w->setRoute('direct');
+$w->setUrls(['https://s/a', 'https://s/b'], 1000);
+$w->note('list', 1000, 'MerTools sitemap', 'ok: 2');
+$w->note('page', 1001, 'https://s/a', 'direct curl 7: refused; public ok');
+$w->save();
+$w = new Warmup($file);
+$check('status: kept in the file', $w->status(), ['route' => 'direct', 'urls' => 2, 'built' => 1000,
+    'list' => ['time' => 1000, 'url' => 'MerTools sitemap', 'result' => 'ok: 2'], 'page' => ['time' => 1001, 'url' => 'https://s/a', 'result' => 'direct curl 7: refused; public ok']]);
+file_put_contents($file, '{"urls":[],"built":5,"skip":[]}');
+$check('status: a file of 1.6.9 is read', (new Warmup($file))->status()['built'], 5);
+file_put_contents($file, '{"route":"elsewhere","last":"x"}');
+$check('status: bad values are harmless', (new Warmup($file))->status(), ['route' => '', 'urls' => 0, 'built' => 0, 'list' => null, 'page' => null]);
 array_map('unlink', glob($dir . '/*'));
 rmdir($dir);
 

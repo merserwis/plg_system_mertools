@@ -33,6 +33,9 @@ final class PageSpeed extends Feature
     /** a page of this request that may be kept: key, address, start time; 'ok' once the page qualified */
     public ?array $pageToStore = null;
 
+    /** What came of the last request of the warm-up: 'ok', 'HTTP <code>' or 'curl <number>: <message>' */
+    private string $warmResult = '';
+
     /** marketing scripts delayed by default (address or code contains) */
     public const SCRIPT_PATTERNS = "googletagmanager.com\nfbq(\nconnect.facebook.net\nclarity.ms\nhotjar.com\nelfsightcdn.com\ncloudflareinsights.com";
 
@@ -177,7 +180,7 @@ final class PageSpeed extends Feature
         try {
             $warm = new Warmup($base . '/mertools-warm.json');
             if ($warm->listDue($now)) {
-                $urls = $this->warmupList($site);
+                $urls = $this->warmupList($site, $warm, $now);
                 // an empty answer (the sitemap is not there, a block) is tried again in a round, not in 6 hours
                 $warm->setUrls($urls, $urls ? $now : $now - Warmup::LIST_TTL + 300);
                 $warm->save();
@@ -195,7 +198,8 @@ final class PageSpeed extends Feature
                     break;
                 }
                 $warm->tried($url, $now, $ttl, $purged);
-                $this->warmupFetch($url, 15, 0, $site);
+                $this->warmupFetch($url, 15, 0, $site, $warm);
+                $warm->note('page', $now, $url, $this->warmResult);
             }
             $warm->save();
         } catch (\Throwable $e) {
@@ -205,26 +209,37 @@ final class PageSpeed extends Feature
         }
     }
 
-    /** The addresses of the sitemap of the site (an index is followed, up to 30 files of the site). */
-    private function warmupList(string $site): array
+    /**
+     * The addresses of the sitemap of the site: from MerTools' own maps (no request needed, see
+     * Sitemaps::currentLocs()), else over HTTP (an index is followed, up to 30 files of the site).
+     */
+    private function warmupList(string $site, Warmup $warm, int $now): array
     {
-        $files = [$site . '/sitemap.xml'];
-        $urls  = [];
-        for ($i = 0; $i < \count($files) && $i < 30; $i++) {
-            $xml = $this->warmupFetch($files[$i], 20, 8388608, $site);
-            if ($xml === null) {
-                continue;
-            }
-            $found = Warmup::locs($xml);
-            if ($found['index']) {
-                $files = array_merge($files, array_filter($found['locs'], fn (string $loc) => Warmup::sameSite($loc, $site)));
-            } else {
-                $urls = array_merge($urls, $found['locs']);
+        // up to date: built again here when a change made them old
+        $urls  = $this->plugin->sitemaps()->currentLocs() ?? [];
+        $from  = 'files';
+        if (!$urls) {
+            $from  = 'http';
+            $files = [$site . '/sitemap.xml'];
+            for ($i = 0; $i < \count($files) && $i < 30; $i++) {
+                $xml = $this->warmupFetch($files[$i], 20, 8388608, $site, $warm);
+                if ($xml === null) {
+                    continue;
+                }
+                $found = Warmup::locs($xml);
+                if ($found['index']) {
+                    $files = array_merge($files, array_filter($found['locs'], fn (string $loc) => Warmup::sameSite($loc, $site)));
+                } else {
+                    $urls = array_merge($urls, $found['locs']);
+                }
             }
         }
         $lines = array_filter(array_map('trim', preg_split('/\R/', (string) $this->plugin->params->get('speed_cache_exclude', '')) ?: []));
+        $list  = Warmup::order($urls, $site, $lines);
+        $warm->note('list', $now, $from === 'files' ? 'MerTools sitemap' : $site . '/sitemap.xml',
+            $list ? 'ok: ' . \count($list) : ($from === 'files' ? 'no addresses' : $this->warmResult));
 
-        return Warmup::order($urls, $site, $lines);
+        return $list;
     }
 
     /**
@@ -232,17 +247,69 @@ final class PageSpeed extends Feature
      * not kept, a page is only asked for), else null. A redirect (a sitemap; never a page) is followed
      * only to an address of the site, checked before it is asked for, at most 3 times; the download stops
      * at $max bytes, not after it.
+     *
+     * Two ways to the site: 'direct' — this server itself, at the address it answers on (SERVER_ADDR),
+     * with the site's name (a server often cannot reach its own public name: a firewall, the DNS, a proxy
+     * such as Cloudflare in front); 'public' — the public name as anybody resolves it. The way that worked
+     * last is tried first, the other one when it fails to connect or is refused.
      */
-    private function warmupFetch(string $url, int $timeout, int $max, string $site): ?string
+    private function warmupFetch(string $url, int $timeout, int $max, string $site, Warmup $warm): ?string
+    {
+        $routes = $warm->route() === 'public' ? ['public', 'direct'] : ['direct', 'public'];
+        $tried  = [];
+        foreach ($routes as $route) {
+            $resolve = $route === 'direct' ? $this->warmupResolve($site) : null;
+            if ($route === 'direct' && $resolve === null) {
+                continue;
+            }
+            $answer = $this->warmupGet($url, $timeout, $max, $site, $resolve);
+            $tried[] = $route . ' ' . $this->warmResult;
+            if ($answer['reached']) {
+                $warm->setRoute($route);
+                // the way that failed first stays readable ("direct curl 7: …; public ok")
+                if (\count($tried) > 1) {
+                    $this->warmResult = implode('; ', $tried);
+                }
+
+                return $answer['body'];
+            }
+        }
+        $this->warmResult = implode('; ', $tried);
+
+        return null;
+    }
+
+    /** The CURLOPT_RESOLVE line that sends the site's name to this server, or null (no address known) */
+    private function warmupResolve(string $site): ?string
+    {
+        $addr = (string) $this->plugin->app()->getInput()->server->getString('SERVER_ADDR', '');
+        if (filter_var($addr, FILTER_VALIDATE_IP) === false) {
+            return null;
+        }
+        $host = (string) parse_url($site, PHP_URL_HOST);
+        $port = (int) (parse_url($site, PHP_URL_PORT) ?: (strtolower((string) parse_url($site, PHP_URL_SCHEME)) === 'http' ? 80 : 443));
+
+        return Warmup::resolveLine($host, $port, $addr);
+    }
+
+    /**
+     * One way (see warmupFetch()). 'reached': the site answered as it should (2xx, 3xx or 404); a failed
+     * connection, a refusal (403, 5xx…) means: try the other way.
+     *
+     * @return array{reached: bool, body: ?string}
+     */
+    private function warmupGet(string $url, int $timeout, int $max, string $site, ?string $resolve): array
     {
         for ($hop = 0; $hop <= 3; $hop++) {
             if (!Warmup::sameSite($url, $site)) {
-                return null;
+                $this->warmResult = 'redirect outside the site';
+
+                return ['reached' => true, 'body' => null];
             }
             $body = '';
             $over = false;
             $ch   = curl_init($url);
-            curl_setopt_array($ch, [
+            $opts = [
                 CURLOPT_TIMEOUT        => $timeout, CURLOPT_CONNECTTIMEOUT => 5, CURLOPT_FOLLOWLOCATION => false,
                 CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
                 CURLOPT_USERAGENT      => Warmup::AGENT . '/' . MerTools::VERSION, CURLOPT_ENCODING => '', CURLOPT_HTTPHEADER => ['Accept: text/html,application/xml'],
@@ -259,20 +326,36 @@ final class PageSpeed extends Feature
 
                     return \strlen($chunk);
                 },
-            ]);
-            $done = curl_exec($ch) !== false;
-            $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-            $next = (string) curl_getinfo($ch, CURLINFO_REDIRECT_URL);
+            ];
+            if ($resolve !== null) {
+                // this server itself: its certificate may be one only the proxy in front trusts (Cloudflare's
+                // origin certificate); the address is the server's own, not one from the network
+                $opts[CURLOPT_RESOLVE]        = [$resolve];
+                $opts[CURLOPT_SSL_VERIFYPEER] = false;
+                $opts[CURLOPT_SSL_VERIFYHOST] = 0;
+            }
+            curl_setopt_array($ch, $opts);
+            $done  = curl_exec($ch) !== false;
+            $code  = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+            $next  = (string) curl_getinfo($ch, CURLINFO_REDIRECT_URL);
+            $error = $done || $over ? '' : 'curl ' . curl_errno($ch) . ': ' . curl_error($ch);
             unset($ch);
-            if ($done && $max > 0 && $code >= 300 && $code < 400 && $next !== '') {
+            if ($error !== '') {
+                $this->warmResult = $error;
+
+                return ['reached' => false, 'body' => null];
+            }
+            if ($max > 0 && $code >= 300 && $code < 400 && $next !== '') {
                 $url = $next;
                 continue;
             }
+            $this->warmResult = $code === 200 && !$over ? 'ok' : ($over ? 'too large' : 'HTTP ' . $code);
 
-            return $done && !$over && $code === 200 && $max > 0 ? $body : null;
+            return ['reached' => Warmup::reached($code), 'body' => $code === 200 && !$over && $max > 0 ? $body : null];
         }
+        $this->warmResult = 'too many redirects';
 
-        return null;
+        return ['reached' => true, 'body' => null];
     }
 
     /**
@@ -784,7 +867,8 @@ final class PageSpeed extends Feature
                 if ($action === 'pcache_clear') {
                     $cache->purge();
                 }
-                $this->plugin->sendJson(['success' => true, 'stats' => $cache->stats($this->cacheTtl(), microtime(true))]);
+                $warm = $this->warmupOn() ? (new Warmup(MerTools::cacheBase() . '/mertools-warm.json'))->status() : null;
+                $this->plugin->sendJson(['success' => true, 'stats' => $cache->stats($this->cacheTtl(), microtime(true)) + ['warm' => $warm]]);
             } catch (\Throwable $e) {
                 $this->plugin->sendJson(['success' => false, 'message' => $e->getMessage()]);
             }
