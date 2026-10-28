@@ -2,6 +2,13 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.7.2 — 2026-10-28
+
+### 🛠 The quick setup on a fresh install
+
+- A fresh install of MerTools opens its control panel with the **quick setup** first, as meant since 1.7.0. Before, the control panel told a fresh site by the number of saved settings, but Joomla saves the defaults of a new install, so the quick setup was not offered. The installation now marks a fresh site (also one installed through *Discover*), and saving the quick setup takes the mark away.
+- A site updated from an older version is not asked again: it keeps its settings as they are.
+
 ## 1.7.1 — 2026-10-28
 
 ### 👁 Folding the fields in the product editor

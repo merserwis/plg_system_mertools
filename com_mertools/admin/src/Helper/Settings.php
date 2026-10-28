@@ -264,11 +264,13 @@ final class Settings
     }
 
     /**
-     * A fresh installation: no quick setup yet and (almost) nothing saved, so the control panel offers
-     * the quick setup first. A site that used MerTools before 1.7.0 has its settings and is not asked.
+     * A fresh installation: the installer's script marks it (setup_pending) and the quick setup has not
+     * been saved yet, so the control panel offers the quick setup first. A site updated from an older
+     * version has its settings and is not asked (Joomla saves the defaults of a new install, so the
+     * number of settings says nothing).
      */
     public static function isNew(Registry $params): bool
     {
-        return !(int) $params->get('setup_done', 0) && \count($params->toArray()) < 5;
+        return (int) $params->get('setup_pending', 0) === 1 && !(int) $params->get('setup_done', 0);
     }
 }

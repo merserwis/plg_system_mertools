@@ -33,7 +33,7 @@ class SetupController extends DisplayController
         $posted  = (array) $this->input->post->get('jform', [], 'array');
         $initial = (array) $this->input->post->get('mt_initial', [], 'array');
         $changes = Catalog::setupChanges($posted, $initial, Settings::hasStore());
-        $errors  = Settings::store($changes + ['setup_done' => 1]);
+        $errors  = Settings::store($changes + ['setup_done' => 1, 'setup_pending' => 0]);
         if ($errors) {
             foreach ($errors as $error) {
                 $this->app->enqueueMessage($error, 'warning');

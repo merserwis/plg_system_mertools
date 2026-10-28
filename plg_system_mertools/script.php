@@ -342,6 +342,9 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
         if ($type === 'install' || $type === 'update' || $type === 'discover_install') {
             $this->checkSiteMessage($type);
         }
+        if ($type === 'install' || $type === 'discover_install') {
+            $this->markFresh();
+        }
         if ($type !== 'install') {
             return true;
         }
@@ -360,5 +363,24 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
         }
 
         return true;
+    }
+
+    /**
+     * A fresh install: the control panel of the administrator offers the quick setup first (1.7.2; Joomla
+     * saves the defaults of a new install, so the number of settings does not tell a fresh site).
+     */
+    private function markFresh(): void
+    {
+        $settings = $this->savedSettings();
+        if (isset($settings['setup_done'])) {
+            return;
+        }
+        try {
+            $db = Factory::getContainer()->get(DatabaseInterface::class);
+            $db->setQuery('UPDATE ' . $db->quoteName('#__extensions') . ' SET params = ' . $db->quote(json_encode(['setup_pending' => 1] + $settings, JSON_UNESCAPED_UNICODE))
+                . ' WHERE type = ' . $db->quote('plugin') . ' AND folder = ' . $db->quote('system') . ' AND element = ' . $db->quote('mertools'))->execute();
+        } catch (\Throwable $e) {
+            // the quick setup stays in the menu
+        }
     }
 }
