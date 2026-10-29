@@ -139,15 +139,19 @@ final class Settings
         return $form;
     }
 
-    /** the names of the settings of a form (not those inside a subform) */
+    /**
+     * The names of the settings of a form: the fields of its fieldsets, not those inside a list of rows. Form::getGroup()
+     * also returns the fields of a subform: a list of rows with a field named like a setting of another page would make
+     * every save of this page set that setting back to its default.
+     */
     public static function fieldNames(Form $form): array
     {
         $out = [];
-        foreach ($form->getGroup('params') as $field) {
-            $out[] = (string) $field->fieldname;
+        foreach ($form->getXml()->xpath('//fields[@name="params"]/fieldset/field[@name]') ?: [] as $field) {
+            $out[] = (string) $field['name'];
         }
 
-        return $out;
+        return array_values(array_unique($out));
     }
 
     /**

@@ -2,6 +2,12 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.7.3 — 2026-10-29
+
+### 🐞 Fixes
+
+- **Saving a page of the settings counts only its own settings.** Joomla lists the fields inside a list of rows together with the settings of the page, and the save set every listed setting that was not sent back to its default. No page of MerTools has such a list today, so nothing changes for a site; a list of rows with a field named like a setting of another page would have reset that setting on every save.
+
 ## 1.7.2 — 2026-10-28
 
 ### 🛠 The quick setup on a fresh install
