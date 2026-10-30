@@ -2,6 +2,17 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.7.4 — 2026-10-30
+
+### 💾 Saving in the editor
+
+Gridbox closes its editor without asking, also with changes not saved. A new tab *Configuration → Saving in the editor*:
+
+- **A warning before closing the editor unsaved** (on by default): with changes not saved, the browser asks whether to leave the page when the tab or window is closed, on a reload and on going to another page. While there are such changes the **Save** button has an orange dot.
+- A change is the page differing from the page as last saved, as Gridbox's undo history has it (an undo back to the saved page is no change), or text typed in the editor's panels and in the page since the last save, not in a search box. A save counts only when Gridbox answers that it saved the page; one refused by the edit lock, for missing permission or for empty required fields keeps the changes as not saved, and so does a save only as a version.
+- **Save automatically every N minutes** (0 = off, the default): that many minutes after the first change not saved the editor saves the page as the Save button does, once nothing has been typed or clicked for a few seconds, and Gridbox's notice says *Saved automatically at …*. Without changes nothing is saved; a save that does not go through is not tried again before the next change. In Gridbox a save publishes the page, so unfinished changes go on the site, and each save is a step of the edit history.
+- In the editor of every page, product, post and template.
+
 ## 1.7.3 — 2026-10-29
 
 ### 🐞 Fixes

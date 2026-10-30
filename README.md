@@ -14,7 +14,7 @@ Everything is under **Components → MerTools for Gridbox**, laid out like Akeeb
 
 - **Control Panel** — the tools as tiles in sections (*Speed*, *Search engines*, *Shop* — only with a Gridbox store —, *Gridbox in the administrator*, *Configuration*), each with a dot that says whether it is on; on the side the state of MerTools, shortcuts (quick setup, configuration, clear the cache, open Gridbox) and the reminder to check the site.
 - **The sidebar menu** opens the tools used day to day: *Page Cache*, *Images*, *Sitemap*, *404 Pages*, *Edit History*; the cog beside each opens its settings. A tool's page starts with its *Overview* (what it did, its buttons), its settings follow in the next tabs.
-- **Configuration** — what is set once and forgotten, one page with a vertical tab per tool: *Addresses (URL)*, *Site hygiene*, *Structured data*, *Blog*, *Shop*, *First view*, *Page layout*, *Tabs*, *Phone numbers*, *Dark mode*, *Lists in the administrator*, *Edit lock*.
+- **Configuration** — what is set once and forgotten, one page with a vertical tab per tool: *Addresses (URL)*, *Site hygiene*, *Structured data*, *Blog*, *Shop*, *First view*, *Page layout*, *Tabs*, *Phone numbers*, *Dark mode*, *Lists in the administrator*, *Edit lock*, *Saving in the editor*.
 - **Quick Setup** — 15 switches with the main tools, each marked *recommended* or *optional*; *Turn on the recommended* switches on the recommended ones and leaves the optional ones as they are, and only the switches you change are saved. A fresh install offers it first.
 
 The settings are still the parameters of the plugin, so nothing changes for the site itself; opening the plugin in Joomla's plugin manager leads to the control panel (the plugin's own form, with every setting at once, opens only when the component is disabled).
@@ -37,6 +37,7 @@ The settings are still the parameters of the plugin, so nothing changes for the 
 | Tidy up old carts | *Carts* |
 | Gridbox lists (columns, editing in the list, media) | *Configuration → Lists in the administrator* |
 | Edit lock | *Configuration → Edit lock* |
+| Warning before closing the editor unsaved, automatic save | *Configuration → Saving in the editor* |
 | Edit history | *Edit History* |
 | Apps protection and backups | *Gridbox Apps* |
 | Indexes of Gridbox tables, “<” in introductions | *Database* |
@@ -223,6 +224,14 @@ Gridbox has no check-out: two people could open the same article, product or pag
 * The open editor confirms the lock every 30 s and gives it back when it is closed; a lock its editor stopped confirming (a closed laptop, a crashed browser) is free after 2 minutes, and one whose holder did nothing in the editor after the idle time (default 30 minutes; the holder just continues if nobody took it).
 * A save from an editor that no longer holds the lock is **refused on the server** (Gridbox shows “Not saved: this page is now being edited by …”), and that editor gets a red bar saying who took it over — unsaved changes stay in it to be copied. Nothing is overwritten.
 * Taking over: everybody who may edit (default), administrators only, or nobody. On by default, tab *Edit lock*. Layouts, headers and other templates of the editor are locked the same way.
+
+### 💾 Saving in the editor — a warning before closing it unsaved, and saves of its own
+
+Gridbox closes its editor without asking: a closed tab, a reload or a link clicked with changes not saved, and the work was gone. With MerTools the browser asks first whether to leave the page, and while there are changes not saved, the **Save** button has an orange dot. A change is the page differing from the page as last saved, as Gridbox's undo history has it (an undo back to the saved page is no change), or text typed in the editor's panels and in the page since the last save (a search box is not). A save counts only when Gridbox answers that it saved the page: one refused by the edit lock, for missing permission or for empty required fields keeps the changes as not saved, and a save only as a version leaves the page as it was. On by default.
+
+* **Save automatically every N minutes** (off by default): that many minutes after the first change not saved the editor saves the page as the Save button does, once nothing has been typed or clicked for a few seconds; Gridbox's notice then says *Saved automatically at 14:05*. Without changes nothing is saved. A save that does not go through is not tried again before the next change.
+* In Gridbox a save publishes the page, so a save of its own puts unfinished changes on the site; every save is also a step of the edit history (and a version of the page, with Gridbox's automatic versions on).
+* Tab *Saving in the editor*. It works in the editor of every page, product, post and template.
 
 ### 🕘 Edit history — who changed which page or product, and when
 

@@ -61,6 +61,7 @@ final class Catalog
         'dark'    => ['icon' => 'paint-brush',    'on' => ['dark_enabled']],
         'lists'   => ['icon' => 'list',           'on' => ['list_columns', 'list_ghosts', 'media_drop']],
         'lock'    => ['icon' => 'lock',           'on' => ['lock_enabled']],
+        'editor'  => ['icon' => 'save',           'on' => ['editor_unsaved_warn', 'editor_autosave']],
     ];
 
     /**

@@ -165,7 +165,7 @@ final class Shop extends Feature
         $currency = $this->plugin->storeCurrency();
         $cfg      = ['decimals' => (int) ($currency['decimals'] ?? 2), 'label' => Text::_('PLG_SYSTEM_MERTOOLS_DISCOUNT_LABEL'),
             'placeholder' => Text::_('PLG_SYSTEM_MERTOOLS_DISCOUNT_PLACEHOLDER'), 'hint' => Text::_('PLG_SYSTEM_MERTOOLS_DISCOUNT_HINT')];
-        $this->editorScript('discount', $cfg);
+        $this->plugin->editorScript('discount', $cfg);
     }
 
     /**
@@ -184,18 +184,7 @@ final class Shop extends Feature
             return;
         }
         $this->plugin->loadLanguage();
-        $this->editorScript('fold', ['hide' => Text::_('PLG_SYSTEM_MERTOOLS_FOLD_HIDE'), 'show' => Text::_('PLG_SYSTEM_MERTOOLS_FOLD_SHOW')]);
-    }
-
-    /** a script of the Gridbox editor (media/js/mertools-{name}.js) with its settings, put before </body> */
-    private function editorScript(string $name, array $cfg): void
-    {
-        $app  = $this->plugin->app();
-        $tail = '<script type="application/json" id="mertools-' . $name . '-config">' . json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP)
-            . '</script><script src="' . Uri::root(true) . '/media/plg_system_mertools/js/mertools-' . $name . (JDEBUG ? '' : '.min') . '.js?' . MerTools::VERSION . '" defer></script>';
-        $body = (string) $app->getBody();
-        $pos  = strripos($body, '</body>');
-        $app->setBody($pos === false ? $body . $tail : substr($body, 0, $pos) . $tail . substr($body, $pos));
+        $this->plugin->editorScript('fold', ['hide' => Text::_('PLG_SYSTEM_MERTOOLS_FOLD_HIDE'), 'show' => Text::_('PLG_SYSTEM_MERTOOLS_FOLD_SHOW')]);
     }
 
     /**

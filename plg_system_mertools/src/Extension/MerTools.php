@@ -51,6 +51,7 @@ use Merserwis\Plugin\System\MerTools\Feature\Carts;
 use Merserwis\Plugin\System\MerTools\Feature\Database;
 use Merserwis\Plugin\System\MerTools\Feature\EditHistory;
 use Merserwis\Plugin\System\MerTools\Feature\EditLocks;
+use Merserwis\Plugin\System\MerTools\Feature\EditorSave;
 use Merserwis\Plugin\System\MerTools\Feature\Feeds;
 use Merserwis\Plugin\System\MerTools\Feature\GridboxLists;
 use Merserwis\Plugin\System\MerTools\Feature\Hygiene;
@@ -79,7 +80,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.7.3';
+    public const VERSION = '1.7.4';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -210,6 +211,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if ($document && $document->getType() === 'html') {
             $this->shop()->discountScript();
             $this->shop()->foldScript();
+            $this->editorSave()->saveScript();
             $this->lists()->mediaDropScript();
         }
         $page = $document && $document->getType() === 'html' && !$this->inBuilder();
@@ -670,6 +672,17 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             : (string) $this->getApplication()->getInput()->get('obj', '', 'raw');
     }
 
+    /** a script of the Gridbox editor (media/js/mertools-{name}.js) with its settings, put before </body> */
+    public function editorScript(string $name, array $cfg): void
+    {
+        $app  = $this->getApplication();
+        $tail = '<script type="application/json" id="mertools-' . $name . '-config">' . json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP)
+            . '</script><script src="' . Uri::root(true) . '/media/plg_system_mertools/js/mertools-' . $name . (JDEBUG ? '' : '.min') . '.js?' . self::VERSION . '" defer></script>';
+        $body = (string) $app->getBody();
+        $pos  = strripos($body, '</body>');
+        $app->setBody($pos === false ? $body . $tail : substr($body, 0, $pos) . $tail . substr($body, $pos));
+    }
+
     // ---------------------------------------------------------------- the tools, one per setting tab
 
     public function feeds(): Feeds
@@ -690,6 +703,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     public function locks(): EditLocks
     {
         return $this->features[EditLocks::class] ??= new EditLocks($this);
+    }
+
+    public function editorSave(): EditorSave
+    {
+        return $this->features[EditorSave::class] ??= new EditorSave($this);
     }
 
     public function history(): EditHistory
