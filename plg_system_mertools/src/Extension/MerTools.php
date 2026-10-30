@@ -51,6 +51,7 @@ use Merserwis\Plugin\System\MerTools\Feature\Carts;
 use Merserwis\Plugin\System\MerTools\Feature\Database;
 use Merserwis\Plugin\System\MerTools\Feature\EditHistory;
 use Merserwis\Plugin\System\MerTools\Feature\EditLocks;
+use Merserwis\Plugin\System\MerTools\Feature\EditorImport;
 use Merserwis\Plugin\System\MerTools\Feature\EditorSave;
 use Merserwis\Plugin\System\MerTools\Feature\Feeds;
 use Merserwis\Plugin\System\MerTools\Feature\GridboxLists;
@@ -81,7 +82,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.7.5';
+    public const VERSION = '1.8.0';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -213,6 +214,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $this->shop()->discountScript();
             $this->shop()->foldScript();
             $this->editorSave()->saveScript();
+            $this->editorImport()->importScript();
             $this->lists()->mediaDropScript();
         }
         $page = $document && $document->getType() === 'html' && !$this->inBuilder();
@@ -712,6 +714,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     public function editorSave(): EditorSave
     {
         return $this->features[EditorSave::class] ??= new EditorSave($this);
+    }
+
+    public function editorImport(): EditorImport
+    {
+        return $this->features[EditorImport::class] ??= new EditorImport($this);
     }
 
     public function history(): EditHistory

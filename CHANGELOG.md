@@ -2,6 +2,20 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.8.0 — 2026-10-30
+
+### 📝 Blog — importing a Markdown document into a post
+
+In the editor of a blog post a new button **MD** sits next to the *Advanced Editor* switch. It asks for a Markdown file (`.md`) and puts the document into the post already divided into the modules Gridbox has:
+
+- every heading becomes a **Headline** whose tag is the level of the heading (`##` → `h2`, `###` → `h3`…), and everything between two headings becomes one **Text**;
+- the Markdown is made into formatting: **bold**, *italics*, ~~strike-through~~, `code`, links, images, lists (also inside each other, numbered, with tasks), quotes, code blocks, tables (with the alignment of the columns) and horizontal rules; line breaks and `\` escapes work as in Markdown, and so do links written as `[text][name]`;
+- a heading of the first level at the top of the document is the title of the post, which the layout shows by itself: it fills the *Title* field when that is empty and is not repeated as a module (a title already there is kept and the editor says so; the switch *First-level heading is the title of the post* turns it off);
+- the modules go to the end of the post, the empty text a new post begins with is replaced, and the whole import is one step of *Undo*; nothing is saved before *Save*;
+- HTML written in the document is shown as text and links with an address other than `http(s)`, `mailto`, `tel`, a relative address or `#` are left without the link, so a document cannot add anything that runs to the page; a file saved as Windows-1250 (Notepad's "ANSI") is read as well as UTF-8.
+
+Switch *Import a Markdown document into a post*: *Configuration → Blog*, on by default. The button is where Gridbox shows the *Advanced Editor* switch, that is in the desktop view of a blog post.
+
 ## 1.7.5 — 2026-10-30
 
 ### 🧱 Blog — an even grid of the lists of posts

@@ -52,7 +52,7 @@ final class Catalog
         'url'     => ['icon' => 'link',           'on' => ['url_collapse_slashes', 'url_sort_guard', 'url_pagination']],
         'hygiene' => ['icon' => 'filter',         'on' => ['hygiene_og_url', 'hygiene_cookies', 'hygiene_xss', 'hygiene_lang', 'hygiene_csp_mode']],
         'schema'  => ['icon' => 'code',           'on' => ['schema_on']],
-        'blog'    => ['icon' => 'rss',            'on' => ['feed_enabled', 'blog_jsonld', 'blog_grid']],
+        'blog'    => ['icon' => 'rss',            'on' => ['feed_enabled', 'blog_jsonld', 'blog_grid', 'blog_md_import']],
         'shop'    => ['icon' => 'cart',           'on' => ['shop_option_links', 'shop_discount_field', 'shop_field_fold', 'price_request', 'shop_jsonld'], 'store' => true],
         'speed'   => ['icon' => 'tachometer-alt', 'on' => ['speed_show', 'speed_icons', 'speed_mainphoto', 'speed_slideimg', 'speed_video', 'speed_popups', 'speed_scripts']],
         'layout'  => ['icon' => 'th-large',       'on' => ['layout_post_rows', 'layout_clip_x', 'list_hide_words']],
