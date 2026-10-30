@@ -5,10 +5,12 @@
  * everything between two headings, with the Markdown made into formatting: bold, italics, strike,
  * code, links, images, lists, quotes, code blocks, tables, rules.
  *
- * The first heading of the first level is the title of the post (the layout shows the title itself):
- * it fills the Title field when that is empty and is not a module of the post (a setting turns it off).
- * The modules go to the end of the column the post's texts are in; the empty text a new post begins
- * with is replaced. Raw HTML of the document is shown as text, never put into the page.
+ * No heading is a module of the first level: Gridbox shows the title of the post as the h1. A section of
+ * "Tytuł: / Adres (slug): / Opis meta: / Słowa kluczowe:" lines at the top (or a front matter) fills
+ * the fields Title, Alias, Intro text and Meta keywords, else the first # heading is the title. A new
+ * post (nothing in it but Gridbox's "click here and start typing") takes them over what is in the
+ * fields; a post with content only into empty fields. The modules go to the end of the column the
+ * post's texts are in, in place of that empty text. Raw HTML of the document is shown as text.
  *
  * The parser (MerToolsMarkdown.parse) has no part of the editor in it: tests/mdimport.test.js runs it.
  */
@@ -458,7 +460,11 @@
   const render = (node, refs) => {
     switch (node.type) {
       case 'p': return '<p>' + inline(node.text, refs) + '</p>';
-      case 'h': return '<h' + node.level + '>' + inline(node.text, refs) + '</h' + node.level + '>';
+      case 'h': {
+        const level = Math.max(2, node.level); // the title of the post is the one h1
+
+        return '<h' + level + '>' + inline(node.text, refs) + '</h' + level + '>';
+      }
       case 'hr': return '<hr>';
       case 'quote': return '<blockquote>' + node.children.map((c) => render(c, refs)).join('') + '</blockquote>';
       case 'code': return '<pre><code' + (node.lang ? ' class="language-' + esc(node.lang) + '"' : '') + '>' + esc(node.text) + '</code></pre>';
@@ -483,38 +489,111 @@
     }
   };
 
+  // the fields of the post a document can name at its top ("**Tytuł:** …", "Adres (slug): …") or in its front matter
+  const FIELDS = [
+    ['title', /^(?:meta |seo )?(?:tytuł|tytul|title)(?: (?:wpisu|artykułu|artykulu|strony|posta?))?$/],
+    ['alias', /^(?:adres(?: url| strony| wpisu)?|url|slug|alias|permalink)$/],
+    ['intro', /^(?:opis(?: meta)?|meta ?(?:opis|description)|description|wstęp|wstep|intro(?: ?text)?|lead|zajawka|excerpt|summary)$/],
+    ['keywords', /^(?:słowa kluczowe|slowa kluczowe|meta ?keywords|keywords)$/],
+  ];
+  const fieldOf = (label) => {
+    const key = label.replace(/\([^)]*\)/g, ' ').replace(/[_*`]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const found = FIELDS.find(([, re]) => re.test(key));
+
+    return found ? found[0] : null;
+  };
+  // "**Label:** value", "**Label**: value", "Label: value"
+  const META_LINE = /^ {0,3}(\*\*|__)?([^:*_\n][^:\n]{0,59}?)(?:(?::[ \t]*\1)|(?:\1[ \t]*:)):?[ \t]*(.*)$/;
+  const plainText = (md) => stripTags(inline(md, Object.create(null))).replace(/\s+/g, ' ').trim();
+  const slug = (value) => {
+    let v = value.replace(/[?#].*$/, '').replace(/\/+$/, '');
+    if (v.includes('/')) v = v.slice(v.lastIndexOf('/') + 1);
+
+    return v.replace(/\.html?$/i, '').trim().replace(/\s+/g, '-');
+  };
+
+  // the lines of label: value at the top of the document, when they are such a section, and the line after it
+  const metaSection = (lines) => {
+    const found = {};
+    let i = 0;
+    let count = 0;
+    let bold = false;
+    while (i < lines.length && BLANK.test(lines[i])) i++;
+    const start = i;
+    for (; i < lines.length; i++) {
+      if (BLANK.test(lines[i])) continue;
+      const m = META_LINE.exec(lines[i]);
+      if (!m || ATX.test(lines[i]) || ITEM.test(lines[i]) || QUOTE.test(lines[i]) || REF.test(lines[i])) break;
+      const field = fieldOf(m[2]);
+      // a label it does not know is of the section only in bold ("**Autor:** …"); "https://…" or "Uwaga: …" is text
+      if (!field && !m[1]) break;
+      if (field && !(field in found)) { found[field] = m[3]; count++; }
+      if (m[1]) bold = true;
+    }
+    while (i > start && BLANK.test(lines[i - 1])) i--;
+    let end = i;
+    while (end < lines.length && BLANK.test(lines[end])) end++;
+    const rule = end < lines.length && HR.test(lines[end]);
+    // a first paragraph that only begins with "Opis: …" is text, not a section of fields
+    if (!count || i === start || !(count >= 2 || bold || rule)) return null;
+
+    return { fields: found, next: rule ? end + 1 : i };
+  };
+
   /**
-   * The document as the modules of a post: {title, blocks: [{type: 'headline', level, text} | {type: 'text', html}]}.
-   * title is the text of a first heading of the first level at the top (which is then not in the blocks)
-   * when firstTitle is on, else of a "title:" of the front matter.
+   * The document as the modules of a post: {title, alias, intro, keywords, blocks: [{type: 'headline', level, text} |
+   * {type: 'text', html}]}. The fields come from a section of "label: value" lines at the top (Tytuł,
+   * Adres/slug, Opis meta/wstęp, Słowa kluczowe), else the front matter; the title else from the first
+   * heading of the first level. No heading is of the first level in the post (Gridbox shows the title as
+   * one): one at the top, or a first heading that repeats the title, is the title and is left out; any
+   * other is of the second level.
    */
-  const parse = (markdown, options = {}) => {
-    const firstTitle = options.firstTitle !== false;
+  const parse = (markdown) => {
     let text = String(markdown).replace(/^﻿/, '').replace(/\r\n?/g, '\n');
-    let title = '';
+    const fields = { title: '', alias: '', intro: '', keywords: '' };
     const front = /^---[ \t]*\n([\s\S]*?)\n(?:---|\.\.\.)[ \t]*(?:\n|$)/.exec(text);
     if (front) {
-      const t = /^title:[ \t]*(.+?)[ \t]*$/im.exec(front[1]);
-      if (t) title = t[1].replace(/^(["'])(.*)\1$/, '$2');
+      front[1].split('\n').forEach((line) => {
+        const m = /^([\p{L}_ -]+):[ \t]*(.+?)[ \t]*$/u.exec(line);
+        const field = m && fieldOf(m[1].replace(/_/g, ' '));
+        if (field && !fields[field]) fields[field] = m[2].replace(/^(["'])(.*)\1$/, '$2');
+      });
       text = text.slice(front[0].length);
     }
-    const lines = text.split('\n').map((l) => l.replace(/^\t+/, (tabs) => '    '.repeat(tabs.length)));
+    let lines = text.split('\n').map((l) => l.replace(/^\t+/, (tabs) => '    '.repeat(tabs.length)));
+    const meta = metaSection(lines);
+    if (meta) {
+      Object.keys(meta.fields).forEach((field) => { fields[field] = meta.fields[field]; });
+      lines = lines.slice(meta.next);
+    }
+    Object.keys(fields).forEach((field) => { fields[field] = plainText(fields[field]); });
+    if (fields.alias) fields.alias = slug(fields.alias);
     const refs = Object.create(null); // [constructor] is no reference
     const nodes = blocks(lines, refs);
     const out = [];
     let html = [];
+    let heading = false;
+    let h1 = '';
     const close = () => { if (html.length) out.push({ type: 'text', html: html.join('') }); html = []; };
+    const same = (a, b) => a.replace(/\s+/g, ' ').trim().toLowerCase() === b.replace(/\s+/g, ' ').trim().toLowerCase();
     nodes.forEach((node, k) => {
       if (node.type !== 'h') { html.push(render(node, refs)); return; }
       const label = stripTags(inline(node.text, refs)).trim();
-      if (firstTitle && k === 0 && node.level === 1 && label) { title = label; return; }
       if (!label) return;
+      // the title: the first heading, of the first level, when it says the title named above it, else when the
+      // document begins with it (a # heading that differs from the title named above it stays, of level 2)
+      if (node.level === 1 && !heading && (fields.title ? same(label, fields.title) : k === 0)) {
+        heading = true;
+        if (k === 0) h1 = label;
+        return;
+      }
+      heading = true;
       close();
-      out.push({ type: 'headline', level: node.level, text: label });
+      out.push({ type: 'headline', level: Math.max(2, node.level), text: label });
     });
     close();
 
-    return { title, blocks: out };
+    return { title: fields.title || h1, alias: fields.alias, intro: fields.intro, keywords: fields.keywords, blocks: out };
   };
 
   const api = { parse };
@@ -532,7 +611,10 @@
   if (!app || typeof app.checkModule !== 'function') return;
 
   const MAX = 2 * 1024 * 1024;
-  const PLACEHOLDER = 'Click Here And Start Typing';
+  // Gridbox's text of a new post (START_TYPING_HERE) in the languages it may have been made in
+  const norm = (text) => text.replace(/\s+/g, ' ').trim().toLowerCase();
+  const PLACEHOLDERS = new Set(['Click Here And Start Typing', 'Kliknij i zacznij pisać', 'Kliknij tutaj i zacznij pisać', ...(cfg.placeholders || [])].map(norm));
+  const FIELD_NAMES = { title: 'page_title', alias: 'page_alias', intro: 'intro_text', keywords: 'page_meta_keywords' };
   const notice = (message, bad) => { if (typeof app.showNotice === 'function') app.showNotice(message, bad ? 'ba-alert' : ''); };
   const say = (text, ...values) => values.reduce((s, v) => s.replace(/%[ds]/, v), text);
 
@@ -575,9 +657,9 @@
   const emptyText = (el) => {
     const content = el.querySelector('.content-text');
     if (!content) return false;
-    const text = content.textContent.replace(/\s+/g, ' ').trim();
+    const text = norm(content.textContent);
 
-    return (text === '' || text === PLACEHOLDER) && !content.querySelector('img, iframe, table, hr, video');
+    return (text === '' || PLACEHOLDERS.has(text)) && !content.querySelector('img, iframe, table, hr, video');
   };
 
   // the column the texts of the post are in: where its modules go
@@ -614,19 +696,22 @@
     if (file.size > MAX) { notice(say(cfg.texts.large, Math.round(MAX / 1048576)), true); return; }
     let result;
     try {
-      result = parse(await read(file), { firstTitle: cfg.firstTitle });
+      result = parse(await read(file));
     } catch (e) {
       notice(cfg.texts.fail, true);
 
       return;
     }
-    if (!result.blocks.length && !result.title) { notice(cfg.texts.empty, true); return; }
+    const given = Object.keys(FIELD_NAMES).filter((field) => result[field]);
+    if (!result.blocks.length && !given.length) { notice(cfg.texts.empty, true); return; }
     const column = target(w.document);
     if (!column) { notice(cfg.texts.fail, true); return; }
 
     busy = overlay();
     w.app.copyAction = null; // a module added from a text of the post would go after that text
     const old = [...column.querySelectorAll(':scope > .ba-item-text')].filter(emptyText);
+    // a new post: nothing in all of it (any column, any section) but the empty text Gridbox begins a post with
+    const fresh = [...w.document.querySelectorAll('#ba-edit-section .ba-item')].every((el) => old.includes(el));
     const items = () => [...column.querySelectorAll(':scope > .ba-item')].map((el) => el.id);
     const known = new Set(items());
     const base = app.hIndex;
@@ -642,9 +727,7 @@
           w.app.checkModule('loadPlugin', { data: plugin, selector: 0 });
           key = await until(() => items().find((id) => !known.has(id)), 15000);
           await sleep(500);
-          if (app.$g && app.cp && typeof app.cp.inPosition === 'function' && app.cp.inPosition()) {
-            app.$g('.ba-modal-cp.draggable-modal-cp.in:not(#page-structure-dialog)').modal('hide');
-          }
+          if (typeof window.$g === 'function') window.$g('.ba-modal-cp.draggable-modal-cp.in:not(#page-structure-dialog)').modal('hide');
         } else {
           key = await w.app.pluginLoader.load(w.$g(column), plugin, 0);
         }
@@ -657,19 +740,23 @@
       busy.remove();
       busy = null;
     }
-    // the title is the document's own, also when there is nothing else in it
-    let said = '';
-    const field = document.querySelector('input.page-title');
-    if (result.title && field && (done || !result.blocks.length)) {
-      if (field.value.trim() === '') {
-        field.value = result.title;
-        field.dispatchEvent(new Event('input', { bubbles: true }));
-        field.dispatchEvent(new Event('change', { bubbles: true }));
-        said = say(cfg.texts.titled, result.title);
-      } else if (field.value.trim() !== result.title) {
-        said = say(cfg.texts.kept, result.title);
-      }
+    // the fields of the post (the panel and the settings window have one each: Gridbox saves the window's)
+    const filled = [];
+    const kept = [];
+    if (done || !result.blocks.length) {
+      given.forEach((field) => {
+        const els = [...document.querySelectorAll('.page-settings-input-trigger[name="' + FIELD_NAMES[field] + '"]')];
+        if (!els.length) return;
+        const now = els[0].value.trim();
+        if (now === result[field]) return;
+        if (!fresh && now !== '') { kept.push(cfg.texts.names[field]); return; }
+        els.forEach((el) => { el.value = result[field]; });
+        els[0].dispatchEvent(new Event('input', { bubbles: true }));
+        filled.push(cfg.texts.names[field]);
+      });
     }
+    const said = [filled.length ? say(cfg.texts.filled, filled.join(', ')) : '', kept.length ? say(cfg.texts.kept, kept.join(', ')) : '']
+      .filter(Boolean).join(' ');
     if (!done) {
       if (!result.blocks.length) notice(said || cfg.texts.empty, !said);
       return;

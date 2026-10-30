@@ -2,6 +2,19 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.8.1 — 2026-10-30
+
+### 📝 Blog — the fields of the post from the Markdown document, no h1 in the post
+
+- **Title, alias, intro text from the document.** Lines at its top — `**Tytuł:**`, `**Adres (slug):**`, `**Opis meta:**`, `**Słowa kluczowe:**` (also *Title*, *Slug*, *URL*, *Description*, *Intro*, *Keywords*, plain or in bold, with a note in brackets, and the same keys in a front matter) — fill the fields *Title*, *Alias*, *Intro text* and *Meta keywords*, and are not part of the post, nor is the rule `---` under them. An address as the alias gives its last part. In a new post they replace the title and alias of the *New Page* window; in a post with content they go only into empty fields, and the editor says which were left.
+- **No `h1` in the post.** Gridbox shows the title of the post as the `h1` of the page: a `# heading` that is the title (the one the document begins with, or one repeating the title named above it) is left out, any other `#` heading becomes a Headline `h2`, and a `#` heading inside a quote is `h2` too. The switch *First-level heading is the title of the post* is gone: it is how it always works.
+- **The empty first text of a new post is removed in every language**: Gridbox writes it in the language of the editor (*Kliknij i zacznij pisać* on a Polish site); before, only the English *Click Here And Start Typing* was recognised.
+- A document that starts with a heading no longer leaves the settings of that Headline open.
+
+### 🏷️ SEO fields filled in by themselves
+
+A new switch *Fill empty SEO fields* in *Configuration → In the editor* (the tab *Saving in the editor* renamed), off by default. When the editor of a page or blog post opens (or, as set, of blog posts only, or of every page, post and product), its empty fields *Browser page title*, *Meta description*, sharing title and sharing description get the text set for them — as a rule Gridbox's data tags, which Gridbox replaces with the values of the page on the site; by default `[Page Title] | [Site Name]` and `[Intro Text]`. A field with anything in it is left as it is; the text is saved with the page at the next *Save*. Meta keywords are not among them: Gridbox does not replace data tags there.
+
 ## 1.8.0 — 2026-10-30
 
 ### 📝 Blog — importing a Markdown document into a post

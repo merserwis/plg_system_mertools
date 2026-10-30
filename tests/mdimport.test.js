@@ -24,17 +24,18 @@ check('headlines and the texts between them', r.blocks, [
   { type: 'headline', level: 3, text: 'Two' },
   { type: 'text', html: '<ul><li>a</li><li>b</li></ul>' },
 ]);
-r = parse('# Title\n\nText', { firstTitle: false });
-check('firstTitle off: the # heading is a headline', r.blocks[0], { type: 'headline', level: 1, text: 'Title' });
-check('firstTitle off: no title', r.title, '');
-r = parse('Text first\n\n# Late\n');
-check('a # heading after a text is a headline, not the title', [r.title, r.blocks[1]], ['', { type: 'headline', level: 1, text: 'Late' }]);
+r = parse('Text first\n\n# Late\n\nMore');
+check('a # heading after a text is no title, a headline of level 2', [r.title, r.blocks[1]], ['', { type: 'headline', level: 2, text: 'Late' }]);
+r = parse('# Title\n\nA\n\n# Part two\n\nB');
+check('a second # heading is a headline of level 2', r.blocks[1], { type: 'headline', level: 2, text: 'Part two' });
 r = parse('---\ntitle: "From the front matter"\nauthor: x\n---\n\n## Section\n\nBody\n');
 check('front matter: title taken, block removed', [r.title, r.blocks.length, r.blocks[0].text], ['From the front matter', 2, 'Section']);
-r = parse('---\ntitle: Front\n---\n# Heading\n\nBody');
-check('the # heading wins over the front matter title', r.title, 'Heading');
-check('setext headings', html('Big\n===\n\nSmall\n---\n\ntext'), '[h1:Big]|[h2:Small]|<p>text</p>');
-check('all six levels', html('# a\n## b\n### c\n#### d\n##### e\n###### f').split('|').length, 6);
+r = parse('---\ntitle: Front\nslug: /blog/my-post.html\ndescription: "The lead."\nkeywords: a, b\n---\n# Heading\n\nBody');
+check('front matter: title, alias, intro, keywords; a # heading other than the title is of level 2', [r.title, r.alias, r.intro, r.keywords, r.blocks],
+  ['Front', 'my-post', 'The lead.', 'a, b', [{ type: 'headline', level: 2, text: 'Heading' }, { type: 'text', html: '<p>Body</p>' }]]);
+check('setext headings (the first # one is the title)', [parse('Big\n===\n\nSmall\n---\n\ntext').title, html('Big\n===\n\nSmall\n---\n\ntext')], ['Big', '[h2:Small]|<p>text</p>']);
+check('levels 2 to 6 stay, # at the top is the title', html('# a\n## b\n### c\n#### d\n##### e\n###### f'), '[h2:b]|[h3:c]|[h4:d]|[h5:e]|[h6:f]');
+check('no h1 inside a text either (a quote)', html('x\n\n> # quoted'), '<p>x</p><blockquote><h2>quoted</h2></blockquote>');
 check('#hashtag is no heading', html('#hashtag'), '<p>#hashtag</p>');
 check('closing #s of a heading are dropped', html('## Title ##'), '[h2:Title]');
 check('formatting in a heading is the text of the headline', html('## A **bold** and `code` [link](http://x.pl)'), '[h2:A bold and code link]');
@@ -43,6 +44,43 @@ check('empty document', parse('').blocks, []);
 check('only blank lines', parse('\n\n  \n').blocks, []);
 check('CRLF and a BOM', html('﻿## A\r\n\r\nB\r\nC'), '[h2:A]|<p>B\nC</p>');
 check('a heading in a code block is no heading', html('```\n# not\n```'), '<pre><code># not</code></pre>');
+
+// ---- the fields of the post at the top of the document
+const SAMPLE = '**Tytuł:** Szukasz, filtrujesz, zamawiasz. Co zmieniło się na merserwis.pl\n'
+  + '**Adres (slug):** nowosci-na-stronie-wyszukiwarka-filtry-szybkosc\n'
+  + '**Opis meta (do 155 znaków):** Nowa wyszukiwarka z podpowiedziami i głosem, filtry po parametrach technicznych. Sprawdź, co zmieniło się.\n'
+  + '\n---\n\n# Szukasz, filtrujesz, zamawiasz. Co zmieniło się na merserwis.pl\n\nNasi klienci rzadko mają czas.\n\n## Wyszukiwarka\n\n- **Wybacza literówki.** tak\n';
+r = parse(SAMPLE);
+check('the section: title, alias, intro', [r.title, r.alias, r.intro], ['Szukasz, filtrujesz, zamawiasz. Co zmieniło się na merserwis.pl',
+  'nowosci-na-stronie-wyszukiwarka-filtry-szybkosc', 'Nowa wyszukiwarka z podpowiedziami i głosem, filtry po parametrach technicznych. Sprawdź, co zmieniło się.']);
+check('the section, its rule and the # heading that repeats the title are not in the post', r.blocks, [
+  { type: 'text', html: '<p>Nasi klienci rzadko mają czas.</p>' },
+  { type: 'headline', level: 2, text: 'Wyszukiwarka' },
+  { type: 'text', html: '<ul><li><strong>Wybacza literówki.</strong> tak</li></ul>' },
+]);
+r = parse('Title: An English one\nSlug: https://x.pl/blog/an-english-one?x=1\nMeta description: *The* lead\nKeywords: a, b\n\nBody');
+check('plain labels in English, an address as the alias, formatting out of the intro', [r.title, r.alias, r.intro, r.keywords, r.blocks.length],
+  ['An English one', 'an-english-one', 'The lead', 'a, b', 1]);
+r = parse('**Tytuł**: Jeden\n**Wstęp**: Krótko.\n\nTreść');
+check('"**Label**: value" too', [r.title, r.intro, html('**Tytuł**: Jeden\n**Wstęp**: Krótko.\n\nTreść')], ['Jeden', 'Krótko.', '<p>Treść</p>']);
+r = parse('Opis: tak zaczyna się zwykły akapit.\n\nDalej.');
+check('one plain "Opis:" line is a paragraph, not the section', [r.intro, r.blocks[0].html], ['', '<p>Opis: tak zaczyna się zwykły akapit.</p><p>Dalej.</p>']);
+r = parse('Opis: jeden wiersz\n\n---\n\nTekst');
+check('…but with a rule under it, it is the section', [r.intro, html('Opis: jeden wiersz\n\n---\n\nTekst')], ['jeden wiersz', '<p>Tekst</p>']);
+r = parse('**Autor:** Jan\n**Tytuł:** T\n\nTekst');
+check('a label it does not know is left out with the section', [r.title, html('**Autor:** Jan\n**Tytuł:** T\n\nTekst')], ['T', '<p>Tekst</p>']);
+r = parse('Uwaga: to ważne\nNastępny wiersz\n\nTekst');
+check('a paragraph with a colon in its first line is text', [r.title, r.intro, r.blocks[0].html.startsWith('<p>Uwaga')], ['', '', true]);
+r = parse('**Tytuł:** Inny niż nagłówek\n\n# Nagłówek\n\nTekst');
+check('a # heading that is not the title named above it is a headline of level 2', r.blocks[0], { type: 'headline', level: 2, text: 'Nagłówek' });
+check('only the section: no modules, the fields', [parse('**Tytuł:** T\n**Adres:** t').blocks, parse('**Tytuł:** T\n**Adres:** t').alias], [[], 't']);
+
+check('a link line under the section stays in the post', html('**Title:** A\n\nhttps://example.com\n\nBody'), '<p><a href="https://example.com">https://example.com</a></p><p>Body</p>');
+check('a reference definition under the section still works', html('**Tytuł:** A\n\n[r]: https://x.pl\n\n[link][r]'), '<p><a href="https://x.pl">link</a></p>');
+check('a plain "Uwaga:" line under the section stays', [parse('**Tytuł:** A\nUwaga: ważne\n\nB').title, html('**Tytuł:** A\nUwaga: ważne\n\nB')], ['A', '<p>Uwaga: ważne</p><p>B</p>']);
+check('blank lines between the lines of the section', [parse('**Tytuł:** A\n\n**Adres:** a\n\nTekst').alias, html('**Tytuł:** A\n\n**Adres:** a\n\nTekst')], ['a', '<p>Tekst</p>']);
+r = parse('---\nTytuł: T\nWstęp: W\nSłowa kluczowe: k\nAdres: /blog/t\n---\nBody');
+check('Polish keys of a front matter', [r.title, r.intro, r.keywords, r.alias], ['T', 'W', 'k', 't']);
 
 // ---- inline formatting
 check('bold with ** and __', inline('**a** and __b__'), '<strong>a</strong> and <strong>b</strong>');

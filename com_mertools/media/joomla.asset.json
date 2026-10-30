@@ -1,7 +1,7 @@
 {
   "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
   "name": "com_mertools",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "MerTools for Gridbox: the control panel, the pages of the tools and the quick setup",
   "license": "GPL-3.0-or-later",
   "assets": [

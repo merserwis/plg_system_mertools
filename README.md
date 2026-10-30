@@ -14,7 +14,7 @@ Everything is under **Components → MerTools for Gridbox**, laid out like Akeeb
 
 - **Control Panel** — the tools as tiles in sections (*Speed*, *Search engines*, *Shop* — only with a Gridbox store —, *Gridbox in the administrator*, *Configuration*), each with a dot that says whether it is on; on the side the state of MerTools, shortcuts (quick setup, configuration, clear the cache, open Gridbox) and the reminder to check the site.
 - **The sidebar menu** opens the tools used day to day: *Page Cache*, *Images*, *Sitemap*, *404 Pages*, *Edit History*; the cog beside each opens its settings. A tool's page starts with its *Overview* (what it did, its buttons), its settings follow in the next tabs.
-- **Configuration** — what is set once and forgotten, one page with a vertical tab per tool: *Addresses (URL)*, *Site hygiene*, *Structured data*, *Blog*, *Shop*, *First view*, *Page layout*, *Tabs*, *Phone numbers*, *Dark mode*, *Lists in the administrator*, *Edit lock*, *Saving in the editor*.
+- **Configuration** — what is set once and forgotten, one page with a vertical tab per tool: *Addresses (URL)*, *Site hygiene*, *Structured data*, *Blog*, *Shop*, *First view*, *Page layout*, *Tabs*, *Phone numbers*, *Dark mode*, *Lists in the administrator*, *Edit lock*, *In the editor*.
 - **Quick Setup** — 15 switches with the main tools, each marked *recommended* or *optional*; *Turn on the recommended* switches on the recommended ones and leaves the optional ones as they are, and only the switches you change are saved. A fresh install offers it first.
 
 The settings are still the parameters of the plugin, so nothing changes for the site itself; opening the plugin in Joomla's plugin manager leads to the control panel (the plugin's own form, with every setting at once, opens only when the component is disabled).
@@ -37,7 +37,7 @@ The settings are still the parameters of the plugin, so nothing changes for the 
 | Tidy up old carts | *Carts* |
 | Gridbox lists (columns, editing in the list, media) | *Configuration → Lists in the administrator* |
 | Edit lock | *Configuration → Edit lock* |
-| Warning before closing the editor unsaved, automatic save | *Configuration → Saving in the editor* |
+| Warning before closing the editor unsaved, automatic save, SEO fields filled in | *Configuration → In the editor* |
 | Edit history | *Edit History* |
 | Apps protection and backups | *Gridbox Apps* |
 | Indexes of Gridbox tables, “<” in introductions | *Database* |
@@ -175,7 +175,19 @@ Gridbox's masonry gives every card of a list of posts the height of its own cont
 
 ### 📝 Blog — importing a Markdown document into a post
 
-The button **MD** next to the *Advanced Editor* switch in the editor of a blog post asks for a Markdown file (`.md`) and puts it into the post divided into the modules Gridbox has: a **Headline** for every heading (its level is the tag of the module) and a **Text** for everything between two headings, with the Markdown made into formatting — bold, italics, strike-through, code, links, images, lists, quotes, code blocks, tables and rules. A heading of the first level at the top (`# Title`) is the title of the post: it fills the *Title* field when that is empty and is not repeated in the post (the switch *First-level heading is the title of the post*, *Configuration → Blog*). The modules go to the end of the post, the empty text of a new post is replaced, *Undo* takes the whole import back and nothing is saved before *Save*. HTML in the document is shown as text, never added to the page.
+The button **MD** next to the *Advanced Editor* switch in the editor of a blog post asks for a Markdown file (`.md`) and puts it into the post divided into the modules Gridbox has: a **Headline** for every heading (its level is the tag of the module) and a **Text** for everything between two headings, with the Markdown made into formatting — bold, italics, strike-through, code, links, images, lists, quotes, code blocks, tables and rules. No module is an `h1`: Gridbox shows the title of the post as the `h1` of the page, so a `# heading` that is the title is left out and any other one becomes `h2`.
+
+Lines at the top of the document fill the fields of the post — the way an article written for the site begins:
+
+```
+**Tytuł:** Szukasz, filtrujesz, zamawiasz. Co zmieniło się na merserwis.pl
+**Adres (slug):** nowosci-na-stronie-wyszukiwarka-filtry-szybkosc
+**Opis meta (do 155 znaków):** Nowa wyszukiwarka z podpowiedziami…
+
+---
+```
+
+*Tytuł / Title* → Title, *Adres / URL / Slug / Alias* → Alias (an address gives its last part), *Opis meta / Wstęp / Description / Intro* → Intro text, *Słowa kluczowe / Keywords* → Meta keywords; the same keys work in a front matter. Without them the `# heading` the document begins with is the title. A new post — nothing in it but Gridbox's *click here and start typing* — takes them in place of the title and alias of the *New Page* window, and that empty text is removed; a post with content gets them only in its empty fields. The modules go to the end of the post, *Undo* takes them back in one step and nothing is saved before *Save*. HTML in the document is shown as text, never added to the page.
 
 ### 📰 Blog feeds — RSS and Atom
 
@@ -239,7 +251,11 @@ Gridbox closes its editor without asking: a closed tab, a reload or a link click
 
 * **Save automatically every N minutes** (off by default): that many minutes after the first change not saved the editor saves the page as the Save button does, once nothing has been typed or clicked for a few seconds; Gridbox's notice then says *Saved automatically at 14:05*. Without changes nothing is saved. A save that does not go through is not tried again before the next change.
 * In Gridbox a save publishes the page, so a save of its own puts unfinished changes on the site; every save is also a step of the edit history (and a version of the page, with Gridbox's automatic versions on).
-* Tab *Saving in the editor*. It works in the editor of every page, product, post and template.
+* Tab *In the editor*. It works in the editor of every page, product, post and template.
+
+### 🏷️ SEO fields filled in by themselves
+
+With **Fill empty SEO fields** (*Configuration → In the editor*, off by default) the editor of a page or blog post (or of every page, post and product) puts a text set once into the SEO and sharing fields that are empty when it opens — as a rule Gridbox's data tags, which Gridbox replaces with the page's own values on the site: browser page title `[Page Title] | [Site Name]`, meta description `[Intro Text]` (the defaults), sharing title and description. A field with anything in it is left as it is; the text is saved with the page at the next *Save* and can be changed there for one page. Meta keywords are not among them: Gridbox does not replace data tags in them.
 
 ### 🕘 Edit history — who changed which page or product, and when
 
