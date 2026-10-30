@@ -2,6 +2,15 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.7.5 — 2026-10-30
+
+### 🧱 Blog — an even grid of the lists of posts
+
+Gridbox puts the posts of a list (a category, a tag, an author) in a masonry: every card has the height of its own content, so a post with no image, a shorter title or a shorter intro lifts everything below it and the cards stand at different heights. A new switch **Even grid of the lists of posts** (*Configuration → Blog*, off by default):
+
+- every row of the list is as high as its highest post, and the cards of a row start and end on the same lines — as the lists of products in Better Categories;
+- the number of columns, the gaps and the look of a card stay as set in Gridbox (the Blog posts element); switching it off brings the masonry back.
+
 ## 1.7.4 — 2026-10-30
 
 ### 💾 Saving in the editor

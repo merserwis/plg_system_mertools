@@ -62,6 +62,7 @@ use Merserwis\Plugin\System\MerTools\Feature\Shop;
 use Merserwis\Plugin\System\MerTools\Feature\Sitemaps;
 use Merserwis\Plugin\System\MerTools\Feature\SiteSchema;
 use Merserwis\Plugin\System\MerTools\Tool\ArticleSchema;
+use Merserwis\Plugin\System\MerTools\Tool\BlogGrid;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\Feed;
 use Merserwis\Plugin\System\MerTools\Tool\IntroText;
@@ -80,7 +81,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.7.4';
+    public const VERSION = '1.7.5';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -289,6 +290,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $wa = $document->getWebAssetManager();
         if ((int) $this->params->get('layout_clip_x', 1)) {
             $document->addStyleDeclaration(Layout::css());
+        }
+        if (BlogGrid::enabled($this->params)) {
+            $document->addStyleDeclaration(BlogGrid::css());
         }
         if (Tabs::enabled($this->params)) {
             $this->loadLanguage();

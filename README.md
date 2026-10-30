@@ -31,7 +31,7 @@ The settings are still the parameters of the plugin, so nothing changes for the 
 | Canonical URL, guard of the sorting, pages of the lists | *Configuration → Addresses (URL)* |
 | Site hygiene, Content-Security-Policy | *Configuration → Site hygiene* |
 | Structured data of the site | *Configuration → Structured data* |
-| Blog feeds, article data | *Configuration → Blog* |
+| Blog feeds, article data, even grid of the lists of posts | *Configuration → Blog* |
 | Product option links, discount %, price on request, product data | *Configuration → Shop* |
 | Omnibus | *Omnibus* |
 | Tidy up old carts | *Carts* |
@@ -168,6 +168,10 @@ Gridbox writes the publishing date of a post's schema in words of the site's lan
 - the language, the introduction (or meta description) as the description, the intro image; other keys of the post's block are kept, other blocks (FAQ) are not touched.
 
 On a copy of merserwis.pl, 344 posts had one valid BlogPosting each, the two broken ones included.
+
+### 🧱 Blog — an even grid of the lists of posts
+
+Gridbox's masonry gives every card of a list of posts the height of its own content, so a post with no image, a shorter title or a shorter intro lifts everything below it. With the switch **Even grid of the lists of posts** (*Configuration → Blog*, off by default) every row is as high as its highest post and the cards of a row start and end on the same lines; the columns, gaps and look of a card stay Gridbox's.
 
 ### 📰 Blog feeds — RSS and Atom
 
