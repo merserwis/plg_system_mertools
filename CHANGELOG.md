@@ -2,6 +2,18 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.8.2 — 2026-11-02
+
+### 🏷️ Default texts of the SEO fields, separately for pages, blog posts and products
+
+*Fill empty SEO fields* (*Configuration → In the editor*) had one set of texts for everything. Now **pages, blog posts and products each have their own set**, so a new article or product starts with its fields already filled instead of being typed again or copied from another page:
+
+- three groups of fields in the settings: *Pages (not of an app)*, *Blog posts*, *Products* — each with *Browser page title*, *Meta description*, *Meta keywords*, *Sharing: title* and *Sharing: description*;
+- a text is Gridbox's data tags (`[Page Title] | [Site Name]`, `[Intro Text]`, `[Category Title]`, `[Author]`…) or any other text you type; a field left empty in the settings is left alone in the editor, and so is a group with nothing in it;
+- *Meta keywords* are new: they go in as plain text (comma-separated), because Gridbox does not replace data tags there;
+- a field that already has something in it is never changed; the texts are saved with the page at the next *Save* and can be changed there for one page;
+- the choice *In the editor of* (pages and blog posts / blog posts only / all) is gone: it is now decided by which group has texts. The texts typed in 1.8.1 have to be typed again in their group. Posts of other apps (a booking app, for one) are left as they are.
+
 ## 1.8.1 — 2026-10-30
 
 ### 📝 Blog — the fields of the post from the Markdown document, no h1 in the post

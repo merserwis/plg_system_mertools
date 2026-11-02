@@ -20,11 +20,20 @@ use Joomla\Database\ParameterType;
 final class EditorFields extends Feature
 {
     /** setting => the name of the field in the editor (Gridbox replaces data tags in these four, not in the keywords) */
+    /** Where the texts are set: the group of the settings => the app types of Gridbox it means ('' is a page of no app). */
+    public const GROUPS = [
+        'pages'    => ['', 'single'],
+        'blog'     => ['blog'],
+        'products' => ['products'],
+    ];
+
+    /** The end of the setting's name => the name of the field in the Gridbox editor. */
     public const FIELDS = [
-        'editor_fill_meta_title'        => 'page_meta_title',
-        'editor_fill_meta_description'  => 'page_meta_description',
-        'editor_fill_share_title'       => 'share_title',
-        'editor_fill_share_description' => 'share_description',
+        'meta_title'        => 'page_meta_title',
+        'meta_description'  => 'page_meta_description',
+        'meta_keywords'     => 'page_meta_keywords',
+        'share_title'       => 'share_title',
+        'share_description' => 'share_description',
     ];
 
     public function enabled(): bool
@@ -32,12 +41,12 @@ final class EditorFields extends Feature
         return (bool) (int) $this->plugin->params->get('editor_fill', 0);
     }
 
-    /** the texts to put in, by the name of the field: the ones set, and none longer than the field takes */
-    public function texts(): array
+    /** The texts of one group (settings editor_fill_<group>_<field>) by the name of the field; fields with no text are left out. */
+    public function texts(string $group): array
     {
         $texts = [];
-        foreach (self::FIELDS as $setting => $name) {
-            $text = trim((string) $this->plugin->params->get($setting, ''));
+        foreach (self::FIELDS as $suffix => $name) {
+            $text = trim((string) $this->plugin->params->get('editor_fill_' . $group . '_' . $suffix, ''));
             if ($text !== '') {
                 $texts[$name] = mb_substr($text, 0, 300);
             }
@@ -46,19 +55,18 @@ final class EditorFields extends Feature
         return $texts;
     }
 
-    /** whether a page of an app of this type is one the setting means: pages and blog posts, blog posts only, or all */
-    public static function covers(string $where, string $type): bool
+    /** The group of settings that means a page of this app type (null: none does, e.g. a post of a booking app). */
+    public static function group(string $type): ?string
     {
-        $page = $type === '' || $type === 'single';
+        foreach (self::GROUPS as $group => $types) {
+            if (\in_array($type, $types, true)) {
+                return $group;
+            }
+        }
 
-        return match ($where) {
-            'blog'  => $type === 'blog',
-            'all'   => true,
-            default => $page || $type === 'blog',
-        };
+        return null;
     }
 
-    /** the app type of the page found: '' for a page of no app (app_id 0, nothing to join), null when there is no such page */
     public static function pageType(?object $row): ?string
     {
         return $row === null ? null : (string) ($row->type ?? '');
@@ -74,7 +82,7 @@ final class EditorFields extends Feature
             return;
         }
         $user = $app->getIdentity();
-        if (!$user || $user->guest || !($texts = $this->texts())) {
+        if (!$user || $user->guest) {
             return;
         }
         try {
@@ -89,7 +97,8 @@ final class EditorFields extends Feature
         } catch (\Throwable $e) {
             return;
         }
-        if ($type === null || !self::covers((string) $this->plugin->params->get('editor_fill_where', 'pages_blog'), $type)) {
+        $group = $type === null ? null : self::group($type);
+        if ($group === null || !($texts = $this->texts($group))) {
             return;
         }
         $this->plugin->editorScript('fields', ['fields' => $texts]);

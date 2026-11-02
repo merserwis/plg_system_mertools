@@ -6,7 +6,7 @@
     <creationDate>2026-10-28</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.8.1</version>
+    <version>1.8.2</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -1057,19 +1057,38 @@
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
-                <field name="editor_fill_where" type="list" default="pages_blog" showon="editor_fill:1"
-                    label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_WHERE_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_WHERE_DESC">
-                    <option value="pages_blog">PLG_SYSTEM_MERTOOLS_EDITOR_FILL_WHERE_PAGES_BLOG</option>
-                    <option value="blog">PLG_SYSTEM_MERTOOLS_EDITOR_FILL_WHERE_BLOG</option>
-                    <option value="all">PLG_SYSTEM_MERTOOLS_EDITOR_FILL_WHERE_ALL</option>
-                </field>
-                <field name="editor_fill_meta_title" type="text" default="[Page Title] | [Site Name]" filter="string" maxlength="300" showon="editor_fill:1"
+                <field name="editor_fill_sp_pages" type="spacer" label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_SP_PAGES" showon="editor_fill:1" />
+                <field name="editor_fill_pages_meta_title" type="text" default="[Page Title] | [Site Name]" filter="string" maxlength="300" showon="editor_fill:1"
                     label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_META_TITLE_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_FIELD_DESC" />
-                <field name="editor_fill_meta_description" type="text" default="[Intro Text]" filter="string" maxlength="300" showon="editor_fill:1"
+                <field name="editor_fill_pages_meta_description" type="text" default="[Intro Text]" filter="string" maxlength="300" showon="editor_fill:1"
                     label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_META_DESCRIPTION_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_FIELD_DESC" />
-                <field name="editor_fill_share_title" type="text" default="" filter="string" maxlength="300" showon="editor_fill:1"
+                <field name="editor_fill_pages_meta_keywords" type="text" default="" filter="string" maxlength="300" showon="editor_fill:1"
+                    label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_META_KEYWORDS_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_KEYWORDS_DESC" />
+                <field name="editor_fill_pages_share_title" type="text" default="" filter="string" maxlength="300" showon="editor_fill:1"
                     label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_SHARE_TITLE_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_FIELD_DESC" />
-                <field name="editor_fill_share_description" type="text" default="" filter="string" maxlength="300" showon="editor_fill:1"
+                <field name="editor_fill_pages_share_description" type="text" default="" filter="string" maxlength="300" showon="editor_fill:1"
+                    label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_SHARE_DESCRIPTION_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_FIELD_DESC" />
+                <field name="editor_fill_sp_blog" type="spacer" label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_SP_BLOG" showon="editor_fill:1" />
+                <field name="editor_fill_blog_meta_title" type="text" default="[Page Title] | [Site Name]" filter="string" maxlength="300" showon="editor_fill:1"
+                    label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_META_TITLE_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_FIELD_DESC" />
+                <field name="editor_fill_blog_meta_description" type="text" default="[Intro Text]" filter="string" maxlength="300" showon="editor_fill:1"
+                    label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_META_DESCRIPTION_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_FIELD_DESC" />
+                <field name="editor_fill_blog_meta_keywords" type="text" default="" filter="string" maxlength="300" showon="editor_fill:1"
+                    label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_META_KEYWORDS_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_KEYWORDS_DESC" />
+                <field name="editor_fill_blog_share_title" type="text" default="" filter="string" maxlength="300" showon="editor_fill:1"
+                    label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_SHARE_TITLE_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_FIELD_DESC" />
+                <field name="editor_fill_blog_share_description" type="text" default="" filter="string" maxlength="300" showon="editor_fill:1"
+                    label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_SHARE_DESCRIPTION_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_FIELD_DESC" />
+                <field name="editor_fill_sp_products" type="spacer" label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_SP_PRODUCTS" showon="editor_fill:1" />
+                <field name="editor_fill_products_meta_title" type="text" default="[Page Title] | [Site Name]" filter="string" maxlength="300" showon="editor_fill:1"
+                    label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_META_TITLE_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_FIELD_DESC" />
+                <field name="editor_fill_products_meta_description" type="text" default="[Intro Text]" filter="string" maxlength="300" showon="editor_fill:1"
+                    label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_META_DESCRIPTION_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_FIELD_DESC" />
+                <field name="editor_fill_products_meta_keywords" type="text" default="" filter="string" maxlength="300" showon="editor_fill:1"
+                    label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_META_KEYWORDS_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_KEYWORDS_DESC" />
+                <field name="editor_fill_products_share_title" type="text" default="" filter="string" maxlength="300" showon="editor_fill:1"
+                    label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_SHARE_TITLE_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_FIELD_DESC" />
+                <field name="editor_fill_products_share_description" type="text" default="" filter="string" maxlength="300" showon="editor_fill:1"
                     label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_SHARE_DESCRIPTION_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_FIELD_DESC" />
             </fieldset>
         </fields>

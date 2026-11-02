@@ -255,7 +255,7 @@ Gridbox closes its editor without asking: a closed tab, a reload or a link click
 
 ### 🏷️ SEO fields filled in by themselves
 
-With **Fill empty SEO fields** (*Configuration → In the editor*, off by default) the editor of a page or blog post (or of every page, post and product) puts a text set once into the SEO and sharing fields that are empty when it opens — as a rule Gridbox's data tags, which Gridbox replaces with the page's own values on the site: browser page title `[Page Title] | [Site Name]`, meta description `[Intro Text]` (the defaults), sharing title and description. A field with anything in it is left as it is; the text is saved with the page at the next *Save* and can be changed there for one page. Meta keywords are not among them: Gridbox does not replace data tags in them.
+With **Fill empty SEO fields** (*Configuration → In the editor*, off by default) the editor of a page, a blog post or a product puts texts set once into the SEO and sharing fields that are empty when it opens. Pages, blog posts and products have a set of their own (browser page title, meta description, meta keywords, sharing title and description); a text is as a rule Gridbox's data tags, which Gridbox replaces with the page's own values on the site (by default `[Page Title] | [Site Name]` and `[Intro Text]`), or any other text. A field left empty in the settings is not touched; a field with anything in it in the editor is left as it is; the text is saved with the page at the next *Save* and can be changed there for one page. Meta keywords go in as plain text: Gridbox does not replace data tags in them.
 
 ### 🕘 Edit history — who changed which page or product, and when
 
