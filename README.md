@@ -41,7 +41,7 @@ The settings are still the parameters of the plugin, so nothing changes for the 
 | Edit history | *Edit History* |
 | Apps protection and backups | *Gridbox Apps* |
 | Indexes of Gridbox tables, “<” in introductions | *Database* |
-| Post rows, no sideways shift, finished items out of the lists | *Configuration → Page layout* |
+| Post rows, no sideways shift, main menu on narrower screens, finished items out of the lists | *Configuration → Page layout* |
 | Tabs on phones, link to a tab | *Configuration → Tabs* |
 | Phone numbers | *Configuration → Phone numbers* |
 | Dark mode | *Configuration → Dark mode* |
@@ -319,6 +319,10 @@ A Gridbox element that sticks out to the right (a row with a slide-in animation 
 
 
 **Post sliders in several rows:** a Gridbox posts or products slider gets 2–4 rows when its *Class suffix* contains `mt-rows-2` … `mt-rows-4` (`mt-rows-tablet-N` / `mt-rows-phone-N` for smaller screens); the slider still moves column by column.
+### 🧭 Page layout — the main menu on screens a little too narrow for it
+
+On a laptop at 1366 pixels, or on a 1920 screen with Windows set to 150 % (the browser has 1280), the items of a Gridbox main menu wrap onto a second line. Gridbox puts the drop-down and the mega menu under the whole menu, not under the item, so the mouse going down to the panel crosses a strip where it leaves the item, and the panel disappears under the cursor. **Drop-down menu stays open on the way to it** (on by default) keeps the panel open while the pointer is in that strip; another item of the menu or leaving the strip closes it. **Main menu on one line** (off by default) makes the spaces between the items smaller step by step (side padding, then letter spacing) until the menu fits on one line; a menu that does not fit even then, a menu that fits, hamburger mode and vertical menus are left as they are, and a style set on a link is kept. Tab *Page layout*.
+
 ### 📱 Page layout — tabs as expandable sections on phones
 
 On narrow screens a Gridbox tab bar has to be scrolled sideways and nobody sees the other tabs. Up to a chosen width (768 px by default) every tab becomes a row with its icon, name and an arrow, with its content opening below it; all closed at first (or the first one open). Sliders and carousels inside are measured again when a section opens. Gridbox's own tab is still selected, computers keep the tabs, and a turned tablet switches on the fly.

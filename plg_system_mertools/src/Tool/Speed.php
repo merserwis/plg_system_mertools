@@ -34,7 +34,7 @@ final class Speed
         'speed_show' => 'showatonce', 'speed_images' => 'images', 'speed_mainphoto' => 'mainphoto', 'speed_slideimg' => 'slideimg', 'speed_video' => 'videodelay', 'speed_video_phone' => 'videophone',
         'speed_scripts' => 'scriptdelay', 'speed_cache' => 'pagecache', 'speed_cache_data' => 'gridboxdata', 'speed_icons' => 'icons',
         'speed_webp' => 'webp', 'speed_gif' => 'gif', 'speed_popups' => 'popups', 'layout_post_rows' => 'postrows', 'tabs_accordion' => 'tabs',
-        'db_indexes' => 'dbindexes'];
+        'db_indexes' => 'dbindexes', 'layout_menu_fit' => 'menufit'];
 
     private const KEEP_PER_PAGE = 60;
 

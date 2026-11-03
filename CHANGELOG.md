@@ -2,6 +2,15 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.8.3 — 2026-11-03
+
+### 🧭 Main menu on screens a little too narrow for it
+
+On a laptop at 1366 pixels, or on a 1920 screen with Windows set to 150 % (the browser then has 1280), the items of a Gridbox main menu no longer fit on one line and the last ones go onto a second line. Gridbox puts the drop-down and the mega menu of an item under the whole menu, not under the item, so between the item and its panel there is a strip as high as that second line: the mouse going down to the panel leaves the item there and the panel disappears under the cursor. Two new switches in *Configuration → Page layout*:
+
+- **Drop-down menu stays open on the way to it** (on by default): the panel stays open while the pointer is in the strip between the item and the panel; moving onto another item of the menu or out of the strip closes it. Where there is no strip, nothing changes.
+- **Main menu on one line** (off by default, it changes the look): when the items do not fit on one line, the spaces between them (the side padding of the items, at the end the letter spacing) get smaller step by step until the menu fits. If it does not fit even with the smallest spaces, it is left as it was, and so are menus that fit, menus in hamburger mode and vertical menus; a style set on a link of the menu is kept. Worked out when the page has loaded and after the window is resized.
+
 ## 1.8.2 — 2026-11-02
 
 ### 🏷️ Default texts of the SEO fields, separately for pages, blog posts and products

@@ -69,6 +69,7 @@ use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\Feed;
 use Merserwis\Plugin\System\MerTools\Tool\IntroText;
 use Merserwis\Plugin\System\MerTools\Tool\Layout;
+use Merserwis\Plugin\System\MerTools\Tool\MainMenu;
 use Merserwis\Plugin\System\MerTools\Tool\Omnibus;
 use Merserwis\Plugin\System\MerTools\Tool\PageCache;
 use Merserwis\Plugin\System\MerTools\Tool\Phones;
@@ -83,7 +84,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.8.2';
+    public const VERSION = '1.8.3';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -297,6 +298,13 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
         if (BlogGrid::enabled($this->params)) {
             $document->addStyleDeclaration(BlogGrid::css());
+        }
+        if (MainMenu::enabled($this->params)) {
+            if (MainMenu::hold($this->params)) {
+                $document->addStyleDeclaration(MainMenu::css());
+            }
+            $document->addScriptOptions('plg_system_mertools', ['menu' => MainMenu::jsConfig($this->params)]);
+            $wa->registerAndUseScript('plg_system_mertools.menu', 'plg_system_mertools/mertools-menu.js', [], ['defer' => true]);
         }
         if (Tabs::enabled($this->params)) {
             $this->loadLanguage();
