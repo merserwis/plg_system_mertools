@@ -84,4 +84,38 @@ final class StoreCurrency
 
         return $active;
     }
+
+    /**
+     * The currency a visitor is shown prices in (activeCode()) when it is not the store's default one:
+     * its format and the rate Gridbox converts the store's prices with (StoreHelper::setCurrency) — the
+     * rate typed in the list, or with the automatic rates on the rate Gridbox fetched. Null when the
+     * currency is not in the list or has no rate above 0.
+     *
+     * @param array $rates the rates Gridbox fetched (#__gridbox_api "exchangerates_data"), only when its
+     *                     automatic rates are on and have a key ([] otherwise)
+     *
+     * @return array{code: string, rate: float, format: array}|null
+     */
+    public static function shown(array $store, string $chosen, ?string $language, array $rates = []): ?array
+    {
+        $code = self::activeCode($store, $chosen, $language);
+        $list = \is_array($store['currencies']['list'] ?? null) ? $store['currencies']['list'] : [];
+        foreach ($list as $item) {
+            if (!\is_array($item) || strtoupper((string) ($item['code'] ?? '')) !== $code || $code === '') {
+                continue;
+            }
+            $rate = !empty($store['currencies']['auto']) && is_numeric($rates[$item['code']] ?? null) ? (float) $rates[$item['code']] : (float) ($item['rate'] ?? 0);
+
+            return $rate > 0 && is_finite($rate)
+                ? ['code' => $code, 'rate' => $rate, 'format' => array_merge(self::DEFAULT, array_intersect_key($item, self::DEFAULT))] : null;
+        }
+
+        return null;
+    }
+
+    /** A price of the store in the shown currency, rounded as Gridbox rounds it (to the currency's decimals). */
+    public static function convert(float $price, float $rate, array $format): float
+    {
+        return round($price * $rate, max(0, min(4, (int) ($format['decimals'] ?? 2))));
+    }
 }

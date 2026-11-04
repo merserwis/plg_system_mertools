@@ -17,6 +17,11 @@
  * the copies are made after the response has gone (onAfterRespond), a few seconds of work at a
  * time. The copies live in media/mertools-img (the originals are never changed); a changed
  * original gets new copies under a new name, so browsers and caches never keep an old one.
+ *
+ * What was made is noted in a manifest kept in 256 parts by the path of the picture (a page reads
+ * only the parts of its own pictures, the work writes only the parts it changed). Once a day the
+ * entries of pictures that are gone are dropped, and copies no entry names any more (the older
+ * copies of a changed picture, those of a removed one) are removed a week after (sweep()).
  */
 
 namespace Merserwis\Plugin\System\MerTools\Tool;
@@ -48,15 +53,23 @@ final class ImageOptimizer
 
     private const MAX_QUEUE = 500;
 
-    private const MAX_ENTRIES = 20000;
+    /** the entries a part of the manifest keeps at most (about 40 000 pictures in all) */
+    private const MAX_PART = 160;
 
-    /** @var array<string, array> relative path => entry */
-    private array $manifest = [];
+    /** a copy no entry names is removed this long after it was first found unused (pages kept before may show it) */
+    public const GRACE = 604800;
+
+    /** @var array<string, array<string, array>> part => relative path => entry (the parts read so far) */
+    private array $parts = [];
+
+    /** @var array<string, true> parts to write */
+    private array $dirtyParts = [];
+
+    /** the manifest of one file (before 1.11) while a worker holds the lock its move into parts needs */
+    private ?array $legacy = null;
 
     /** @var array<string, true> relative paths waiting */
     private array $queue = [];
-
-    private bool $dirtyManifest = false;
 
     private bool $dirtyQueue = false;
 
@@ -78,8 +91,10 @@ final class ImageOptimizer
     {
         $this->root     = rtrim($root, '/');
         $this->sitePath = rtrim($sitePath, '/');
-        $this->manifest = self::readJson($this->manifestFile());
         $this->queue    = array_fill_keys(array_keys(self::readJson($this->queueFile())), true);
+        if (is_file($this->legacyFile())) {
+            $this->migrate();
+        }
     }
 
     /** GD with WebP: the copies can be made on this server. */
@@ -107,7 +122,7 @@ final class ImageOptimizer
         if ($stat === false) {
             return null;
         }
-        $entry = $this->manifest[$rel] ?? null;
+        $entry = $this->entry($rel);
         // made again: a copy that is gone (removed by hand, a site copied without media/mertools-img), and
         // the copies of a photo stored on its side made before 1.7.0 (sideways; their entry has no "o")
         if (!$entry || $entry['m'] !== (int) $stat['mtime'] || $entry['s'] !== (int) $stat['size']
@@ -160,7 +175,7 @@ final class ImageOptimizer
      * A page adds its new pictures to the queue file as it is now (the worker of another request
      * may have taken pictures out meanwhile; writing the page's older copy would put them back and
      * make them again); the worker itself writes the queue as it has it. $manifest false: the queue
-     * only (the worker writes the large manifest less often, see work()).
+     * only (the worker writes the parts of the manifest less often, see work()).
      */
     public function save(bool $manifest = true): void
     {
@@ -177,12 +192,11 @@ final class ImageOptimizer
             $this->added      = [];
             $this->dirtyQueue = false;
         }
-        if ($manifest && $this->dirtyManifest) {
-            if (\count($this->manifest) > self::MAX_ENTRIES) {
-                $this->manifest = \array_slice($this->manifest, -self::MAX_ENTRIES, null, true);
+        if ($manifest && $this->dirtyParts) {
+            foreach (array_keys($this->dirtyParts) as $part) {
+                self::writeJson($this->partFile($part), self::capped($this->parts[$part] ?? []));
             }
-            self::writeJson($this->manifestFile(), $this->manifest);
-            $this->dirtyManifest = false;
+            $this->dirtyParts = [];
         }
     }
 
@@ -202,9 +216,13 @@ final class ImageOptimizer
         if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
             return 0;
         }
-        // another request may have finished some of them meanwhile
-        $this->manifest = self::readJson($this->manifestFile());
-        $this->queue    = array_fill_keys(array_keys(self::readJson($this->queueFile())), true) + $this->queue;
+        // another request may have finished some of them meanwhile: the parts are read again
+        if (is_file($this->legacyFile())) {
+            $this->migrateLocked();
+        }
+        $this->parts      = [];
+        $this->dirtyParts = [];
+        $this->queue      = array_fill_keys(array_keys(self::readJson($this->queueFile())), true) + $this->queue;
         $this->added    = [];
         $this->working  = true;
         $start          = microtime(true);
@@ -222,12 +240,11 @@ final class ImageOptimizer
                 $this->save(false);
                 $entry = $this->make((string) $rel, $maxPixels);
                 if ($entry !== null) {
-                    $this->manifest[$rel] = $entry;
-                    $this->dirtyManifest  = true;
+                    $this->put((string) $rel, $entry);
                     $made += $entry['x'] === 'ok' ? 1 : 0;
                 }
-                // the manifest (all the pictures of the site) at most once a second and at the end, not
-                // after every picture; a round cut short loses a second of work at most (made again)
+                // the parts of the manifest at most once a second and at the end, not after every
+                // picture; a round cut short loses a second of work at most (made again)
                 $flush = microtime(true) - $saved >= 1.0;
                 $this->save($flush);
                 $saved = $flush ? microtime(true) : $saved;
@@ -366,26 +383,122 @@ final class ImageOptimizer
 
     // ---------------------------------------------------------------- figures and clean-up
 
-    /** @return array{ok: int, pending: int, skipped: int, failed: int, files: int, bytes: int} */
+    /**
+     * @return array{ok: int, pending: int, skipped: int, failed: int, files: int, bytes: int, unused: int, unusedBytes: int}
+     *         unused: copies no entry names any more, removed a week after they were found so (sweep())
+     */
     public function stats(): array
     {
         $counts = ['ok' => 0, 'skip' => 0, 'fail' => 0];
-        foreach ($this->manifest as $e) {
+        $used   = [];
+        foreach ($this->entries() as $e) {
             $counts[$e['x'] ?? 'skip'] = ($counts[$e['x'] ?? 'skip'] ?? 0) + 1;
+            foreach (self::copiesOf($e) as $copy) {
+                $used[$copy] = true;
+            }
         }
-        [$files, $bytes] = [0, 0];
+        [$files, $bytes, $unused, $unusedBytes] = [0, 0, 0, 0];
         $dir = $this->root . '/' . self::DIR;
         if (is_dir($dir)) {
             foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)) as $f) {
                 if ($f->isFile() && str_ends_with($f->getFilename(), '.webp')) {
                     $files++;
                     $bytes += $f->getSize();
+                    if (!isset($used[$this->relativeCopy($f->getPathname())])) {
+                        $unused++;
+                        $unusedBytes += $f->getSize();
+                    }
                 }
             }
         }
 
         return ['ok' => $counts['ok'], 'pending' => \count($this->queue), 'skipped' => $counts['skip'], 'failed' => $counts['fail'],
-            'files' => $files, 'bytes' => $bytes];
+            'files' => $files, 'bytes' => $bytes, 'unused' => $unused, 'unusedBytes' => $unusedBytes];
+    }
+
+    /**
+     * The daily tidying up, under the lock of the work: the entries of pictures that are gone are
+     * dropped, and a copy no entry names any more (an older copy of a changed picture, a copy of a
+     * removed one) is removed once it has been unused for GRACE: a page kept before (by MerTools, a
+     * proxy or a browser) may still show it. Copies a worker left half written go after an hour.
+     *
+     * @return array{dropped: int, removed: int, unused: int} entries dropped, copies removed, copies waiting
+     */
+    public function sweep(?int $now = null): array
+    {
+        $now  ??= time();
+        $done = ['dropped' => 0, 'removed' => 0, 'unused' => 0];
+        $lock = @fopen($this->cacheDir . '/mertools-img.lock', 'c');
+        if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
+            if ($lock) {
+                fclose($lock);
+            }
+
+            return $done;
+        }
+        try {
+            if (is_file($this->legacyFile())) {
+                $this->migrateLocked();
+            }
+            $this->parts      = [];
+            $this->dirtyParts = [];
+            $used             = [];
+            foreach ($this->partFiles() as $part => $file) {
+                $entries = self::readJson($file);
+                $kept    = [];
+                foreach ($entries as $rel => $entry) {
+                    if (!\is_array($entry) || !is_file($this->root . '/' . $rel)) {
+                        $done['dropped']++;
+                        continue;
+                    }
+                    $kept[$rel] = $entry;
+                    foreach (self::copiesOf($entry) as $copy) {
+                        $used[$copy] = true;
+                    }
+                }
+                if (\count($kept) !== \count($entries)) {
+                    self::writeJson($file, $kept);
+                }
+            }
+            $seen = self::readJson($this->unusedFile());
+            $next = [];
+            $dir  = $this->root . '/' . self::DIR;
+            if (is_dir($dir)) {
+                foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+                    \RecursiveIteratorIterator::CHILD_FIRST) as $f) {
+                    $path = $f->getPathname();
+                    if ($f->isDir()) {
+                        // only an empty folder goes
+                        @rmdir($path);
+                        continue;
+                    }
+                    $name = $f->getFilename();
+                    if (str_ends_with($name, '.tmp')) {
+                        if ($f->getMTime() < $now - 3600) {
+                            @unlink($path);
+                        }
+                        continue;
+                    }
+                    $rel = $this->relativeCopy($path);
+                    if (!str_ends_with($name, '.webp') || isset($used[$rel])) {
+                        continue;
+                    }
+                    $since = (int) ($seen[$rel] ?? $now);
+                    if ($since <= $now - self::GRACE && @unlink($path)) {
+                        $done['removed']++;
+                        continue;
+                    }
+                    $next[$rel] = $since;
+                }
+            }
+            self::writeJson($this->unusedFile(), $next);
+            $done['unused'] = \count($next);
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+
+        return $done;
     }
 
     /**
@@ -406,10 +519,16 @@ final class ImageOptimizer
                     $f->isDir() ? @rmdir($f->getPathname()) : @unlink($f->getPathname());
                 }
             }
-            @unlink($this->manifestFile());
+            foreach ($this->partFiles() as $file) {
+                @unlink($file);
+            }
+            @unlink($this->legacyFile());
+            @unlink($this->unusedFile());
             @unlink($this->queueFile());
-            $this->manifest = [];
-            $this->queue    = [];
+            $this->parts      = [];
+            $this->dirtyParts = [];
+            $this->legacy     = null;
+            $this->queue      = [];
         } finally {
             if ($lock) {
                 flock($lock, LOCK_UN);
@@ -589,9 +708,139 @@ final class ImageOptimizer
         return (int) $limit * ($units[strtolower(substr($limit, -1))] ?? 1);
     }
 
-    private function manifestFile(): string
+    // ---------------------------------------------------------------- the manifest
+
+    /** The entry of a picture (its part of the manifest read when first needed), or null. */
+    private function entry(string $rel): ?array
+    {
+        $part = self::partOf($rel);
+        $this->parts[$part] ??= self::readJson($this->partFile($part));
+        $entry = $this->parts[$part][$rel] ?? $this->legacy[$rel] ?? null;
+
+        return \is_array($entry) ? $entry : null;
+    }
+
+    private function put(string $rel, array $entry): void
+    {
+        $part = self::partOf($rel);
+        $this->parts[$part] ??= self::readJson($this->partFile($part));
+        // a new entry last: when a part is full, the oldest go first
+        unset($this->parts[$part][$rel]);
+        $this->parts[$part][$rel] = $entry;
+        $this->dirtyParts[$part]  = true;
+    }
+
+    /** @return array<string, array> every entry (the figures, the tests) */
+    public function entries(): array
+    {
+        $all = [];
+        foreach ($this->partFiles() as $file) {
+            $all += self::readJson($file);
+        }
+
+        return \array_filter($all + ($this->legacy ?? []), 'is_array');
+    }
+
+    /** The part of the manifest of a picture: 00 … ff. */
+    private static function partOf(string $rel): string
+    {
+        return substr(md5($rel), 0, 2);
+    }
+
+    /**
+     * Files of the cache folder itself, not a folder of their own: Joomla's Clear Cache empties every
+     * folder of the cache as a group of its own (the manifest would be lost and every copy made again).
+     */
+    private function partFile(string $part): string
+    {
+        return $this->cacheDir . '/mertools-images-' . $part . '.json';
+    }
+
+    /** @return array<string, string> part => file, of the parts written so far */
+    private function partFiles(): array
+    {
+        $files = [];
+        foreach (glob($this->cacheDir . '/mertools-images-??.json') ?: [] as $file) {
+            if (preg_match('#mertools-images-([0-9a-f]{2})\.json$#', $file, $m)) {
+                $files[$m[1]] = $file;
+            }
+        }
+
+        return $files;
+    }
+
+    /** At most MAX_PART entries, the newest. */
+    private static function capped(array $entries): array
+    {
+        return \count($entries) > self::MAX_PART ? \array_slice($entries, -self::MAX_PART, null, true) : $entries;
+    }
+
+    /** @return string[] the files of the copies of an entry, relative to the site root */
+    private static function copiesOf(array $entry): array
+    {
+        return array_map('strval', array_merge(array_values((array) ($entry['v'] ?? [])), array_values((array) ($entry['f'] ?? []))));
+    }
+
+    /** A file of the copies folder as the manifest names it (media/mertools-img/ab/….webp). */
+    private function relativeCopy(string $path): string
+    {
+        return ltrim(str_replace('\\', '/', substr($path, \strlen($this->root))), '/');
+    }
+
+    /**
+     * The manifest of one file (MerTools before 1.11) moved into its parts, once, under the lock of the
+     * work; while a worker holds that lock, this request reads the old file as it is.
+     */
+    private function migrate(): void
+    {
+        $lock = @fopen($this->cacheDir . '/mertools-img.lock', 'c');
+        if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
+            if ($lock) {
+                fclose($lock);
+            }
+            $this->legacy = self::readJson($this->legacyFile());
+
+            return;
+        }
+        try {
+            $this->migrateLocked();
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    private function migrateLocked(): void
+    {
+        $old   = self::readJson($this->legacyFile());
+        $parts = [];
+        foreach ($old as $rel => $entry) {
+            if (\is_array($entry)) {
+                $parts[self::partOf((string) $rel)][(string) $rel] = $entry;
+            }
+        }
+        foreach ($parts as $part => $entries) {
+            // a part written already (a move cut short, or the work since) is newer than the old file
+            if (!self::writeJson($this->partFile($part), self::capped(self::readJson($this->partFile($part)) + $entries))) {
+                // the old file stays, read as it is, until the parts can be written
+                $this->legacy = $old;
+
+                return;
+            }
+        }
+        @unlink($this->legacyFile());
+        $this->legacy = null;
+        $this->parts  = [];
+    }
+
+    private function legacyFile(): string
     {
         return $this->cacheDir . '/mertools-images.json';
+    }
+
+    private function unusedFile(): string
+    {
+        return $this->cacheDir . '/mertools-images-unused.json';
     }
 
     private function queueFile(): string
@@ -606,13 +855,16 @@ final class ImageOptimizer
         return \is_array($data) ? $data : [];
     }
 
-    private static function writeJson(string $file, array $data): void
+    private static function writeJson(string $file, array $data): bool
     {
         // what cannot be written as JSON never replaces the file (an empty one would lose every entry)
         $json = json_encode($data, JSON_UNESCAPED_SLASHES);
         $tmp  = $file . '.' . getmypid() . '.tmp';
-        if ($json !== false && @file_put_contents($tmp, $json) !== false) {
-            @rename($tmp, $file);
+        if ($json !== false && @file_put_contents($tmp, $json) !== false && @rename($tmp, $file)) {
+            return true;
         }
+        @unlink($tmp);
+
+        return false;
     }
 }

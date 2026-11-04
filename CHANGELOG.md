@@ -2,6 +2,32 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.11.0 — 2026-11-04
+
+### 💾 Saving in the editor — no warning when nothing changed
+
+The warning before closing the editor unsaved (and the orange dot on **Save**) came also when nothing had changed. These no longer count as changes:
+
+- **A click on an element of the page**, a double click, its settings opened: for Gridbox each click on an element is a step of its undo history, and the step differed from the saved page by the editor's own bars and markers. The pages of the history are now compared as Gridbox saves them: without the editor's bars, the classes and styles its scripts change while the page is shown (sliders, animations, menus, a sticky header; inside a text its colours and marks are content and still compared), the lists it fills on the site, the marks of the text editor on the text in focus, the order of the classes, the styles it writes from the settings, and the empty defaults it fills in when an element is chosen.
+- **In the editor of a blog post**, MerTools' own button (the import of a Markdown document) put into the editor's bar after the page was loaded.
+- **A field typed in and typed back** (a digit added to the price and deleted, a box ticked and unticked): a field is a change only when it holds another value than before it was typed in. Text typed in a text field of a product (its text editor) counts as well now, the same way.
+- **The switch of the fields editor** of a product or post (editing the fields of the app) only changes the view.
+
+A real change still brings the dot and the question, until it is saved or undone.
+
+### 👁 Folding the fields — kept on the account
+
+Which fields are folded in the editor is now kept on the user's Joomla account instead of in the browser: the same fields are folded in any browser and on any computer, also after the browser's data is cleared. The first time, an account takes over the folds the browser kept before; an account that already keeps some is not changed by another browser's old ones.
+
+### 🖼 Lighter images — a lighter list and the old copies removed
+
+- The list of the pictures that have copies is kept in 256 parts by the path of the picture: a page reads only the parts of its own pictures, and the work in the background writes only the parts it changed. On a site with thousands of pictures every page is a few milliseconds faster. The list of one file is moved into its parts by itself once after the update.
+- **The copies no picture uses any more are removed**: a picture changed gets new copies under a new name and the old ones stayed on the disk for good, as did the copies of a removed picture. Once a day the entries of pictures that are gone are dropped and such copies are removed a week after they were found unused (a page kept before, by MerTools, a proxy or a browser, may still show them). On a server that cannot finish the response before such work (mod_php) it is done when an administrator opens the panel of the images. The panel shows how many old copies wait for removal.
+
+### 🏷 Omnibus — the line in another currency
+
+A visitor who views prices in another currency (Gridbox's currency switcher, or the currency of the page's language) gets the Omnibus line in that currency instead of none: the lowest price of the history (kept in the store's default currency) is converted as Gridbox converts the prices shown — with the rate of the currency list, or with the rate Gridbox fetched when its automatic rates are on — rounded to the currency's decimals and written in its format. A currency without a rate still gets no line.
+
 ## 1.10.0 — 2026-11-04
 
 ### 💾 Settings in a file — export and import

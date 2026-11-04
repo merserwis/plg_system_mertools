@@ -12,7 +12,7 @@ function editor(cfg = {}, look = true) {
   let clock = 1000000;
   const listeners = (doc) => (doc.on = {}, (type, fn) => (doc.on[type] ||= []).push(fn));
   const el = (props = {}) => ({
-    nodeType: 1, isContentEditable: false, type: 'text', name: '', id: '', attrs: {}, parents: [],
+    nodeType: 1, tagName: 'INPUT', value: '', checked: false, parentElement: null, isContentEditable: false, type: 'text', name: '', id: '', attrs: {}, parents: [],
     getAttribute(k) { return this.attrs[k] ?? null; },
     closest(sel) { return [this, ...this.parents].find((p) => sel.split(',').some((s) => p.matches && p.matches(s.trim()))) || null; },
     matches() { return false; },
@@ -31,7 +31,8 @@ function editor(cfg = {}, look = true) {
   const config = { warn: true, autosave: 60, saved: [SAVED], lang: 'pl-PL', texts: { unsaved: 'Niezapisane zmiany', autosaved: 'Zapisano automatycznie o %s' }, ...cfg };
   const document = {
     getElementById: (id) => (id === 'mertools-save-config' ? { textContent: JSON.stringify(config) } : null),
-    querySelector: (sel) => (sel === '.gridbox-save' ? button : sel === 'iframe.editor-iframe' ? { contentDocument: canvas } : null),
+    querySelector: (sel) => (sel === '.gridbox-save' ? button : null),
+    querySelectorAll: (sel) => (sel.includes('iframe.editor-iframe') ? [{ contentDocument: canvas, classList: { contains: (c) => c === 'editor-iframe' } }] : []),
     createElement: () => ({}),
     head: { append() {} },
   };
@@ -71,11 +72,15 @@ function editor(cfg = {}, look = true) {
     // a key in a text of the page: Gridbox notes it as a step 300 ms later
     typeText(html) {
       t.fire(canvas, 'keydown');
-      t.fire(canvas, 'input', el({ isContentEditable: true, matches: (s) => s === '.content-text[contenteditable]' }));
+      t.fire(canvas, 'input', el({ tagName: 'DIV', isContentEditable: true, matches: (s) => s === '.content-text[contenteditable]' }));
       clock += 300;
       step(html);
     },
     typePanel(target = el()) { t.fire(document, 'keydown'); t.fire(document, 'input', target); },
+    // a key in a field: first the field as it was (keydown), then as typed (input)
+    key(field, value) { t.fire(document, 'keydown', field); field.value = value; t.fire(document, 'input', field); },
+    // a click on a tick box: first as it was (mousedown), then changed
+    tick(box) { t.fire(document, 'mousedown', box); box.checked = !box.checked; t.fire(document, 'change', box); clock += 50; },
     save() { t.click(); button.click(); },
     // Gridbox's answer to the save, a moment later
     answer(text = SAVED) { clock += 200; button.dataset.action = 'enabled'; app.showNotice(text); },
@@ -133,7 +138,7 @@ check('the redo back to the saved page is none', t.dirty(), false);
 
 t = editor();
 t.fire(t.canvas, 'keydown');
-t.fire(t.canvas, 'input', t.el({ isContentEditable: true, matches: (s) => s === '.content-text[contenteditable]' }));
+t.fire(t.canvas, 'input', t.el({ tagName: 'DIV', isContentEditable: true, matches: (s) => s === '.content-text[contenteditable]' }));
 t.save();
 t.wait(1000);
 t.step('A typed'); // Gridbox notes the text after the save started, nothing done since
@@ -160,6 +165,53 @@ t.step('A other');
 t.undo();
 t.wait(1000);
 check('…and stays one after steps of the page', t.dirty(), true);
+
+t = editor();
+const price = t.el({ value: '9758' });
+t.key(price, '97585');
+t.wait(1000);
+check('a digit typed in a field: the dot, leaving asks', [t.dirty(), t.leave()], [true, true]);
+t.key(price, '9758');
+t.wait(1000);
+check('…typed back to what it held: nothing to save', [t.dirty(), t.leave()], [false, false]);
+const box = t.el({ type: 'checkbox' });
+t.tick(box);
+t.wait(1000);
+check('a tick box ticked: a change', t.dirty(), true);
+t.tick(box);
+t.wait(1000);
+check('…and unticked: none', t.dirty(), false);
+const view = t.el({ type: 'checkbox', matches: (s) => s === '.apps-fields-editor-toggle' });
+t.tick(view);
+t.wait(1000);
+check('the switch of the fields editor (a view) is no change', t.dirty(), false);
+
+t = editor();
+const sku = t.el({ value: 'A1' });
+t.key(sku, 'A1-T');
+t.save();
+t.key(sku, 'A1-TX'); // typed while it saves
+t.answer();
+t.wait(1000);
+check('a field typed while saving is still to save', t.dirty(), true);
+t.key(sku, 'A1-T');
+t.wait(1000);
+check('…typed back to what the save kept: nothing to save', t.dirty(), false);
+t.key(sku, 'A1');
+t.wait(1000);
+check('…typed back to what it held before the save: a change', t.dirty(), true);
+
+t = editor();
+const cell = t.el({ value: 'x' });
+t.key(cell, 'xy');
+const other = t.el({ value: 'shown for another element' });
+// the same field shown for another element (a panel of element settings) and typed in again
+cell.value = 'other';
+t.key(cell, 'other2');
+t.key(cell, 'other');
+t.wait(1000);
+check('a field changed, then shown for something else: the change stays', t.dirty(), true);
+void other;
 
 t = editor();
 t.typeText('A typed');

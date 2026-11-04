@@ -85,7 +85,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.10.0';
+    public const VERSION = '1.11.0';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -165,6 +165,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
         if ($app->isClient('site')) {
             $this->locks()->editLock();
+            $this->shop()->foldEndpoint();
         }
         if ($app->isClient('administrator') || $app->isClient('site')) {
             // before the history: it then notes the introduction as it is kept
@@ -402,6 +403,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $this->pages()->hourlyEnded();
         $this->apps()->appBackupTick();
         $this->speed()->imageWork();
+        $this->speed()->imageSweep();
         $this->speed()->warmUp();
         $this->carts()->hourly();
     }

@@ -34,6 +34,7 @@
       row(T.SKIPPED, num(s.skipped));
       if (s.failed) { row(T.FAILED, num(s.failed)); }
       row(T.FILES, num(s.files) + ' · ' + mb(s.bytes));
+      if (s.unused) { row(T.UNUSED, num(s.unused) + ' · ' + mb(s.unusedBytes)); }
       run.disabled = !s.supported;
       if (!s.supported) { message('warning', T.NO_GD); }
     }

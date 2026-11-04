@@ -17,6 +17,7 @@ namespace Merserwis\Plugin\System\MerTools\Feature;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Associations;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Session\Session;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
 use Merserwis\Plugin\System\MerTools\Extension\MerTools;
@@ -184,7 +185,96 @@ final class Shop extends Feature
             return;
         }
         $this->plugin->loadLanguage();
-        $this->plugin->editorScript('fold', ['hide' => Text::_('PLG_SYSTEM_MERTOOLS_FOLD_HIDE'), 'show' => Text::_('PLG_SYSTEM_MERTOOLS_FOLD_SHOW')]);
+        try {
+            $folded = $this->foldedFields((int) $user->id);
+        } catch (\Throwable $e) {
+            $folded = null;
+        }
+        $this->plugin->editorScript('fold', ['hide' => Text::_('PLG_SYSTEM_MERTOOLS_FOLD_HIDE'), 'show' => Text::_('PLG_SYSTEM_MERTOOLS_FOLD_SHOW'),
+            // the folds of the user's account; null: none kept there yet (the browser's are taken over)
+            'folded' => $folded, 'user' => (int) $user->id, 'url' => Uri::root(true) . '/index.php', 'token' => Session::getFormToken()]);
+    }
+
+    /** the most fields whose fold an account keeps */
+    public const MAX_FOLDS = 500;
+
+    private const FOLD_KEY = 'mertools.foldedfields';
+
+    /** @return string[]|null the keys of the fields the user folded, null when the account has none kept */
+    private function foldedFields(int $userId): ?array
+    {
+        $db  = Factory::getContainer()->get(DatabaseInterface::class);
+        $raw = $db->setQuery('SELECT profile_value FROM ' . $db->quoteName('#__user_profiles') . ' WHERE user_id = ' . $userId . ' AND profile_key = '
+            . $db->quote(self::FOLD_KEY))->loadResult();
+        if (!\is_string($raw)) {
+            return null;
+        }
+        $list = json_decode($raw, true);
+
+        return \is_array($list) ? self::foldKeys($list) : [];
+    }
+
+    /** @return string[] the keys of fields in a list (Gridbox's: "price", "item-1594892018"…), each once */
+    public static function foldKeys(array $list): array
+    {
+        $keys = array_values(array_unique(array_filter(array_map('strval', array_filter($list, 'is_scalar')),
+            static fn (string $key) => (bool) preg_match('/^[A-Za-z0-9_.:-]{1,64}$/', $key))));
+
+        return \array_slice($keys, 0, self::MAX_FOLDS);
+    }
+
+    /**
+     * The fold of a field kept on the account of the user (POST mertools_fold=toggle, key, fold 1/0), or
+     * the folds of the browser taken over by an account that keeps none yet (mertools_fold=import, list):
+     * answers with the user's folds as they are now.
+     */
+    public function foldEndpoint(): void
+    {
+        $app    = $this->plugin->app();
+        $input  = $app->getInput();
+        $action = $input->getCmd('mertools_fold', '');
+        if ($action === '') {
+            return;
+        }
+        $user = $app->getIdentity();
+        if (!\in_array($action, ['toggle', 'import'], true) || strtoupper((string) $input->getMethod()) !== 'POST' || !$user || $user->guest
+            || !Session::checkToken('request')) {
+            $this->plugin->sendJson(['success' => false], 403);
+        }
+        $userId = (int) $user->id;
+        $db     = Factory::getContainer()->get(DatabaseInterface::class);
+        // read and written under a lock: two folds at the same moment (two tabs) would otherwise lose one
+        $lock = $db->quote('mertools.folds.' . $userId);
+        try {
+            if (!(int) $db->setQuery('SELECT GET_LOCK(' . $lock . ', 5)')->loadResult()) {
+                $this->plugin->sendJson(['success' => false]);
+            }
+            try {
+                $folded = $this->foldedFields($userId);
+                if ($action === 'import') {
+                    // only into an account that keeps none yet: another browser's folds are not overwritten
+                    $list = json_decode($input->post->getString('list', '[]'), true);
+                    $next = $folded ?? self::foldKeys(\is_array($list) ? $list : []);
+                } else {
+                    $key  = self::foldKeys([$input->post->getString('key', '')])[0] ?? '';
+                    $next = array_values(array_diff($folded ?? [], [$key]));
+                    if ($key !== '' && $input->post->getInt('fold', 1) === 1) {
+                        $next = self::foldKeys(array_merge([$key], $next));
+                    }
+                }
+                if ($next !== $folded) {
+                    $db->setQuery('DELETE FROM ' . $db->quoteName('#__user_profiles') . ' WHERE user_id = ' . $userId . ' AND profile_key = '
+                        . $db->quote(self::FOLD_KEY))->execute();
+                    $db->setQuery('INSERT INTO ' . $db->quoteName('#__user_profiles') . ' (user_id, profile_key, profile_value, ordering) VALUES (' . $userId
+                        . ', ' . $db->quote(self::FOLD_KEY) . ', ' . $db->quote(json_encode($next)) . ', 0)')->execute();
+                }
+            } finally {
+                $db->setQuery('SELECT RELEASE_LOCK(' . $lock . ')')->loadResult();
+            }
+        } catch (\Throwable $e) {
+            $this->plugin->sendJson(['success' => false]);
+        }
+        $this->plugin->sendJson(['success' => true, 'folded' => $next]);
     }
 
     /**
@@ -256,23 +346,27 @@ final class Shop extends Feature
             return $html;
         }
         try {
-            if (!$this->defaultCurrencyShown()) {
-                // the history is in the store's default currency: no line rather than one in another currency
+            // the history is in the store's default currency: in another one the lowest price is converted
+            // as Gridbox converts the prices shown; a currency without a rate gets no line
+            $shown = $this->shownCurrency();
+            if ($shown === null) {
                 return $html;
             }
             $this->plugin->loadLanguage();
             $store    = $this->omnibusStore();
             $template = Omnibus::template($this->plugin->params, $this->plugin->translate('PLG_SYSTEM_MERTOOLS_OMNIBUS_TEXT_DEFAULT'));
-            $currency = $this->plugin->storeCurrency();
+            $currency = $shown['format'] ?? $this->plugin->storeCurrency();
+            $convert  = static fn (array $prices): array => $shown['format'] === null ? $prices
+                : array_map(static fn ($price) => StoreCurrency::convert((float) $price, $shown['rate'], $currency), $prices);
             if ($page && str_contains($html, 'ba-add-to-cart-price')) {
                 $lowest = [];
                 foreach ($store->references([$page]) as $key => $ref) {
                     $lowest[$key] = $ref['lowest'];
                 }
-                $html = Omnibus::productLines($html, $page, $lowest, $template, $currency);
+                $html = Omnibus::productLines($html, $page, $convert($lowest), $template, $currency);
             }
             if ($tiles) {
-                $html = Omnibus::listLines($html, $store->listReferences($tiles), $template, $currency);
+                $html = Omnibus::listLines($html, $convert($store->listReferences($tiles)), $template, $currency);
             }
         } catch (\Throwable $e) {
             // no history yet (tables not made): the page as Gridbox made it
@@ -282,20 +376,43 @@ final class Shop extends Feature
     }
 
     /**
-     * Are the prices shown in the store's default currency (that of the history)? Gridbox shows another
-     * one after a choice in its currency switcher, or on a multilingual site for a language that has one.
+     * The currency the prices are shown in: ['format' => null] for the store's default one (that of the
+     * history), else its format and rate (StoreCurrency::shown()), or null when it has no rate. Gridbox
+     * shows another one after a choice in its currency switcher, or on a multilingual site for a language
+     * that has one.
+     *
+     * @return array{rate: float, format: ?array}|null
      */
-    private function defaultCurrencyShown(): bool
+    private function shownCurrency(): ?array
     {
         $app    = $this->plugin->app();
         $chosen = (string) $app->getInput()->cookie->getString('gridbox-currency', '');
         $tag    = Associations::isEnabled() ? $app->getLanguage()->getTag() : null;
         if ($chosen === '' && $tag === null) {
-            return true;
+            return ['rate' => 1.0, 'format' => null];
         }
         $store = $this->store();
+        if (StoreCurrency::activeCode($store, $chosen, $tag) === StoreCurrency::code($store)) {
+            return ['rate' => 1.0, 'format' => null];
+        }
+        // Gridbox's automatic rates: only with a key of the service (else it keeps the rates of the list)
+        $rates = [];
+        if (!empty($store['currencies']['auto']) && trim($this->gridboxApi('exchangerates')) !== '') {
+            $data  = json_decode($this->gridboxApi('exchangerates_data'), true);
+            $rates = \is_array($data['rates'] ?? null) ? $data['rates'] : [];
+        }
+        $shown = StoreCurrency::shown($store, $chosen, $tag, $rates);
 
-        return StoreCurrency::activeCode($store, $chosen, $tag) === StoreCurrency::code($store);
+        return $shown ? ['rate' => $shown['rate'], 'format' => $shown['format']] : null;
+    }
+
+    /** The "key" of a service of Gridbox's settings (#__gridbox_api), '' when there is none. */
+    private function gridboxApi(string $service): string
+    {
+        $db = Factory::getContainer()->get(DatabaseInterface::class);
+
+        return (string) $db->setQuery('SELECT ' . $db->quoteName('key') . ' FROM ' . $db->quoteName('#__gridbox_api') . ' WHERE service = '
+            . $db->quote($service))->loadResult();
     }
 
     /** The settings of Gridbox's store (#__gridbox_api, service "store"), read once. */

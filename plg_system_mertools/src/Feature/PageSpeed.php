@@ -96,6 +96,36 @@ final class PageSpeed extends Feature
         }
     }
 
+    /**
+     * Once a day after a response: the copies no picture uses any more (an older copy of a changed
+     * picture, the copies of a removed one) removed a week after they were found so, see
+     * ImageOptimizer::sweep(). A visitor never waits for it: on a server that cannot close the response
+     * first (mod_php) it is done when an administrator opens the panel of the pictures ($admin).
+     */
+    public function imageSweep(bool $admin = false): void
+    {
+        $p = $this->plugin->params;
+        if (!(int) $p->get('speed_images', 1) || (!(int) $p->get('speed_webp', 1) && !(int) $p->get('speed_gif', 1))
+            || (!$admin && !\function_exists('fastcgi_finish_request') && !\function_exists('litespeed_finish_request'))) {
+            return;
+        }
+        $tick = Tick::claim(MerTools::cacheBase() . '/mertools-img-sweep', 86400);
+        if (!$tick) {
+            return;
+        }
+        if (!$admin) {
+            $this->plugin->finishResponse();
+        }
+        try {
+            @set_time_limit(120);
+            $this->imageOptimizer()->sweep();
+        } catch (\Throwable $e) {
+            // tried again the next day
+        } finally {
+            $tick->release();
+        }
+    }
+
     public function warmupOn(): bool
     {
         return $this->pageCacheOn() && (int) $this->plugin->params->get('speed_warm', 1) === 1;
@@ -918,6 +948,7 @@ final class PageSpeed extends Feature
     {
         if (str_starts_with($action, 'img_')) {
             try {
+                $this->imageSweep(true);
                 $images = $this->imageOptimizer();
                 if ($action === 'img_run') {
                     if (!ImageOptimizer::supported()) {

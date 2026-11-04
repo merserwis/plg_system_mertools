@@ -1,9 +1,10 @@
 /**
  * MerTools — folding the fields in the Gridbox editor of a page of an app (a product, a post): an eye
  * right of the name of every field hides the field down to its name; the eye again shows it. Which
- * fields are folded is kept in this browser (localStorage, by the key of the field — the same in every
- * page of an app), so the next editor opens with the same fields folded. A required field Gridbox
- * marks as empty on saving is shown even when folded. Nothing of it is saved with the page.
+ * fields are folded is kept on the user's account (by the key of the field — the same in every page of
+ * an app), so the next editor opens with the same fields folded, in any browser. An account that keeps
+ * none yet takes over the folds this browser kept before (localStorage, MerTools 1.7.1–1.10). A required
+ * field Gridbox marks as empty on saving is shown even when folded. Nothing of it is saved with the page.
  */
 (() => {
   'use strict';
@@ -11,23 +12,50 @@
   if (!node) return;
   let cfg;
   try { cfg = JSON.parse(node.textContent); } catch (e) { return; }
-  const STORE = 'mertools-folded-fields';
-  // once the storage failed (private mode, full, blocked), the folds of this editor live in memory
-  // only: reading it again would bring back a list without the last click
-  let stored = true;
-  const read = () => {
+  // the browser's own list (before 1.11), and the copy of the account's list other tabs follow
+  const OLD = 'mertools-folded-fields';
+  const MIRROR = OLD + ':' + (cfg.user || 0);
+  const local = (key) => {
     try {
-      const list = JSON.parse(localStorage.getItem(STORE) || '[]');
-      return new Set(Array.isArray(list) ? list.map(String) : []);
+      const list = JSON.parse(localStorage.getItem(key) || 'null');
+      return Array.isArray(list) ? list.map(String) : null;
     } catch (e) {
-      stored = false;
       return null;
     }
   };
-  const write = (folded) => {
-    try { localStorage.setItem(STORE, JSON.stringify([...folded])); } catch (e) { stored = false; }
+  const mirror = () => {
+    try { localStorage.setItem(MIRROR, JSON.stringify([...folded])); } catch (e) { /* the account keeps them */ }
   };
-  let folded = read() || new Set();
+  let folded = new Set(Array.isArray(cfg.folded) ? cfg.folded.map(String) : (local(OLD) || []));
+
+  // one request at a time, in the order of the clicks; the account's list replaces the one shown only
+  // after the last of them (an answer to an earlier click does not have the later ones yet)
+  let queue = Promise.resolve();
+  let waiting = 0;
+  const post = async (data) => {
+    const fd = new FormData();
+    Object.entries(data).forEach(([k, v]) => fd.append(k, v));
+    fd.append(cfg.token, '1');
+    try {
+      const res = await fetch(cfg.url, { method: 'POST', body: fd, credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      const json = await res.json();
+      return json && json.success && Array.isArray(json.folded) ? json.folded.map(String) : null;
+    } catch (e) {
+      // not kept on the account this time: the folds stay as clicked until the editor is closed
+      return null;
+    }
+  };
+  const send = (data) => {
+    waiting++;
+    queue = queue.then(() => post(data)).then((list) => {
+      waiting--;
+      if (list && waiting === 0) {
+        folded = new Set(list);
+        mirror();
+        repaint();
+      }
+    });
+  };
 
   // folded: the name (with the sorting handle of Gridbox's field editor) and the eye; the rest hidden
   const group = '#blog-post-editor-fields-options .blog-post-editor-options-group';
@@ -68,13 +96,13 @@
     button.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      if (stored) folded = read() || folded; // another editor may have changed the list meanwhile
       const key = field.dataset.fieldKey;
-      if (folded.has(key)) folded.delete(key); else folded.add(key);
-      write(folded);
+      const fold = !folded.has(key);
+      if (fold) folded.add(key); else folded.delete(key);
       paint(field, button);
       // editors, maps and sliders shown again measure themselves on a resize
-      if (!folded.has(key)) window.dispatchEvent(new Event('resize'));
+      if (!fold) window.dispatchEvent(new Event('resize'));
+      send({ mertools_fold: 'toggle', key, fold: fold ? '1' : '0' });
     });
   };
 
@@ -87,14 +115,25 @@
     requestAnimationFrame(() => { queued = false; scan(); });
   }).observe(document.documentElement, { childList: true, subtree: true });
 
-  // the same browser, another editor open in a tab: follow its folds
-  window.addEventListener('storage', (e) => {
-    if (e.key !== STORE || !stored) return;
-    folded = read() || folded;
+  const repaint = () => {
     document.querySelectorAll(group + '[data-mt-fold]').forEach((field) => {
       const button = field.querySelector(':scope > .blog-post-editor-group-element > .mt-fold');
       if (button) paint(field, button);
     });
     window.dispatchEvent(new Event('resize'));
+  };
+
+  // an account that keeps no folds yet: the ones this browser kept are taken over
+  if (!Array.isArray(cfg.folded) && cfg.url) {
+    send({ mertools_fold: 'import', list: JSON.stringify([...folded]) });
+  }
+
+  // the same browser, another editor open in a tab: follow its folds
+  window.addEventListener('storage', (e) => {
+    if (e.key !== MIRROR) return;
+    const list = local(MIRROR);
+    if (!list) return;
+    folded = new Set(list);
+    repaint();
   });
 })();

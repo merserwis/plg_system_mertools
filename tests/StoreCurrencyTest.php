@@ -47,5 +47,23 @@ $check('active: the switcher over the language', StoreCurrency::activeCode($mult
 $check('active: a language without its own currency', StoreCurrency::activeCode($multi, '', 'de-DE'), 'EUR');
 $check('active: merserwis.pl, its one currency', StoreCurrency::activeCode(json_decode($prod, true), 'PLN', 'pl-PL'), 'PLN');
 $check('active: an old store: store.currency', StoreCurrency::activeCode(['currency' => ['code' => 'CZK']], 'EUR', null), 'CZK');
+// 1.11: the Omnibus line in another currency, converted as Gridbox converts the prices shown
+$shop = json_decode('{"currencies":{"auto":false,"list":[{"code":"PLN","symbol":"zł","position":"right-currency-position","thousand":" ","separator":",","decimals":"2","default":true,"rate":"1"},'
+    . '{"code":"EUR","symbol":"€","position":"left-currency-position","thousand":".","separator":",","decimals":"2","default":false,"rate":"0.2312"},'
+    . '{"code":"HUF","symbol":"Ft","decimals":"0","default":false,"rate":"91.5"},{"code":"USD","symbol":"$","default":false,"rate":"0"}]}}', true);
+$eur = StoreCurrency::shown($shop, 'EUR', null);
+$check('shown: the rate of the list', [$eur['code'], $eur['rate']], ['EUR', 0.2312]);
+$check('shown: its own format', [$eur['format']['symbol'], $eur['format']['separator'], $eur['format']['position']], ['€', ',', 'left-currency-position']);
+$check('convert: rounded to its decimals, as Gridbox', StoreCurrency::convert(15595.0, $eur['rate'], $eur['format']), 3605.56);
+$check('line in euro', Omnibus::line('Najniższa cena: {price}', StoreCurrency::convert(15595.0, $eur['rate'], $eur['format']), $eur['format']), 'Najniższa cena: € 3.605,56');
+$huf = StoreCurrency::shown($shop, 'HUF', null);
+$check('convert: a currency without decimals', StoreCurrency::convert(99.99, $huf['rate'], $huf['format']), 9149.0);
+$check('shown: a rate of 0: none (no line)', StoreCurrency::shown($shop, 'USD', null), null);
+$auto = $shop;
+$auto['currencies']['auto'] = true;
+$check('shown: automatic rates on: the one Gridbox fetched', StoreCurrency::shown($auto, 'EUR', null, ['EUR' => 0.2299, 'HUF' => 92.1])['rate'], 0.2299);
+$check('shown: automatic, a rate not fetched: the list\'s', StoreCurrency::shown($auto, 'EUR', null, ['HUF' => 92.1])['rate'], 0.2312);
+$check('shown: automatic off: the list\'s, whatever was fetched', StoreCurrency::shown($shop, 'EUR', null, ['EUR' => 0.2299])['rate'], 0.2312);
+
 echo $fail ? "$fail FAILED\n" : "ALL PASS\n";
 exit($fail ? 1 : 0);

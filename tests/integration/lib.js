@@ -48,13 +48,28 @@ const run = async (body) => {
     await Promise.all([page.waitForNavigation(), page.click('#btn-login-submit')]);
     return page;
   };
+  /** the Gridbox editor of a page (on the site, a session of its own: its login form first) */
+  const editor = async (page, id) => {
+    const url = URL_ + '/index.php?option=com_gridbox&view=editor&tmpl=component&id=' + id;
+    await page.goto(url, { waitUntil: 'load', timeout: 90000 });
+    if (await page.$('.ba-username:visible')) {
+      await page.fill('.ba-username', user);
+      await page.fill('.ba-password', pass);
+      await Promise.all([page.waitForNavigation({ timeout: 90000 }), page.keyboard.press('Enter')]);
+      if (!(await page.$('.gridbox-save'))) await page.goto(url, { waitUntil: 'load', timeout: 90000 });
+    }
+    await page.waitForSelector('.gridbox-save', { timeout: 60000 });
+    return page;
+  };
   try {
-    await body({ login, uid });
+    await body({ login, uid, editor });
   } catch (e) {
     check('test ran to the end', false, e.stack);
   } finally {
     await browser.close();
     sql(`DELETE FROM #__user_profiles WHERE user_id = ${uid}`);
+    // the edit locks of the editors it opened (a lock would keep the next run out of the editor)
+    try { sql(`DELETE FROM #__mertools_locks WHERE user_id = ${uid}`); } catch (e) { /* no lock table */ }
     cli('user:delete', '--username=' + user);
   }
   console.log(fail ? 'FAILED: ' + fail : 'ALL PASS');

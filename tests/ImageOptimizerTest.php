@@ -223,13 +223,80 @@ $check('turned copies get other names than copies made before 1.7.0, upright one
     [str_contains($turned->lookup('/images/turn-6.jpg')['srcset'] ?? '', $oldName(6)), str_contains($turned->lookup('/images/turn-1.jpg')['srcset'] ?? '', $oldName(1))], [false, true]);
 
 // entries of copies made before 1.7.0 (no "o"): a photo stored on its side is made again, others stay as they are
-$manifest = json_decode(file_get_contents($cache . '/mertools-images.json'), true);
+// (written as the manifest of one file of MerTools before 1.11: moved into its parts on the way)
+$manifest = (new ImageOptimizer($root, $site, '', $cache, 1000))->entries();
 unset($manifest['images/turn-6.jpg']['o'], $manifest['images/turn-1.jpg']['o']);
+array_map('unlink', glob($cache . '/mertools-images-??.json'));
 file_put_contents($cache . '/mertools-images.json', json_encode($manifest, JSON_UNESCAPED_SLASHES));
 $older = new ImageOptimizer($root, $site, '', $cache, 1000);
+$check('1.11: the manifest of one file moved into parts', [is_file($cache . '/mertools-images.json'), count(glob($cache . '/mertools-images-??.json')) > 3,
+    count($older->entries())], [false, true, count($manifest)]);
 $check('before 1.7.0, upright photo: copies still offered', isset($older->lookup('/images/turn-1.jpg')['srcset']), true);
 $check('before 1.7.0, photo on its side: made again', [$older->lookup('/images/turn-6.jpg'), $older->pending()], [null, 1]);
 $check('new entries say how they were turned', [$manifest['images/turn-8.jpg']['o'] ?? null, $manifest['images/sub/alpha.png']['o'] ?? null], [8, 1]);
+
+// ---------------------------------------------------------------- 1.11: the manifest in parts
+$parts = new ImageOptimizer($root, $site, '', $cache, 1000);
+$check('a part holds only the pictures of its part', array_sum(array_map(fn ($f) => count(json_decode(file_get_contents($f), true)), glob($cache . '/mertools-images-??.json'))),
+    count($parts->entries()));
+// a worker busy with the old manifest (its lock): a page reads the old file, which stays until the move
+file_put_contents($cache . '/mertools-images.json', json_encode(['images/sub/alpha.png' => $parts->entries()['images/sub/alpha.png']], JSON_UNESCAPED_SLASHES));
+array_map('unlink', glob($cache . '/mertools-images-??.json'));
+$code  = '$f=fopen(' . var_export($cache . '/mertools-img.lock', true) . ',"c");flock($f,LOCK_EX);echo "L\n";usleep(800000);flock($f,LOCK_UN);';
+$child = proc_open([PHP_BINARY, '-r', $code], [1 => ['pipe', 'w']], $pipes);
+fgets($pipes[1]);
+$busy = new ImageOptimizer($root, $site, '', $cache, 1000);
+$check('old manifest, worker busy: read as it is', [isset($busy->lookup('/images/sub/alpha.png')['srcset']), is_file($cache . '/mertools-images.json')], [true, true]);
+proc_close($child);
+new ImageOptimizer($root, $site, '', $cache, 1000);
+$check('…moved by the next request', [is_file($cache . '/mertools-images.json'), count(glob($cache . '/mertools-images-??.json'))], [false, 1]);
+// all made again for the sweep
+foreach (['/images/photo one.jpg', '/images/sub/alpha.png', '/images/anim.gif'] as $u) {
+    $parts->lookup($u);
+}
+$parts->save();
+(new ImageOptimizer($root, $site, '', $cache, 1000))->work(30.0);
+
+// ---------------------------------------------------------------- 1.11: the sweep of copies no longer used
+$sw   = new ImageOptimizer($root, $site, '', $cache, 1000);
+$now  = time();
+$used = fn () => array_map(fn ($u) => $u, $sw->entries()['images/photo one.jpg']['v'] ?? []);
+$oldCopies = array_values($used());
+// the copies the tests above made unused (photos stored on their side, made again since 1.7.0) are found
+$check('sweep: copies unused before found, kept for now', [$sw->sweep($now)['unused'] > 0, $sw->sweep($now + ImageOptimizer::GRACE + 1)['removed'] > 0], [true, true]);
+$check('sweep: nothing to do on a tidy site', $sw->sweep($now), ['dropped' => 0, 'removed' => 0, 'unused' => 0]);
+// the photo changed: new copies under new names, the old ones unused
+touch($root . '/images/photo one.jpg', $now + 5);
+clearstatcache();
+$sw->lookup('/images/photo one.jpg');
+$sw->save();
+(new ImageOptimizer($root, $site, '', $cache, 1000))->work(30.0);
+$sw = new ImageOptimizer($root, $site, '', $cache, 1000);
+$newCopies = array_values($sw->entries()['images/photo one.jpg']['v'] ?? []);
+$check('a changed photo: new copies under other names', $newCopies && !array_intersect($newCopies, $oldCopies), true);
+// a removed picture: its entry goes, its copies are unused
+$gifCopies = array_values($sw->entries()['images/anim.gif']['f'] ?? []);
+rename($root . '/images/anim.gif', $root . '/anim.gif.away');
+file_put_contents($root . '/media/mertools-img/half.webp.123.tmp', 'x');
+touch($root . '/media/mertools-img/half.webp.123.tmp', $now - 7200);
+$r = $sw->sweep($now);
+$check('sweep: the entry of a removed picture dropped', [$r['dropped'], isset($sw->entries()['images/anim.gif'])], [1, false]);
+$check('…the old copies are unused, kept for now', [$r['removed'], $r['unused'], $sw->stats()['unused']], [0, count($oldCopies) + count($gifCopies), count($oldCopies) + count($gifCopies)]);
+$check('…a copy left half written an hour ago removed', is_file($root . '/media/mertools-img/half.webp.123.tmp'), false);
+$check('a day later: still kept (a page kept before may show them)', $sw->sweep($now + 86400)['removed'], 0);
+$r = $sw->sweep($now + ImageOptimizer::GRACE + 1);
+$check('a week after: removed', [$r['removed'], array_filter(array_merge($oldCopies, $gifCopies), fn ($c) => is_file($root . '/' . $c))], [count($oldCopies) + count($gifCopies), []]);
+$check('…the copies in use stay', array_filter($newCopies, fn ($c) => !is_file($root . '/' . $c)), []);
+$check('…and the photo still has them', isset((new ImageOptimizer($root, $site, '', $cache, 1000))->lookup('/images/photo one.jpg')['srcset']), true);
+// a copy unused and then named again (the same picture made again) is not removed
+rename($root . '/anim.gif.away', $root . '/images/anim.gif');
+$sw->sweep($now);
+$check('nothing left over', $sw->stats()['unused'], 0);
+$code  = '$f=fopen(' . var_export($cache . '/mertools-img.lock', true) . ',"c");flock($f,LOCK_EX);echo "L\n";usleep(600000);flock($f,LOCK_UN);';
+$child = proc_open([PHP_BINARY, '-r', $code], [1 => ['pipe', 'w']], $pipes);
+fgets($pipes[1]);
+$check('sweep: never while a worker makes copies', $sw->sweep($now), ['dropped' => 0, 'removed' => 0, 'unused' => 0]);
+proc_close($child);
 
 // ---------------------------------------------------------------- 1.7.0: clearing waits for a worker
 $lockFile = $cache . '/mertools-img.lock';
@@ -242,6 +309,7 @@ $waited = microtime(true) - $t;
 proc_close($child);
 $check('clear: waits until the worker has finished', $waited > 0.8, true);
 $check('clear: then everything gone', is_dir($root . '/media/mertools-img') && (new FilesystemIterator($root . '/media/mertools-img'))->valid(), false);
+$check('clear: the parts of the manifest gone too', glob($cache . '/mertools-images*.json'), []);
 
 exec('rm -rf ' . escapeshellarg($root));
 echo $fail ? "\n$fail FAILED\n" : "\nALL PASS\n";

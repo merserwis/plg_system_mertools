@@ -20,7 +20,7 @@ final class MtimagesField extends FormField
         $wa->registerAndUseScript('plg_system_mertools.images', 'plg_system_mertools/mertools-images.js', [], ['defer' => true]);
 
         $texts = [];
-        foreach (['READY', 'PENDING', 'SKIPPED', 'FAILED', 'FILES', 'RUN', 'RUN_DONE', 'RUN_MORE', 'CLEAR', 'CLEAR_CONFIRM', 'CLEARED', 'NO_GD', 'LOADING', 'ERROR'] as $key) {
+        foreach (['READY', 'PENDING', 'SKIPPED', 'FAILED', 'FILES', 'UNUSED', 'RUN', 'RUN_DONE', 'RUN_MORE', 'CLEAR', 'CLEAR_CONFIRM', 'CLEARED', 'NO_GD', 'LOADING', 'ERROR'] as $key) {
             $texts[$key] = Text::_('PLG_SYSTEM_MERTOOLS_IMG_UI_' . $key);
         }
         $data = htmlspecialchars(json_encode(['token' => Session::getFormToken(), 'texts' => $texts]), ENT_QUOTES, 'UTF-8');
