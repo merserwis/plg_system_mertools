@@ -170,6 +170,9 @@
         warnings.map((w) => el('div', { class: 'alert alert-warning mt-sm-note', text: w })),
         tools, note,
         files ? [el('h4', { text: t.MAPS }), files] : null,
+        (s.extra || []).length || (s.skipped || []).length ? [el('h4', { text: t.EXTRA }),
+          el('ul', { class: 'mt-sm-extra' }, (s.extra || []).map((u) => el('li', {}, link(u, u)))),
+          (s.skipped || []).length ? el('div', { class: 'alert alert-warning mt-sm-note' }, t.EXTRA_SKIPPED, el('ul', {}, s.skipped.map((u) => el('li', { text: u })))) : null] : null,
         s.built ? [el('h4', { text: t.EXCLUDED }), excludedList(s.excluded)] : null,
         whyBox, compareBox].flat(2).filter(Boolean));
     };

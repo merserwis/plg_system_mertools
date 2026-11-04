@@ -113,6 +113,30 @@ use Joomla\CMS\Router\Route;
                 </div>
             </section>
 
+            <?php if ($this->canTransfer) : ?>
+                <section class="card mb-3">
+                    <h2 class="card-header h4 m-0"><?php echo Text::_('COM_MERTOOLS_TRANSFER'); ?></h2>
+                    <div class="card-body">
+                        <p class="small text-muted"><?php echo Text::_('COM_MERTOOLS_TRANSFER_DESC'); ?></p>
+                        <form action="<?php echo Route::_('index.php?option=com_mertools'); ?>" method="post" class="d-grid mb-3">
+                            <button type="submit" class="btn btn-outline-primary text-start">
+                                <span class="icon-download" aria-hidden="true"></span> <?php echo Text::_('COM_MERTOOLS_EXPORT'); ?></button>
+                            <input type="hidden" name="task" value="settings.export">
+                            <?php echo HTMLHelper::_('form.token'); ?>
+                        </form>
+                        <form action="<?php echo Route::_('index.php?option=com_mertools'); ?>" method="post" enctype="multipart/form-data" class="d-grid gap-2"
+                            onsubmit="return confirm(<?php echo $this->escape(json_encode(Text::_('COM_MERTOOLS_IMPORT_CONFIRM'))); ?>);">
+                            <label class="form-label small mb-0" for="mt_settings_file"><?php echo Text::_('COM_MERTOOLS_IMPORT_FILE'); ?></label>
+                            <input class="form-control form-control-sm" type="file" id="mt_settings_file" name="mt_settings_file" accept=".json,application/json" required>
+                            <button type="submit" class="btn btn-outline-primary text-start">
+                                <span class="icon-upload" aria-hidden="true"></span> <?php echo Text::_('COM_MERTOOLS_IMPORT'); ?></button>
+                            <input type="hidden" name="task" value="settings.import">
+                            <?php echo HTMLHelper::_('form.token'); ?>
+                        </form>
+                    </div>
+                </section>
+            <?php endif; ?>
+
             <section class="card mb-3 mt-check">
                 <h2 class="card-header h4 m-0"><span class="icon-exclamation-triangle" aria-hidden="true"></span> <?php echo Text::_('COM_MERTOOLS_CHECK_TITLE'); ?></h2>
                 <div class="card-body"><?php echo Text::_('COM_MERTOOLS_CHECK_TEXT'); ?></div>

@@ -46,6 +46,9 @@ class HtmlView extends BaseHtmlView
 
     protected bool $canClear = false;
 
+    /** may export and import the settings (as saving them: the right to edit plugins) */
+    protected bool $canTransfer = false;
+
     public function display($tpl = null): void
     {
         // also when reached by another task than display (page.display, setup.display): the settings are the plugin's
@@ -71,6 +74,7 @@ class HtmlView extends BaseHtmlView
         $this->version  = (string) (Settings::manifest()?->version ?? '');
         $user           = $this->getCurrentUser();
         $this->canEdit  = $user->authorise('core.edit.state', 'com_plugins');
+        $this->canTransfer = $user->authorise('core.edit', 'com_plugins') && $this->plugin !== null;
         // the button is answered by the plugin: not offered while it is off
         $this->canClear = $user->authorise('core.manage', 'com_cache') && $this->plugin && (int) $this->plugin->enabled;
 

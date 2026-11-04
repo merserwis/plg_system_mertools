@@ -196,5 +196,21 @@ $check('If-Modified-Since older', Sitemap::notModified('"a1"', $now, '', gmdate(
 $check('neither header', Sitemap::notModified('"a1"', $now, '', ''), false);
 $check('garbage date', Sitemap::notModified('"a1"', $now, '', 'yesterday-ish?'), false);
 
+// other sitemaps in the index
+$l = Sitemap::layout(['pages' => $e(2), 'blog-4' => $e(3, 'b')], false, 2, true);
+$check('one file + other maps: an index of sitemap-all.xml', [$l['index'], array_keys($l['files'])], [true, ['sitemap-all.xml']]);
+$x = Sitemap::extraMaps("/index.php?option=com_gallery&view=sitemap&format=xml\nhttps://www.example.com/gallery.xml\n\n# a comment\nhttps://other.example.org/map.xml\n"
+    . "gallery.xml\n/sitemap.xml\nhttps://www.example.com/sitemap-pages.xml\n/index.php?option=com_gallery&view=sitemap&format=xml", 'https://www.example.com', '', ['https://www.example.com/sitemap-pages.xml']);
+$check('extra: a path from the root, a full address of the site', $x['maps'], ['https://www.example.com/index.php?option=com_gallery&view=sitemap&format=xml', 'https://www.example.com/gallery.xml']);
+$check('extra: another site, no address, the index, an own map left out', $x['skipped'], ['https://other.example.org/map.xml', 'gallery.xml', '/sitemap.xml', 'https://www.example.com/sitemap-pages.xml']);
+$x = Sitemap::extraMaps("/gallery.xml\n/shop/gallery2.xml\nHTTPS://WWW.EXAMPLE.COM/shop/g3.xml", 'https://www.example.com', '/shop');
+$check('extra: a site in a folder', $x['maps'], ['https://www.example.com/shop/gallery.xml', 'https://www.example.com/shop/gallery2.xml', 'HTTPS://WWW.EXAMPLE.COM/shop/g3.xml']);
+$check('extra: a sitemap-*.xml of another extension kept', Sitemap::extraMaps('/sitemap-gallery.xml', 'https://a.pl', '')['maps'], ['https://a.pl/sitemap-gallery.xml']);
+$x = Sitemap::extraMaps("/sitemap.xml?source=gallery\n/sitemap-pages.xml?x=1\n/sitemap-gallery.xml?lang=pl", 'https://a.pl', '', ['https://a.pl/sitemap-pages.xml']);
+$check('extra: the index or an own map with parameters is still own', $x['skipped'], ['/sitemap.xml?source=gallery', '/sitemap-pages.xml?x=1']);
+$check('extra: another map with parameters kept', $x['maps'], ['https://a.pl/sitemap-gallery.xml?lang=pl']);
+$idx = Sitemap::index([['https://a.pl/sitemap-all.xml', 1700000000], ['https://a.pl/index.php?option=com_x&format=xml', null]]);
+$check('extra in the index, & escaped, no lastmod', str_contains($idx, '<sitemap><loc>https://a.pl/index.php?option=com_x&amp;format=xml</loc></sitemap>'), true);
+
 echo $fail ? "$fail FAILED\n" : "ALL PASS\n";
 exit($fail ? 1 : 0);

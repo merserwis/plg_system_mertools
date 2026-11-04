@@ -186,6 +186,46 @@ final class Settings
     }
 
     /**
+     * Settings from a file (SettingsFile::pick()): filtered and checked by the form of their page, as when
+     * that page is saved; a page whose values do not pass is left as it is (its errors returned). The
+     * settings not in the file stay as they are. The quick setup counts as done.
+     *
+     * @param array<string, mixed>                $take
+     * @param array<string, array{page: string}> $fields SettingsFile::fields()
+     *
+     * @return array{errors: list<string>, count: int}
+     */
+    public static function import(array $take, array $fields): array
+    {
+        $byPage = [];
+        foreach ($take as $name => $value) {
+            $byPage[$fields[$name]['page']][$name] = $value;
+        }
+        $set    = [];
+        $errors = [];
+        foreach ($byPage as $page => $values) {
+            $form = self::form($page);
+            if (!$form) {
+                continue;
+            }
+            $data = $form->filter(['params' => $values]);
+            if ($form->validate($data) !== true) {
+                foreach ($form->getErrors() as $error) {
+                    $errors[] = Text::sprintf('COM_MERTOOLS_IMPORT_PAGE_ERROR', $page, $error instanceof \Throwable ? $error->getMessage() : (string) $error);
+                }
+                continue;
+            }
+            $set += array_intersect_key((array) ($data['params'] ?? []), $values);
+        }
+        if (!$set) {
+            return ['errors' => $errors, 'count' => 0];
+        }
+        $saved = self::store($set + ['setup_done' => 1, 'setup_pending' => 0]);
+
+        return ['errors' => array_merge($errors, $saved), 'count' => $saved ? 0 : \count($set)];
+    }
+
+    /**
      * Writes settings into the plugin's parameters through Joomla's plugin model.
      *
      * @param array<string, mixed> $set   setting => value

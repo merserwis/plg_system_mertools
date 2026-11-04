@@ -405,6 +405,55 @@ final class Sitemap
         return preg_match('#^/(sitemap(?:-[a-z0-9]+(?:-[a-z0-9]+)*)?\.xml)$#', $path, $m) && \strlen($m[1]) <= 80 ? $m[1] : null;
     }
 
+    /** other sitemaps listed in the index, at most */
+    public const MAX_EXTRA = 50;
+
+    /**
+     * Other sitemaps for the index (made by other extensions, e.g. a gallery), from the setting: one per
+     * line, a full address on this site or a path from the site's root ("/index.php?option=com_x&format=xml",
+     * "/gallery-sitemap.xml"). The sitemap protocol lets an index list only maps of its own site: an address
+     * of another site is left out, and so is the index itself or one of MerTools' own maps ($own: their
+     * addresses), which it lists already.
+     *
+     * @param string[] $own
+     *
+     * @return array{maps: string[], skipped: string[]} the addresses for the index; the lines left out
+     */
+    public static function extraMaps(string $setting, string $domain, string $base, array $own = []): array
+    {
+        $maps    = [];
+        $skipped = [];
+        $host    = strtolower((string) parse_url($domain, PHP_URL_HOST));
+        foreach (preg_split('/\R/', $setting) ?: [] as $line) {
+            $line = trim($line);
+            if ($line === '' || $line[0] === '#') {
+                continue;
+            }
+            if ($line[0] === '/' && !str_starts_with($line, '//')) {
+                // a path from the site's root; one already beginning with the site's folder is taken as it is
+                $url = $domain . ($base !== '' && ($line === $base || str_starts_with($line, $base . '/')) ? '' : $base) . $line;
+            } elseif (preg_match('#^https?://#i', $line)) {
+                $url = $line;
+            } else {
+                $skipped[] = $line;
+                continue;
+            }
+            $parts = parse_url($url);
+            // MerTools sends its maps by their path alone: with parameters added, still its own map
+            $ownPaths = array_map(static fn ($u) => strtolower((string) parse_url($u, PHP_URL_PATH)), array_merge([$domain . $base . '/sitemap.xml'], $own));
+            if ($parts === false || strtolower((string) ($parts['host'] ?? '')) !== $host || preg_match('/[\s<>"]/', $url)
+                || \in_array(strtolower((string) ($parts['path'] ?? '/')), $ownPaths, true)) {
+                $skipped[] = $line;
+                continue;
+            }
+            if (!\in_array($url, $maps, true) && \count($maps) < self::MAX_EXTRA) {
+                $maps[] = $url;
+            }
+        }
+
+        return ['maps' => $maps, 'skipped' => $skipped];
+    }
+
     /** The name of a map: "pages" for the menu items and single pages, "{type}-{id}" for an app */
     public static function group(string $appType, int $appId): string
     {
@@ -419,17 +468,19 @@ final class Sitemap
     /**
      * The files of the maps. Split by app: the index sitemap.xml and sitemap-{group}.xml for each
      * non-empty group, -p2, -p3… for the parts over the limit. One file: sitemap.xml holds all the
-     * addresses; above 50,000 it becomes the index of sitemap-all.xml, sitemap-all-p2.xml…
+     * addresses; above 50,000 it becomes the index of sitemap-all.xml, sitemap-all-p2.xml…, and so it
+     * does when the index has to list other sitemaps too ($index).
      *
      * @param array<string, array> $groups group => entries [loc, lastmod (unix time or null)]
      *
      * @return array{index: bool, files: array<string, array>}
      */
-    public static function layout(array $groups, bool $split, int $limit): array
+    public static function layout(array $groups, bool $split, int $limit, bool $index = false): array
     {
         if (!$split) {
             $all = array_merge(...array_values($groups ?: [[]]));
-            if (\count($all) <= self::MAX_PART) {
+            // other sitemaps to list need an index: then sitemap.xml lists sitemap-all.xml and them
+            if (\count($all) <= self::MAX_PART && !$index) {
                 return ['index' => false, 'files' => ['sitemap.xml' => $all]];
             }
             $groups = ['all' => $all];

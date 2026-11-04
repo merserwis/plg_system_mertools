@@ -2,6 +2,24 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.10.0 — 2026-11-04
+
+### 💾 Settings in a file — export and import
+
+On the control panel of MerTools (*Components → MerTools for Gridbox*), a new box *Settings in a file*:
+
+- **Export the settings** downloads every setting of MerTools as a JSON file (`mertools-settings-<site>-<date>.json`): the saved ones and the defaults of those never saved, so the file describes the whole configuration. To keep a copy before changes, or to set up another site the same way. The PageSpeed key is not in it: it is the site's own.
+- **Import the settings** takes such a file (after a confirmation). Its settings are checked as when their page of settings is saved; a page whose values do not pass is left as it is and named in a message. The settings the file does not have stay as they are, those this version does not know (a file of a newer MerTools) are left out and listed. The saving goes through Joomla, as a save of a page does: the kept pages are emptied, the sitemap built again, and Joomla's action log notes who did it.
+- A list of Gridbox apps never chosen goes into the file as an empty list, so importing the file empties such a list again. The choices of Gridbox apps (in the sitemap, the feeds, the protection of apps) refer to the apps of the site the file comes from: check them after importing into another site.
+- Both need the right to edit plugins, as saving the settings does.
+
+### 🗺 Sitemap — other sitemaps in the index
+
+A new setting *Other sitemaps* (*Sitemap*, its first tab): the sitemaps of other extensions — a gallery, a forum, a catalogue — one per line, as a full address on this site or a path from its root (e.g. `/index.php?option=com_example&view=sitemap&format=xml`). They are listed in the index `/sitemap.xml` next to MerTools' own maps, so search engines that read the index find them too; with the maps in one file, `sitemap.xml` then becomes the index of `sitemap-all.xml` and of them.
+
+- Only maps of this site: the sitemap protocol does not let an index list another site's maps. Such a line, a line that is not an address, and the index itself or one of MerTools' own maps are left out; the panel lists them next to the maps that were added.
+- A map of another extension whose address is `/sitemap-….xml` (with parameters or not) is answered by that extension: MerTools answers 404 only for its own maps that do not exist. The index or one of MerTools' own maps with parameters added is still left out: the index never lists itself.
+
 ## 1.9.0 — 2026-11-04
 
 ### 🌗 The Gridbox panel in Joomla's dark mode

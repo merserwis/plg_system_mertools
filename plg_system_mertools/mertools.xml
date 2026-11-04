@@ -6,7 +6,7 @@
     <creationDate>2026-10-28</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.9.0</version>
+    <version>1.10.0</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -140,6 +140,9 @@
                 </field>
                 <field name="sitemap_part_limit" type="number" default="10000" min="1000" max="50000" filter="integer" showon="sitemap_enabled:1[AND]sitemap_split:app"
                     label="PLG_SYSTEM_MERTOOLS_SITEMAP_PART_LIMIT_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_PART_LIMIT_DESC" />
+                <field name="sitemap_extra" type="textarea" default="" rows="3" filter="string" showon="sitemap_enabled:1"
+                    hint="/index.php?option=com_example&amp;view=sitemap&amp;format=xml"
+                    label="PLG_SYSTEM_MERTOOLS_SITEMAP_EXTRA_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_EXTRA_DESC" />
             </fieldset>
 
             <fieldset name="sitemap_types" label="PLG_SYSTEM_MERTOOLS_FIELDSET_SITEMAP_TYPES" page="sitemap">

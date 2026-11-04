@@ -85,6 +85,10 @@ final class Sitemaps extends Feature
             }
         }
         $file = self::dir() . '/' . $name;
+        if (!isset($meta['files'][$name]) && self::listedOther($meta, $path)) {
+            // a map of another extension listed in the index under such a name: Joomla answers it
+            return;
+        }
         if (!isset($meta['files'][$name]) || !is_file($file)) {
             $this->send(404, '<?xml version="1.0" encoding="UTF-8"?>' . "\n<error>Not Found</error>\n", ['X-Robots-Tag' => 'noindex']);
         }
@@ -96,6 +100,20 @@ final class Sitemaps extends Feature
             $this->send(304, '', $headers);
         }
         $this->send(200, $method === 'HEAD' ? '' : (string) file_get_contents($file), $headers + ['Content-Length' => (string) filesize($file)]);
+    }
+
+    /** The path (below the site's root) is one of the other sitemaps listed in the index (with parameters or not). */
+    private static function listedOther(array $meta, string $path): bool
+    {
+        $base = rtrim(Uri::root(true), '/');
+        foreach ((array) ($meta['extra'] ?? []) as $url) {
+            $parts = parse_url((string) $url);
+            if (($parts['path'] ?? '') === $base . $path) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** A request that may change what is in the maps: they are out of date from now. */
@@ -169,7 +187,13 @@ final class Sitemaps extends Feature
             foreach ($kept as $item) {
                 $groups[$item['group']][] = [$item['loc'], $item['lastmod']];
             }
-            $layout = Sitemap::layout($groups, Sitemap::split($params), Sitemap::partLimit($params));
+            // the sitemaps of other extensions, listed in the index next to MerTools' own
+            $extra  = Sitemap::extraMaps((string) $params->get('sitemap_extra', ''), $domain, $base);
+            $layout = Sitemap::layout($groups, Sitemap::split($params), Sitemap::partLimit($params), (bool) $extra['maps']);
+            if ($extra['maps']) {
+                $extra = Sitemap::extraMaps((string) $params->get('sitemap_extra', ''), $domain, $base,
+                    array_map(static fn ($name) => $domain . $base . '/' . $name, array_keys($layout['files'])));
+            }
 
             // the files: written under new names, then renamed, so a request never reads half a file
             $files = [];
@@ -182,6 +206,9 @@ final class Sitemaps extends Feature
                 self::write($dir . '/' . $name, $xml);
             }
             if ($layout['index']) {
+                foreach ($extra['maps'] as $url) {
+                    $index[] = [$url, null];
+                }
                 $xml                  = Sitemap::index($index);
                 $files['sitemap.xml'] = ['etag' => md5($xml), 'count' => \count($index), 'newest' => Sitemap::newest(array_column($index, 1)), 'size' => \strlen($xml)];
                 self::write($dir . '/sitemap.xml', $xml);
@@ -201,6 +228,8 @@ final class Sitemaps extends Feature
                 'mass'     => Sitemap::massDates($dates, time()),
                 'robots'   => $robots['mtime'],
                 'settings' => self::settingsKey($params),
+                'extra'    => $extra['maps'],
+                'skipped'  => $extra['skipped'],
             ];
             // what is left out, for the panel (the reasons, Why is it not in the map, Compare); the readable
             // excluded.json of the versions before 1.7.0 goes
@@ -286,6 +315,8 @@ final class Sitemaps extends Feature
             'stale'    => $meta !== null && $this->stale($meta),
             'reasons'  => $meta['reasons'] ?? [],
             'files'    => $files,
+            'extra'    => $meta['extra'] ?? [],
+            'skipped'  => $meta['skipped'] ?? [],
             'excluded' => $this->excluded(),
         ];
     }
