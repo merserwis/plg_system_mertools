@@ -2,6 +2,24 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.9.0 — 2026-11-04
+
+### 🌗 The Gridbox panel in Joomla's dark mode
+
+When the Joomla administrator is dark — the style of the Atum template set to *Dark*, the user's own choice in their account, or the system's setting when the style follows it — the **Gridbox panel is dark too**: the dashboard, the lists of pages, posts and products, the store, the tags, the settings and their windows. Gridbox has only a light panel, so in a dark Joomla its white boxes stayed white while the texts that take Joomla's colours turned light and disappeared — among them the button *Columns* above the lists and the columns window. Now the light backgrounds, borders and texts of Gridbox are dark, while its coloured buttons and marks (the blue header, the red and green buttons, the dark sidebars) stay as they are; in a light Joomla nothing changes.
+
+- The dark colours are made from Gridbox's own stylesheet, so they follow it: after a Gridbox update they are made again. They are kept in `media/mertools-admin` (about 20 KB to download, once).
+- MerTools' own boxes in the Gridbox panel (the columns window, badges, edit history, items from other folders, files dropped on the media manager) are dark as well, and so are the control panel and the pages of MerTools: the names of the tiles, the outline buttons, the table of recommended settings, the colours of the speed measurements and of the 404 log could not be read there in dark mode.
+- New switch *Dark Gridbox panel* in *Configuration → Lists in the administrator* (on by default).
+
+### 📋 Gridbox lists — tags, sorting by the added columns, pinned pages
+
+- **Tags column.** The window *Columns* of the lists of posts and products offers *Tags*: the tags of each post or product, in alphabetical order.
+- **Sorting by the added columns.** A click on the head of a column added in *Columns* — a field of the app (e.g. *Producent*), sale price, tags, publishing dates, badges, minimum quantity, versions/sets, author — sorts the **whole list** by it, across all its pages, not only the rows shown; a second click sorts the other way. ▲/▼ shows the column and the direction; rows with nothing in that column come last. A choice field sorts by the names of its options (ticked boxes by the first one), a link by its label (or its address when it has none), a number as a number. The sorting is kept while you move between the pages of the list, filter or search it; a click on one of Gridbox's own columns brings Gridbox's sorting back. A list in Gridbox's order dragged by hand leaves it when an added column is clicked (as with Gridbox's own button), and turning that order on again ends the sorting.
+- **Pinned pages.** A pin before the title of a page, post or product (it shows when the row is pointed at) keeps it **at the top of its list**, above the list's sorting: on the first page of the list and in its folder. A second click unpins it. Each user pins for themselves, per list. New switch *Pin pages to the top* in *Configuration → Lists in the administrator* (on by default).
+
+Thanks to **JJManufaktura** for the remarks and the bugs found — the tags column, the sorting and the pinned pages are their suggestions.
+
 ## 1.8.3 — 2026-11-03
 
 ### 🧭 Main menu on screens a little too narrow for it

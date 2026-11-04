@@ -161,9 +161,10 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
             }
         } catch (\Throwable $e) {
         }
-        // the lighter copies of the site's pictures (media/mertools-img), the kept pages, the built
-        // sitemaps and the plugin's lists and time stamps in Joomla's cache folder
-        $dirs = [JPATH_ROOT . '/media/mertools-img'];
+        // the lighter copies of the site's pictures (media/mertools-img), the dark Gridbox panel
+        // (media/mertools-admin), the kept pages, the built sitemaps and the plugin's lists and time
+        // stamps in Joomla's cache folder
+        $dirs = [JPATH_ROOT . '/media/mertools-img', JPATH_ROOT . '/media/mertools-admin'];
         try {
             $dirs[] = self::cacheBase() . '/mertools_page';
             $dirs[] = self::cacheBase() . '/mertools_sitemap';

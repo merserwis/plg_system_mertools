@@ -47,3 +47,18 @@
 .mt-setup-label { font-weight: 600; margin-inline-end: .5rem; }
 .mt-setup-desc { margin: .25rem 0 0; font-size: .875rem; color: var(--bs-secondary-color, #6c757d); }
 .mt-setup-switch { flex: none; margin: 0; }
+
+/* ------------------------------------------------------------------ Joomla's dark mode (Atum)
+ * Atum's dark mode changes its variables, but not all of them (the dark text of the tiles, the navy of
+ * the outline buttons stay as in light mode), nor the fixed colours of the tools' tables. */
+[data-color-scheme="dark"] .mt-tile { color: var(--bs-body-color, #dee2e6); }
+[data-color-scheme="dark"] .mt-tile:hover, [data-color-scheme="dark"] .mt-tile:focus-visible { color: var(--link-color, #6fbfdb); }
+[data-color-scheme="dark"] body.com_mertools .btn-outline-primary:not(:hover):not(:active) { color: var(--link-color, #6fbfdb); border-color: var(--link-color, #6fbfdb); }
+[data-color-scheme="dark"] body.com_mertools .btn-outline-danger:not(:hover):not(:active) { color: #f1959b; border-color: #f1959b; }
+[data-color-scheme="dark"] body.com_mertools .text-danger { color: #f1959b !important; }
+[data-color-scheme="dark"] body.com_mertools tr.table-light > * { --table-bg: #2b3138; --bs-table-bg: #2b3138; background-color: #2b3138; color: var(--bs-body-color, #dee2e6); }
+[data-color-scheme="dark"] .mt-speed .mt-good, [data-color-scheme="dark"] .mt-speed .mt-up, [data-color-scheme="dark"] .mt-nf-res-category { color: #5fd38a; }
+[data-color-scheme="dark"] .mt-speed .mt-avg, [data-color-scheme="dark"] .mt-nf-res-fallback { color: #f5b74e; }
+[data-color-scheme="dark"] .mt-speed .mt-poor, [data-color-scheme="dark"] .mt-speed .mt-down, [data-color-scheme="dark"] .mt-nf-res-none,
+[data-color-scheme="dark"] .mt-nf-del { color: #f58b85; }
+[data-color-scheme="dark"] .mt-nf-res-gone { color: #a3acb9; }

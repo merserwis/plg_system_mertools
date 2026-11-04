@@ -20,7 +20,8 @@
  *    finished page — faster first view, introductions, post rows, price on request, Omnibus lines —
  *    and the page to keep.
  *  - onBeforeCompileHead: styles and scripts of the site (layout, tabs, phones, price on request,
- *    feed links, Omnibus, dark mode).
+ *    feed links, Omnibus, dark mode); in the administrator the Gridbox panel in Joomla's dark mode.
+ *  - onAfterExtensionBoot: Gridbox's lists ordered by MerTools (pinned pages, an added column).
  *  - onAfterRespond: the work after the response (kept pages, pictures, daily and hourly checks).
  *  - onError: missing pages (404). onAfterModuleList: the clear-cache button of the top bar.
  */
@@ -84,7 +85,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.8.3';
+    public const VERSION = '1.9.0';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -106,6 +107,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             // after the response has gone to the visitor: the work that does not have to keep them waiting
             'onAfterRespond'      => ['onAfterRespond', Priority::MIN],
             'onBeforeCompileHead' => 'onBeforeCompileHead',
+            // Gridbox's component booted: its lists get MerTools' order (pinned pages, sorting by an added column)
+            'onAfterExtensionBoot' => 'onAfterExtensionBoot',
             // the administrator: the clear-cache button in the top bar, next to the Joomla version
             'onAfterModuleList'   => 'onAfterModuleList',
             'onExtensionAfterSave' => 'onExtensionAfterSave',
@@ -285,6 +288,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     public function onBeforeCompileHead(): void
     {
         $app = $this->getApplication();
+        if ($app->isClient('administrator')) {
+            $this->lists()->darkPanel();
+
+            return;
+        }
         if (!$app->isClient('site')) {
             return;
         }
@@ -398,6 +406,15 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $this->carts()->hourly();
     }
 
+    /** An extension booted: see GridboxLists::bootGridbox(). */
+    public function onAfterExtensionBoot(EventInterface $event): void
+    {
+        // every module and plugin boots too: only Gridbox's component is looked at
+        if ($event->getArgument('extensionName') === 'gridbox' && $this->getApplication()->isClient('administrator')) {
+            $this->lists()->bootGridbox($event);
+        }
+    }
+
     /** Page not found: see MissingPages::handle(). */
     public function onError(ErrorEvent $event): void
     {
@@ -453,7 +470,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $action = $input->getCmd('mertools_action', '');
         if (!\in_array($action, ['cart_stats', 'cart_check', 'cart_clean', 'speed_list', 'speed_save', 'speed_baseline', 'speed_delete',
             'pcache_stats', 'pcache_clear', 'dbidx_status', 'dbidx_fix', 'img_stats', 'img_run', 'img_clear', 'cache_clear_all', 'history_list',
-            'list_columns', 'list_edit', 'list_badges', 'apps_list', 'apps_backup', 'apps_restore', 'apps_delete', 'apps_download',
+            'list_columns', 'list_edit', 'list_badges', 'list_pin', 'list_sort', 'apps_list', 'apps_backup', 'apps_restore', 'apps_delete', 'apps_download',
             'nf_list', 'nf_target', 'nf_delete', 'nf_clear', 'nf_moved', 'nf_moved_delete',
             'sm_status', 'sm_rebuild', 'sm_takeover', 'sm_undo', 'sm_compare', 'sm_why'], true)) {
             return;
@@ -461,13 +478,19 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $this->loadLanguage();
         $user = $app->getIdentity();
         // the Gridbox lists: own columns (whoever may use the lists), quick edits (whoever may edit)
-        if ($action === 'list_columns' || $action === 'list_edit' || $action === 'list_badges') {
-            $right = $action === 'list_columns' ? 'core.manage' : 'core.edit';
+        if (\in_array($action, ['list_columns', 'list_edit', 'list_badges', 'list_pin', 'list_sort'], true)) {
+            $right = \in_array($action, ['list_edit', 'list_badges'], true) ? 'core.edit' : 'core.manage';
             if ($input->getMethod() !== 'POST' || !$user || !$user->authorise($right, 'com_gridbox') || !Session::checkToken('request')) {
                 $this->sendJson(['success' => false, 'message' => Text::_('JERROR_ALERTNOAUTHOR')], 403);
             }
             try {
-                $this->sendJson($action === 'list_edit' ? $this->lists()->listEdit() : ($action === 'list_badges' ? $this->lists()->listBadges() : $this->lists()->listColumnsSave()));
+                $this->sendJson(match ($action) {
+                    'list_edit'   => $this->lists()->listEdit(),
+                    'list_badges' => $this->lists()->listBadges(),
+                    'list_pin'    => $this->lists()->listPin(),
+                    'list_sort'   => $this->lists()->listSort(),
+                    default       => $this->lists()->listColumnsSave(),
+                });
             } catch (\Throwable $e) {
                 $this->sendJson(['success' => false, 'message' => $e->getMessage()]);
             }

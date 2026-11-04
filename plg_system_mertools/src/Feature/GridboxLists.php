@@ -4,24 +4,32 @@
  * @package     Merserwis.Plugin
  * @subpackage  System.mertools
  *
- * Gridbox lists in the administrator: each user's own columns of the product, post and page lists, prices,
- * sale prices, stock, SKU and badges edited in the list, and the items other folders hold (greyed out).
+ * Gridbox lists in the administrator: each user's own columns of the product, post and page lists (sorted
+ * by any of them), pages pinned to the top of a list, prices, sale prices, stock, SKU and badges edited in
+ * the list, the items other folders hold (greyed out), and the Gridbox panel in Joomla's dark mode.
  */
 
 namespace Merserwis\Plugin\System\MerTools\Feature;
 
 \defined('_JEXEC') or die;
 
+use Joomla\CMS\Extension\ComponentInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\MVC\Factory\MVCFactory;
+use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\Session\Session;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
+use Joomla\Event\EventInterface;
 use Merserwis\Plugin\System\MerTools\Extension\MerTools;
+use Merserwis\Plugin\System\MerTools\Gridbox\ListFactory;
+use Merserwis\Plugin\System\MerTools\Tool\AdminDark;
 use Merserwis\Plugin\System\MerTools\Tool\EditLock;
 use Merserwis\Plugin\System\MerTools\Tool\History;
 use Merserwis\Plugin\System\MerTools\Tool\ListColumns;
+use Merserwis\Plugin\System\MerTools\Tool\ListSort;
 use Merserwis\Plugin\System\MerTools\Tool\Omnibus;
 
 final class GridboxLists extends Feature
@@ -58,6 +66,194 @@ final class GridboxLists extends Feature
             ? ['order' => array_map('strval', $prefs['order']), 'known' => array_map('strval', (array) ($prefs['known'] ?? []))] : null;
     }
 
+    /** @return int[] the pages the user pinned to the top of a list, the first shown first */
+    private function listPins(int $userId, string $list): array
+    {
+        $db  = Factory::getContainer()->get(DatabaseInterface::class);
+        $raw = $db->setQuery('SELECT profile_value FROM ' . $db->quoteName('#__user_profiles') . ' WHERE user_id = ' . $userId . ' AND profile_key = '
+            . $db->quote('mertools.listpins.' . $list))->loadResult();
+        $pins = \is_string($raw) ? json_decode($raw, true) : null;
+
+        return \is_array($pins) ? \array_slice(array_values(array_filter(array_map('intval', $pins), static fn ($id) => $id > 0)), 0, ListSort::MAX_PINS) : [];
+    }
+
+    /** The context of Gridbox's list model (its filters, order and page are kept in the session under it). */
+    private function gridboxContext(string $list): ?string
+    {
+        if ($list === 'pages') {
+            return 'com_gridbox.pages';
+        }
+        $db   = Factory::getContainer()->get(DatabaseInterface::class);
+        $type = (string) $db->setQuery('SELECT type FROM ' . $db->quoteName('#__gridbox_app') . ' WHERE id = ' . (int) substr($list, 5))->loadResult();
+
+        return $type === '' ? null : 'com_gridbox.apps.' . strtolower($type);
+    }
+
+    /** Gridbox's own order of the list now: [column, direction] (its defaults while none is chosen). */
+    private function gridboxOrder(string $context): array
+    {
+        $app = $this->plugin->app();
+
+        return [strtolower((string) ($app->getUserState($context . '.ordercol') ?: 'id')), strtolower((string) ($app->getUserState($context . '.orderdirn') ?: 'desc'))];
+    }
+
+    private ?array $plan = null;
+
+    private bool $planDone = false;
+
+    /**
+     * The order of the Gridbox list of this request: the pages the user pinned and the added column it is
+     * sorted by (until Gridbox's own sorting is chosen again). Null when there is nothing to order.
+     *
+     * @return array{list: string, pins: int[], key: ?string, dir: string, expression: ?string}|null
+     */
+    public function orderPlan(): ?array
+    {
+        if ($this->planDone) {
+            return $this->plan;
+        }
+        $this->planDone = true;
+        $list           = $this->gridboxList();
+        $app            = $this->plugin->app();
+        if ($list === null || $app->getInput()->getCmd('layout', '') === 'modal' || $app->getInput()->getCmd('tmpl', '') === 'component') {
+            return null;
+        }
+        $pinsOn = (int) $this->plugin->params->get('list_pins', 1) === 1;
+        $sortOn = (int) $this->plugin->params->get('list_columns', 1) === 1;
+        $user   = $app->getIdentity();
+        if ((!$pinsOn && !$sortOn) || !$user || $user->guest || !$user->authorise('core.manage', 'com_gridbox')) {
+            return null;
+        }
+        try {
+            $pins       = $pinsOn ? $this->listPins((int) $user->id, $list) : [];
+            $key        = null;
+            $dir        = 'asc';
+            $expression = null;
+            $state      = $sortOn ? $app->getUserState('mertools.listsort.' . $list) : null;
+            if (\is_array($state) && isset($state['key'], $state['base'])) {
+                $context = $this->gridboxContext($list);
+                $prefs   = $this->listPrefs((int) $user->id, $list);
+                // sorted by Gridbox again (its order changed since), or the column hidden: Gridbox's order
+                if ($context === null || $this->gridboxOrder($context) !== $state['base'] || !\in_array($state['key'], $prefs['order'] ?? [], true)) {
+                    $app->setUserState('mertools.listsort.' . $list, null);
+                } else {
+                    $expression = $this->sortExpression($list, (string) $state['key']);
+                    $key        = $expression === null ? null : (string) $state['key'];
+                    $dir        = ($state['dir'] ?? '') === 'desc' ? 'desc' : 'asc';
+                }
+            }
+        } catch (\Throwable $e) {
+            return null;
+        }
+        if (!$pins && $key === null) {
+            return null;
+        }
+
+        return $this->plan = ['list' => $list, 'pins' => $pins, 'key' => $key, 'dir' => $dir, 'expression' => $expression];
+    }
+
+    /** The SQL value of an added column of a list to sort by; null when the list has no such column. */
+    private function sortExpression(string $list, string $key): ?string
+    {
+        if (!ListSort::sortable($key) || ($list === 'pages' && \in_array($key, ['tags', 'sale_price', 'min', 'badges', 'variants'], true))) {
+            return null;
+        }
+        $db    = Factory::getContainer()->get(DatabaseInterface::class);
+        $field = [];
+        if (str_starts_with($key, 'field_')) {
+            $field = $list === 'pages' ? null : $db->setQuery('SELECT id, label, field_type, options FROM ' . $db->quoteName('#__gridbox_fields') . ' WHERE id = '
+                . (int) substr($key, 6) . ' AND app_id = ' . (int) substr($list, 5))->loadAssoc();
+            if (!$field) {
+                return null;
+            }
+        }
+        $history = $key === 'creator' && \in_array($db->replacePrefix(History::TABLE), $db->getTableList(), true);
+
+        return ListSort::expression($key, $field, static fn (string $v) => $db->quote($v), $history);
+    }
+
+    /**
+     * Gridbox's component booted for a list with something to order: its MVC factory makes MerTools'
+     * list models, which put the pinned pages first and sort by the chosen added column.
+     */
+    public function bootGridbox(EventInterface $event): void
+    {
+        if ($event->getArgument('type') !== ComponentInterface::class || $event->getArgument('extensionName') !== 'gridbox'
+            || !$this->plugin->app()->isClient('administrator')) {
+            return;
+        }
+        $plan = $this->orderPlan();
+        if ($plan === null) {
+            return;
+        }
+        $container = $event->getArgument('container');
+        if (!\is_object($container) || !method_exists($container, 'has') || !$container->has(MVCFactoryInterface::class)) {
+            return;
+        }
+        ListFactory::$plan = ['pins' => $plan['pins'], 'expression' => $plan['expression'], 'dir' => $plan['dir']];
+        $container->extend(MVCFactoryInterface::class, static fn ($factory) => $factory instanceof MVCFactory && !$factory instanceof ListFactory
+            ? ListFactory::from($factory) : $factory);
+    }
+
+    /** A page pinned to the top of a list, or unpinned (for the user, as the columns). */
+    public function listPin(): array
+    {
+        $app   = $this->plugin->app();
+        $input = $app->getInput();
+        $list  = $input->getString('list', '');
+        $id    = $input->getInt('id', 0);
+        if (!preg_match('/^(apps\.\d{1,9}|pages)$/', $list) || $id <= 0) {
+            return ['success' => false, 'message' => 'list'];
+        }
+        $userId = (int) $app->getIdentity()->id;
+        $db     = Factory::getContainer()->get(DatabaseInterface::class);
+        $key    = $db->quote('mertools.listpins.' . $list);
+        // read and written under a lock: two pins at the same moment (two tabs) would otherwise lose one
+        $lock = $db->quote('mertools.pins.' . $userId . '.' . $list);
+        if (!(int) $db->setQuery('SELECT GET_LOCK(' . $lock . ', 5)')->loadResult()) {
+            return ['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_ERROR')];
+        }
+        try {
+            $pins = ListSort::pin($this->listPins($userId, $list), $id, $input->getInt('pin', 1) === 1);
+            $db->setQuery('DELETE FROM ' . $db->quoteName('#__user_profiles') . ' WHERE user_id = ' . $userId . ' AND profile_key = ' . $key)->execute();
+            if ($pins) {
+                $db->setQuery('INSERT INTO ' . $db->quoteName('#__user_profiles') . ' (user_id, profile_key, profile_value, ordering) VALUES (' . $userId . ', ' . $key
+                    . ', ' . $db->quote(json_encode($pins)) . ', 0)')->execute();
+            }
+        } finally {
+            $db->setQuery('SELECT RELEASE_LOCK(' . $lock . ')')->loadResult();
+        }
+
+        return ['success' => true, 'pinned' => \in_array($id, $pins, true)];
+    }
+
+    /** A list sorted by an added column (empty key: Gridbox's order again); from its first page. */
+    public function listSort(): array
+    {
+        $app   = $this->plugin->app();
+        $input = $app->getInput();
+        $list  = $input->getString('list', '');
+        $key   = $input->getCmd('key', '');
+        if (!preg_match('/^(apps\.\d{1,9}|pages)$/', $list) || ($key !== '' && !ListSort::sortable($key))) {
+            return ['success' => false, 'message' => 'list'];
+        }
+        $context = $this->gridboxContext($list);
+        if ($context === null) {
+            return ['success' => false, 'message' => 'list'];
+        }
+        // the order dragged by hand (Gridbox's "custom order") is switched off, as Gridbox's own button does:
+        // a list in that order is never sorted
+        if ($key !== '' && $this->gridboxOrder($context)[0] === 'order_list') {
+            $app->setUserState($context . '.ordercol', 'id');
+            $app->setUserState($context . '.orderdirn', 'desc');
+        }
+        $app->setUserState('mertools.listsort.' . $list, $key === '' ? null
+            : ['key' => $key, 'dir' => $input->getCmd('dir', '') === 'desc' ? 'desc' : 'asc', 'base' => $this->gridboxOrder($context)]);
+        $app->setUserState($context . '.limitstart', 0);
+
+        return ['success' => true];
+    }
+
     /**
      * The Gridbox list as the user arranged it: Gridbox's columns in the chosen order (hidden ones out),
      * the added columns, and the cells of price, sale price, stock and SKU editable in place. In a
@@ -75,7 +271,8 @@ final class GridboxLists extends Feature
         $columnsOn = (int) $this->plugin->params->get('list_columns', 1) === 1;
         $category  = str_starts_with($list, 'apps.') && $input->getCmd('layout', '') !== 'modal' ? $input->getInt('category', 0) : 0;
         $ghostsOn  = $category > 0 && (int) $this->plugin->params->get('list_ghosts', 1) === 1;
-        if (!$columnsOn && !$ghostsOn) {
+        $pinsOn    = (int) $this->plugin->params->get('list_pins', 1) === 1 && $input->getCmd('layout', '') !== 'modal';
+        if (!$columnsOn && !$ghostsOn && !$pinsOn) {
             return;
         }
         $user = $app->getIdentity();
@@ -106,7 +303,7 @@ final class GridboxLists extends Feature
             // the items of other folders added to this one: listed on the last page of the list
             $ghosts   = $ghostsOn ? $this->ghostItems($appId, $appType, $category) : [];
             $lastPage = ListColumns::lastPage(substr($body, $end, 6000));
-            if ((!$ids && !$ghosts) || (!$columnsOn && !$ghosts)) {
+            if ((!$ids && !$ghosts) || (!$columnsOn && !$ghosts && !$pinsOn)) {
                 return;
             }
 
@@ -119,6 +316,10 @@ final class GridboxLists extends Feature
                 $extra['min']        = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_MIN');
                 $extra['badges']     = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_BADGES');
                 $extra['variants']   = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_VARIANTS');
+            }
+            // the tags of the posts and products (single pages have none)
+            if ($columnsOn && $appId) {
+                $extra['tags'] = Text::_('PLG_SYSTEM_MERTOOLS_LIST_COL_TAGS');
             }
             // the Joomla user who made the page: in Gridbox's column "Author" where the list has it (blogs), else as a column of its own
             if ($columnsOn && !\in_array('author', $builtin, true)) {
@@ -178,6 +379,13 @@ final class GridboxLists extends Feature
                     }
                 }
             }
+            $tags = [];
+            if (isset($shown['tags'])) {
+                foreach ($db->setQuery('SELECT m.page_id, t.title FROM ' . $db->quoteName('#__gridbox_tags_map') . ' AS m INNER JOIN ' . $db->quoteName('#__gridbox_tags')
+                    . ' AS t ON t.id = m.tag_id WHERE m.page_id IN (' . $in . ') ORDER BY t.title')->loadRowList() ?: [] as [$pid, $title]) {
+                    $tags[(int) $pid][] = (string) $title;
+                }
+            }
             $values = [];
             $wanted = array_filter(array_keys($fields), static fn ($id) => isset($shown['field_' . $id]));
             if ($wanted) {
@@ -196,9 +404,11 @@ final class GridboxLists extends Feature
         $date     = static fn ($v) => ($v === '' || $v === null || str_starts_with((string) $v, '0000')) ? '' : HTMLHelper::_('date', (string) $v, 'd.m.Y H:i', false);
 
         $creator   = static fn (array $c) => '<span class="mt-author' . ($c['known'] ? '' : ' mt-author-guess') . '" title="' . $esc($c['tip']) . '">' . $esc($c['name']) . '</span>';
-        $extraCell = function (string $key, int $id) use ($pages, $products, $badges, $allBadges, $values, $fields, $currency, $esc, $date, $creators, $creator): string {
+        $extraCell = function (string $key, int $id) use ($pages, $products, $badges, $allBadges, $values, $fields, $currency, $esc, $date, $creators, $creator, $tags): string {
             $page = $pages[$id] ?? [];
             switch ($key) {
+                case 'tags':
+                    return implode(' ', array_map(static fn ($t) => '<span class="mt-tag">' . $esc($t) . '</span>', $tags[$id] ?? []));
                 case 'creator':
                     return isset($creators[$id]) ? $creator($creators[$id]) : '';
                 case 'sale_price':
@@ -226,7 +436,17 @@ final class GridboxLists extends Feature
             return '';
         };
         $ghostSet = array_flip($ghostIds);
-        $decorate = function (string $key, string $cell, int $id) use ($products, $badges, $edit, $ghostSet, $creators, $creator): string {
+        $plan     = $this->orderPlan();
+        $pinned   = array_flip($plan['pins'] ?? []);
+        $pinText  = [Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_PIN'), Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_UNPIN')];
+        $decorate = function (string $key, string $cell, int $id) use ($products, $badges, $edit, $ghostSet, $creators, $creator, $pinsOn, $pinned, $pinText, $esc): string {
+            if ($key === 'title' && $pinsOn && !isset($ghostSet[$id])) {
+                // the pin before the title: pinned pages are listed first
+                $on   = isset($pinned[$id]);
+                $cell = preg_replace('/^<td\b[^>]*>/', '$0<button type="button" class="mt-pin" data-mt-pin="' . $id . '" aria-pressed="' . ($on ? 'true' : 'false')
+                    . '" title="' . $esc($pinText[$on ? 1 : 0]) . '" aria-label="' . $esc($pinText[$on ? 1 : 0]) . '"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">'
+                    . '<path d="M16 3l5 5-3 1-4 4 1 5-2 2-4-4-5 5H3v-1l5-5-4-4 2-2 5 1 4-4z" fill="currentColor"/></svg></button>', $cell, 1) ?? $cell;
+            }
             if ($key === 'author' && isset($creators[$id])) {
                 // after Gridbox's own authors (avatars only): the Joomla user who made the page
                 return preg_replace('#</td>$#', $creator($creators[$id]) . '</td>', $cell, 1) ?? $cell;
@@ -259,8 +479,11 @@ final class GridboxLists extends Feature
             $close = strrpos($table, '</table>');
             $table = substr($table, 0, $close) . '<tbody class="mt-ghosts">' . $rows . '</tbody>' . substr($table, $close);
         }
-        if ($columnsOn) {
+        if ($columnsOn || $pinsOn) {
             $table = ListColumns::apply($table, $visible, $extra, $extraCell, $decorate);
+        }
+        if ($columnsOn) {
+            $table = self::sortHeads($table, $plan['key'] ?? null, $plan['dir'] ?? 'asc', Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_SORT'));
         }
 
         // the columns window: Gridbox's columns (labels from its head), then the added ones
@@ -281,17 +504,17 @@ final class GridboxLists extends Feature
         });
         $texts = [];
         foreach (['BUTTON', 'TITLE', 'HINT', 'SAVE', 'RESET', 'CANCEL', 'UP', 'DOWN', 'ADDED', 'SAVING', 'ERROR', 'EDIT_HINT', 'VARIANTS', 'SAVED', 'EMPTY_SALE',
-            'BADGES_TITLE', 'BADGES_NONE'] as $k) {
+            'BADGES_TITLE', 'BADGES_NONE', 'PIN', 'UNPIN'] as $k) {
             $texts[$k] = Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_' . $k);
         }
         $edit   = $edit && $columnsOn;
         $config = ['url' => Uri::base(true) . '/index.php', 'token' => Session::getFormToken(), 'list' => $list, 'builtin' => array_values(array_diff($builtin, ['select'])),
-            'columns' => $columns, 'edit' => $edit, 'texts' => $texts,
+            'columns' => $columns, 'edit' => $edit, 'texts' => $texts, 'sort' => ['key' => $plan['key'] ?? null, 'dir' => $plan['dir'] ?? 'asc'],
             'badges' => array_values(array_map(static fn ($b) => ['id' => (int) $b['id'], 'label' => self::badgeLabel($b), 'color' => (string) $b['color']], $allBadges))];
         $tools  = !$columnsOn ? '' : '<div class="mt-list-tools"><button type="button" class="mt-cols-btn" data-mt-columns><span aria-hidden="true">☰</span> ' . $esc($texts['BUTTON']) . '</button>'
             . ($edit && $product ? '<span class="mt-list-hint">' . $esc(Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_EDIT_HINT_BADGES')) . '</span>' : '') . '</div>';
         $body = substr($body, 0, $start) . $tools . $table . substr($body, $end);
-        $tail = '<style>' . self::LIST_CSS . ($ghosts ? self::GHOST_CSS : '') . '</style><script type="application/json" id="mertools-lists-config">'
+        $tail = '<style>' . self::LIST_CSS . self::POPUP_CSS . ($ghosts ? self::GHOST_CSS : '') . '</style><script type="application/json" id="mertools-lists-config">'
             . json_encode($config, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . '</script><script src="' . Uri::root(true)
             . '/media/plg_system_mertools/js/mertools-lists' . (JDEBUG ? '' : '.min') . '.js?' . MerTools::VERSION . '" defer></script>';
         $pos  = strripos($body, '</body>');
@@ -321,7 +544,108 @@ final class GridboxLists extends Feature
         $app->setBody($pos === false ? $body . $tail : substr($body, 0, $pos) . $tail . substr($body, $pos));
     }
 
-    public const LIST_CSS = '.mt-list-tools{display:flex;align-items:center;gap:12px;margin:0 0 8px}.mt-cols-btn{border:1px solid #d1d5db;background:#fff;border-radius:6px;'
+    /**
+     * The Gridbox panel in Joomla's dark mode: the dark twin of Gridbox's stylesheet (and of MerTools'
+     * own boxes in it), applied only while Atum shows the administrator dark — chosen in its template
+     * style, by the user, or by the system's setting. Made once per Gridbox stylesheet, kept in
+     * media/mertools-admin; written into the page when that folder cannot be written.
+     */
+    public function darkPanel(): void
+    {
+        $app      = $this->plugin->app();
+        $input    = $app->getInput();
+        $document = $app->getDocument();
+        if ((int) $this->plugin->params->get('list_dark', 1) !== 1 || $input->getCmd('option') !== 'com_gridbox' || !$document || $document->getType() !== 'html'
+            || $input->getCmd('tmpl', '') === 'component') {
+            return;
+        }
+        $user   = $app->getIdentity();
+        $source = JPATH_ADMINISTRATOR . '/components/com_gridbox/assets/css/ba-admin.css';
+        if (!$user || $user->guest || !is_file($source)) {
+            return;
+        }
+        $key  = substr(md5(filemtime($source) . ':' . filesize($source) . ':' . MerTools::VERSION), 0, 12);
+        $dir  = JPATH_ROOT . '/media/mertools-admin';
+        $file = $dir . '/gridbox-dark-' . $key . '.css';
+        if (!is_file($file)) {
+            $css = AdminDark::css((string) file_get_contents($source)) . AdminDark::css(self::LIST_CSS . self::POPUP_CSS . self::GHOST_CSS . EditHistory::HISTORY_CSS)
+                . AdminDark::scope('.mt-hist-table th,.mt-hist-total,.mt-hist-id,.mt-hist-client') . '{color:#9aa4b2}'
+                . AdminDark::scope('.mt-hist-table th,.mt-hist-table td,.mt-hist-head') . '{border-color:#36404d}'
+                . AdminDark::scope('dialog.mt-hist-dlg') . '{background:#1d2229}' . AdminDark::scope('.mt-hist-head button') . '{color:inherit}'
+                . AdminDark::scope('.mt-drop') . '{background:rgba(23,31,46,.95)}' . AdminDark::scope('.mt-drop div,.mt-drop small') . '{color:#bfdbfe}'
+                . AdminDark::scope('.mt-pin[aria-pressed="true"],.mt-pin:hover,th.mt-sortable:hover,th.mt-sorted .mt-sort-mark') . '{color:#7cb4f5}'
+                . AdminDark::scope('tr:has(.mt-pin[aria-pressed="true"]) > td') . '{background-color:#1f2a3a}';
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0755, true);
+            }
+            $tmp = $file . '.' . getmypid() . '.tmp';
+            if (!is_dir($dir) || @file_put_contents($tmp, $css) === false || !@rename($tmp, $file)) {
+                @unlink($tmp);
+                $document->addStyleDeclaration($css);
+
+                return;
+            }
+            // the twins of earlier Gridbox or MerTools versions
+            foreach (glob($dir . '/gridbox-dark-*.css') ?: [] as $old) {
+                if ($old !== $file) {
+                    @unlink($old);
+                }
+            }
+        }
+        $document->addStyleSheet(Uri::root(true) . '/media/mertools-admin/' . basename($file));
+    }
+
+    /**
+     * The heads of the added columns that can be sorted by made clickable, the one sorted by marked;
+     * while the list is sorted by one of them, Gridbox's mark of its own sorted column goes.
+     */
+    public static function sortHeads(string $table, ?string $sorted, string $dir, string $tip): string
+    {
+        $headEnd = strpos($table, '</thead>');
+        if ($headEnd === false) {
+            return $table;
+        }
+        $head = substr($table, 0, $headEnd);
+        $head = preg_replace_callback('#<th class="mt-col-head mt-col-([a-z_0-9]+)"><span>(.*?)</span></th>#', static function ($m) use ($sorted, $dir, $tip): string {
+            if (!ListSort::sortable($m[1])) {
+                return $m[0];
+            }
+            $on   = $m[1] === $sorted;
+            $mark = $on ? ($dir === 'desc' ? '▼' : '▲') : '↕';
+
+            return '<th class="mt-col-head mt-col-' . $m[1] . ' mt-sortable' . ($on ? ' mt-sorted' : '') . '" data-mt-sort="' . $m[1] . '"'
+                . ($on ? ' data-mt-dir="' . ($dir === 'desc' ? 'desc' : 'asc') . '" aria-sort="' . ($dir === 'desc' ? 'descending' : 'ascending') . '"' : '')
+                . ' tabindex="0" title="' . htmlspecialchars($tip, ENT_QUOTES, 'UTF-8') . '"><span>' . $m[2] . '</span><span class="mt-sort-mark" aria-hidden="true">' . $mark . '</span></th>';
+        }, $head) ?? $head;
+        if ($sorted !== null && str_contains($head, 'mt-sorted')) {
+            $head = preg_replace_callback('#<th\b[^>]*>#', static fn ($m) => str_contains($m[0], 'mt-col-head') ? $m[0]
+                : (preg_replace('/(class="[^"]*?)\bactive\b/', '$1', $m[0]) ?? $m[0]), $head) ?? $head;
+        }
+
+        return $head . substr($table, $headEnd);
+    }
+
+    /** the columns window and the badges window (shown over the list) */
+    public const POPUP_CSS = '.mt-cols-pop{position:absolute;z-index:10000;background:#fff;color:#1f2328;border:1px solid #d1d5db;border-radius:8px;'
+        . 'box-shadow:0 12px 40px rgba(0,0,0,.18);padding:12px;width:340px;max-height:70vh;overflow:auto;font-size:13px}.mt-cols-pop h4{margin:0 0 4px;font-size:15px;color:inherit}'
+        . '.mt-cols-pop p{margin:0 0 8px;color:#6b7280;font-size:12px}.mt-cols-row{display:flex;align-items:center;gap:6px;padding:4px 2px;border-bottom:1px solid #f3f4f6}'
+        . '.mt-cols-row label{flex:1;display:flex;gap:6px;align-items:center;cursor:pointer;color:inherit}.mt-cols-row button{border:1px solid #e5e7eb;background:#fff;'
+        . 'color:#1f2328;border-radius:4px;width:26px;height:24px;cursor:pointer;padding:0}.mt-cols-row button:disabled{opacity:.3;cursor:default}'
+        . '.mt-cols-tag{font-size:10px;background:#eef2ff;color:#3730a3;border-radius:3px;padding:0 4px}.mt-cols-btns{display:flex;gap:8px;margin-top:10px;justify-content:flex-end}'
+        . '.mt-cols-btns button{border:1px solid #d1d5db;background:#fff;color:#1f2328;border-radius:5px;padding:5px 12px;cursor:pointer}'
+        . '.mt-cols-btns .mt-primary{background:#1d4ed8;border-color:#1d4ed8;color:#fff}'
+        // the pin before a title, the tags, the sortable heads of the added columns
+        // (over the corner of the picture, so the title does not move; an unpinned one only while the row is pointed at)
+        . 'td:has(> .mt-pin){position:relative}.mt-pin{position:absolute;left:4px;top:6px;z-index:2;border:0;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);'
+        . 'padding:4px;margin:0;cursor:pointer;color:#6b7280;line-height:0;border-radius:50%;opacity:0;transition:opacity .15s}'
+        . 'tr:hover .mt-pin,.mt-pin:focus-visible,.mt-pin[aria-pressed="true"]{opacity:1}.mt-pin:hover,.mt-pin:focus-visible{color:#1d4ed8}'
+        . '.mt-pin[aria-pressed="true"]{color:#1d4ed8}'
+        . 'tr:has(.mt-pin[aria-pressed="true"]) > td{background-color:#f5f8ff}'
+        . '.mt-tag{display:inline-block;font-size:11px;line-height:16px;padding:1px 7px;margin:1px 2px 1px 0;border-radius:10px;background:#eef2f7;color:#334155;white-space:nowrap}'
+        . 'th.mt-sortable{cursor:pointer;user-select:none;white-space:nowrap}th.mt-sortable:hover{color:#1d4ed8}.mt-sort-mark{margin-left:4px;font-size:10px;opacity:.35}'
+        . 'th.mt-sorted .mt-sort-mark{opacity:1;color:#1d4ed8}th.mt-sortable:hover .mt-sort-mark{opacity:.8}';
+
+    public const LIST_CSS ='.mt-list-tools{display:flex;align-items:center;gap:12px;margin:0 0 8px}.mt-cols-btn{border:1px solid #d1d5db;background:#fff;color:#1f2328;border-radius:6px;'
         . 'padding:6px 12px;cursor:pointer;font-size:13px}.mt-cols-btn:hover{border-color:#1d4ed8;color:#1d4ed8}.mt-list-hint{font-size:12px;color:#6b7280}'
         . '[data-mt-edit]{cursor:pointer;position:relative}[data-mt-edit]:hover{outline:1px dashed #93c5fd;outline-offset:-3px}[data-mt-edit].mt-saving{opacity:.5}'
         . '[data-mt-edit].mt-saved{background:#dcfce7!important;transition:background 1.5s}[data-mt-edit] input{width:100%;min-width:80px;box-sizing:border-box;'

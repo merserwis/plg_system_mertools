@@ -1,7 +1,8 @@
 /**
  * MerTools — Gridbox lists: the columns window (show, hide, order, add columns; saved per user on the
- * server) and editing prices, sale prices, stock and SKU right in the list (click or Enter; Enter or
- * leaving the field saves, Esc cancels); rows of items from other folders (greyed out) left alone.
+ * server), pages pinned to the top and sorting by an added column (both kept on the server, the list
+ * loaded again), and editing prices, sale prices, stock and SKU right in the list (click or Enter;
+ * Enter or leaving the field saves, Esc cancels); rows of items from other folders (greyed out) left alone.
  * Config: <script type="application/json" id="mertools-lists-config">.
  */
 (() => {
@@ -35,13 +36,6 @@
   };
 
   // ---------------------------------------------------------------- columns window
-  const style = el('style', {}, '.mt-cols-pop{position:absolute;z-index:10000;background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 12px 40px rgba(0,0,0,.18);'
-    + 'padding:12px;width:340px;max-height:70vh;overflow:auto;font-size:13px}.mt-cols-pop h4{margin:0 0 4px;font-size:15px}.mt-cols-pop p{margin:0 0 8px;color:#6b7280;font-size:12px}'
-    + '.mt-cols-row{display:flex;align-items:center;gap:6px;padding:4px 2px;border-bottom:1px solid #f3f4f6}.mt-cols-row label{flex:1;display:flex;gap:6px;align-items:center;cursor:pointer}'
-    + '.mt-cols-row button{border:1px solid #e5e7eb;background:#fff;border-radius:4px;width:26px;height:24px;cursor:pointer;padding:0}.mt-cols-row button:disabled{opacity:.3;cursor:default}'
-    + '.mt-cols-tag{font-size:10px;background:#eef2ff;color:#3730a3;border-radius:3px;padding:0 4px}.mt-cols-btns{display:flex;gap:8px;margin-top:10px;justify-content:flex-end}'
-    + '.mt-cols-btns button{border:1px solid #d1d5db;background:#fff;border-radius:5px;padding:5px 12px;cursor:pointer}.mt-cols-btns .mt-primary{background:#1d4ed8;border-color:#1d4ed8;color:#fff}');
-  document.head.append(style);
 
   let pop = null;
   const closePop = () => { if (pop) { pop.remove(); pop = null; } };
@@ -93,6 +87,50 @@
     if (pop && !pop.contains(e.target)) closePop();
   }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePop(); });
+
+  // ---------------------------------------------------------------- pinned pages, sorting by an added column
+  // both change the order of the whole list (on the server): the list is loaded again
+  document.addEventListener('click', async (e) => {
+    const pin = e.target.closest && e.target.closest('[data-mt-pin]');
+    if (!pin) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (pin.disabled) return;
+    pin.disabled = true;
+    const on = pin.getAttribute('aria-pressed') !== 'true';
+    try {
+      const data = await post({ mertools_action: 'list_pin', list: cfg.list, id: pin.getAttribute('data-mt-pin'), pin: on ? '1' : '0' });
+      if (!data.success) throw new Error(data.message || t.ERROR);
+      window.location.reload();
+    } catch (err) {
+      pin.disabled = false;
+      alert(t.ERROR + ': ' + err.message);
+    }
+  }, true);
+  // Gridbox's row menu and its click on a row are not for the pin
+  ['mousedown', 'dblclick', 'contextmenu'].forEach((type) => document.addEventListener(type, (e) => {
+    if (e.target.closest && e.target.closest('[data-mt-pin]')) e.stopPropagation();
+  }, true));
+  const sortBy = async (head) => {
+    const key = head.getAttribute('data-mt-sort');
+    const dir = head.getAttribute('data-mt-dir') === 'asc' ? 'desc' : 'asc';
+    head.style.opacity = '.5';
+    try {
+      const data = await post({ mertools_action: 'list_sort', list: cfg.list, key, dir });
+      if (!data.success) throw new Error(data.message || t.ERROR);
+      window.location.reload();
+    } catch (err) {
+      head.style.opacity = '';
+      alert(t.ERROR + ': ' + err.message);
+    }
+  };
+  document.addEventListener('click', (e) => {
+    const head = e.target.closest && e.target.closest('th[data-mt-sort]');
+    if (head) { e.preventDefault(); e.stopPropagation(); sortBy(head); }
+  }, true);
+  document.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('th[data-mt-sort]')) { e.preventDefault(); sortBy(e.target); }
+  });
 
   // ---------------------------------------------------------------- editing in the list
   if (!cfg.edit) return;

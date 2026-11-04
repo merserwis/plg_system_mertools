@@ -59,7 +59,7 @@ final class Catalog
         'tabs'    => ['icon' => 'folder-open',    'on' => ['tabs_links', 'tabs_accordion']],
         'tel'     => ['icon' => 'phone',          'on' => ['tel_enabled']],
         'dark'    => ['icon' => 'paint-brush',    'on' => ['dark_enabled']],
-        'lists'   => ['icon' => 'list',           'on' => ['list_columns', 'list_ghosts', 'media_drop']],
+        'lists'   => ['icon' => 'list',           'on' => ['list_columns', 'list_pins', 'list_ghosts', 'media_drop', 'list_dark']],
         'lock'    => ['icon' => 'lock',           'on' => ['lock_enabled']],
         'editor'  => ['icon' => 'save',           'on' => ['editor_unsaved_warn', 'editor_autosave', 'editor_fill']],
     ];
