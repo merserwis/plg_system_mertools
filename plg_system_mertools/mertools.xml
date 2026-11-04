@@ -6,7 +6,7 @@
     <creationDate>2026-10-28</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.11.0</version>
+    <version>1.12.0</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -102,6 +102,34 @@
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
+            </fieldset>
+
+            <fieldset name="compress_panel" label="PLG_SYSTEM_MERTOOLS_FIELDSET_COMPRESS_PANEL" page="images">
+                <field name="cmp_panel" type="mtcompress" hiddenLabel="true"
+                    label="PLG_SYSTEM_MERTOOLS_CMP_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_CMP_PANEL_DESC" />
+            </fieldset>
+
+            <fieldset name="compress" label="PLG_SYSTEM_MERTOOLS_FIELDSET_COMPRESS" page="images">
+                <field name="cmp_upload" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_CMP_UPLOAD_LABEL" description="PLG_SYSTEM_MERTOOLS_CMP_UPLOAD_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="cmp_jpeg" type="number" default="82" min="40" max="100" filter="integer"
+                    label="PLG_SYSTEM_MERTOOLS_CMP_JPEG_LABEL" description="PLG_SYSTEM_MERTOOLS_CMP_JPEG_DESC" />
+                <field name="cmp_png" type="number" default="70" min="0" max="100" filter="integer"
+                    label="PLG_SYSTEM_MERTOOLS_CMP_PNG_LABEL" description="PLG_SYSTEM_MERTOOLS_CMP_PNG_DESC" />
+                <field name="cmp_min" type="number" default="10" min="1" max="90" filter="integer"
+                    label="PLG_SYSTEM_MERTOOLS_CMP_MIN_LABEL" description="PLG_SYSTEM_MERTOOLS_CMP_MIN_DESC" />
+                <field name="cmp_keep" type="number" default="30" min="1" max="365" filter="integer"
+                    label="PLG_SYSTEM_MERTOOLS_CMP_KEEP_LABEL" description="PLG_SYSTEM_MERTOOLS_CMP_KEEP_DESC" />
+                <field name="cmp_engine" type="list" default="auto"
+                    label="PLG_SYSTEM_MERTOOLS_CMP_ENGINE_LABEL" description="PLG_SYSTEM_MERTOOLS_CMP_ENGINE_DESC">
+                    <option value="auto">PLG_SYSTEM_MERTOOLS_CMP_ENGINE_AUTO</option>
+                    <option value="php">PLG_SYSTEM_MERTOOLS_CMP_ENGINE_PHP</option>
+                </field>
+                <field name="cmp_exclude" type="textarea" rows="3" default="" filter="string"
+                    label="PLG_SYSTEM_MERTOOLS_CMP_EXCLUDE_LABEL" description="PLG_SYSTEM_MERTOOLS_CMP_EXCLUDE_DESC" />
             </fieldset>
 
             <fieldset name="measure_panel" label="PLG_SYSTEM_MERTOOLS_FIELDSET_OVERVIEW" page="measure">

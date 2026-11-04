@@ -2,6 +2,19 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.12.0 — 2026-11-04
+
+### 🗜 Images — compressed originals, on the site's own server
+
+The originals of the JPEG and PNG pictures can now be made lighter the way TinyJPG and TinyPNG do it, but on the server of the site itself: the pictures are never sent to another service. **Images → Compressed originals**:
+
+- **Compress on upload** (off by default): a picture uploaded to the images folder in Gridbox (its media manager, the uploaders of the editor and of the apps) or in Joomla's media manager is compressed right after the upload. Where PHP can close the response first, the editor does not wait for it; else it is done for a few seconds at once and the rest when the panel is opened.
+- **Compress all pictures**: a window with a progress bar and a log of every picture — its size before and after, the saving, how it was done, a *Restore* button; the skipped ones (saving too small, compressed already, animated…) can be shown too. The run goes a few seconds at a time: it can be stopped and goes on later from where it was, also after the window or the browser was closed.
+- **Try on one picture** before that: a JPEG or PNG from the disk is compressed with the settings of the form as they are (unsaved ones too) and shown next to the original — a slider moves the border between them — with the sizes, the saving and a download of the result. Nothing of the site changes and the file does not stay on the server.
+- **Copies of the originals**: before a picture is replaced its original is copied to `media/mertools-originals`, in a folder of a random name (not at an address anyone could guess, also where the web server ignores `.htaccess`), and it can be restored — only over the very file the compression made — one by one in the window of the copies (with a search) or all at once — for the number of days set (30 by default); then the copy is removed by itself. A picture uploaded again after it was compressed is never overwritten by its old copy, and a restored picture is not compressed again by itself.
+
+How it works: a JPEG is saved again at the quality chosen (82 by default), progressive, without its EXIF, XMP and IPTC data (camera, GPS) but with its colour profile, a photo stored on its side turned upright; a PNG gets a palette of at most 256 colours with transparency, checked against the picture (when it would change the picture more than the PNG quality allows, the PNG is only saved again without loss). A result is used only when it is lighter by the share set (10 % by default). With **jpegoptim** and **pngquant** on the server they do the work (better PNGs; jpegoptim never saves a photo again at a higher quality than it has), else PHP's GD; the panel says which ones this server has. A compressed picture carries a mark, so it is never compressed twice; animated PNGs, CMYK JPEGs and very large pictures are left alone, and folders can be left out. Gridbox's own compression on upload is best turned off then (a JPEG would be compressed twice).
+
 ## 1.11.0 — 2026-11-04
 
 ### 💾 Saving in the editor — no warning when nothing changed

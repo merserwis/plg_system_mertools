@@ -23,7 +23,7 @@ The settings are still the parameters of the plugin, so nothing changes for the 
 | Tool | Where |
 |---|---|
 | Page cache, warm-up, *Clear cache* button in the top bar | *Page Cache* |
-| Images without waiting, WebP copies | *Images* |
+| Images without waiting, WebP copies, compressed originals | *Images* |
 | PageSpeed Insights measurements | *Speed Measurements* |
 | Recommended settings of Gridbox, Joomla and the server | *Diagnostics* |
 | Faster first view (page shown at once, icons, main photo, videos, popups, marketing scripts) | *Configuration → First view* |
@@ -292,6 +292,17 @@ The same tab has the **faster pages** tools, done on the finished page (Gridbox 
 
 **Clear cache button in the top bar:** the administrator's top bar (next to the Joomla version) gets a **Clear cache** button. One click empties the pages kept by MerTools and the whole Joomla cache — as *System → Clear Cache* — from any screen of the administrator, and a message says what was removed. Shown to users who may clear the cache in Joomla; can be turned off in tab *Page speed*.
 
+### 🗜 Images — compressed originals on the server (1.12.0)
+
+Lighter originals of the JPEG and PNG pictures, made like TinyJPG / TinyPNG but on the site's own server (nothing is sent to another service). Page *Images*, tabs *Compressed originals* and *Compression settings*:
+
+- **Compress on upload** (off by default) — pictures uploaded in Gridbox or in Joomla's media manager are compressed right after the upload.
+- **Compress all pictures** — a window with a progress bar and the log of every picture (before → after, the saving, *Restore*); stopped, it goes on later from where it was.
+- **Try on one picture** — a picture from the disk compressed with the settings of the form (saved or not), shown next to the original with a slider; nothing of the site changes.
+- **Copies of the originals** — kept in `media/mertools-originals` for the days set (30), restored one by one or all at once, then removed by themselves.
+
+A JPEG is saved again at the quality set (82), progressive, without EXIF/XMP/IPTC (camera, GPS) but with its colour profile, turned upright; a PNG gets a palette of up to 256 colours with transparency, checked against the picture. A result is used only when it is lighter by the share set (10 %). With `jpegoptim` and `pngquant` on the server they are used (better PNGs), else PHP's GD; the panel shows what the server has. Compressed pictures are marked and never compressed twice; animated PNGs, CMYK JPEGs and very large pictures are left alone; folders can be left out.
+
 ### 🧭 404 pages — moved pages followed, missing addresses logged and redirected
 
 A missing page (404) gets, in this order:
@@ -383,7 +394,8 @@ English (default) and Polish. The settings follow the language of the Joomla adm
 
 - Joomla 6 (tested with Joomla 6.2)
 - Balbooa Gridbox
-- PHP 8.2+ (tested with PHP 8.5.12)
+- PHP 8.2+ (tested with PHP 8.5.12), with GD for the images
+- optional, for lighter compressed originals: `jpegoptim` and `pngquant` on the server, and PHP allowed to run them (`exec`)
 
 ## License
 

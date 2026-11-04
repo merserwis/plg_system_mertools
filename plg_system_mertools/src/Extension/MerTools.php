@@ -14,15 +14,15 @@
  *
  *  - onAfterInitialise: canonical URL (runs of slashes redirected to the clean address), carts in use noted.
  *  - onAfterRoute: apps against deletion, edit lock, the watchers of Gridbox saves (introductions, Omnibus
- *    prices, aliases of moved pages, edit history, kept pages), the requests of the settings panels; on the
- *    site the blog feeds, kept pages and links to a product option.
+ *    prices, aliases of moved pages, edit history, kept pages) and of uploads (pictures to compress), the
+ *    requests of the settings panels; on the site the blog feeds, kept pages and links to a product option.
  *  - onAfterRender: the Gridbox lists of the administrator (columns, history, apps); on the site the
  *    finished page — faster first view, introductions, post rows, price on request, Omnibus lines —
  *    and the page to keep.
  *  - onBeforeCompileHead: styles and scripts of the site (layout, tabs, phones, price on request,
  *    feed links, Omnibus, dark mode); in the administrator the Gridbox panel in Joomla's dark mode.
  *  - onAfterExtensionBoot: Gridbox's lists ordered by MerTools (pinned pages, an added column).
- *  - onAfterRespond: the work after the response (kept pages, pictures, daily and hourly checks).
+ *  - onAfterRespond: the work after the response (kept pages, pictures, compressed uploads, daily and hourly checks).
  *  - onError: missing pages (404). onAfterModuleList: the clear-cache button of the top bar.
  */
 
@@ -49,6 +49,7 @@ use Joomla\Event\SubscriberInterface;
 use Joomla\Registry\Registry;
 use Merserwis\Plugin\System\MerTools\Feature\AppsProtection;
 use Merserwis\Plugin\System\MerTools\Feature\Carts;
+use Merserwis\Plugin\System\MerTools\Feature\Compress;
 use Merserwis\Plugin\System\MerTools\Feature\Database;
 use Merserwis\Plugin\System\MerTools\Feature\EditHistory;
 use Merserwis\Plugin\System\MerTools\Feature\EditLocks;
@@ -85,7 +86,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.11.0';
+    public const VERSION = '1.12.0';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -174,6 +175,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $this->missing()->movedWatch();
             $this->history()->trackHistory();
             $this->speed()->purgeOnChange();
+            $this->compress()->uploadWatch();
             $this->sitemaps()->watchChanges();
             $this->pages()->endedWatch();
         }
@@ -404,6 +406,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $this->apps()->appBackupTick();
         $this->speed()->imageWork();
         $this->speed()->imageSweep();
+        $this->compress()->afterRespond();
         $this->speed()->warmUp();
         $this->carts()->hourly();
     }
@@ -472,6 +475,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $action = $input->getCmd('mertools_action', '');
         if (!\in_array($action, ['cart_stats', 'cart_check', 'cart_clean', 'speed_list', 'speed_save', 'speed_baseline', 'speed_delete',
             'pcache_stats', 'pcache_clear', 'dbidx_status', 'dbidx_fix', 'img_stats', 'img_run', 'img_clear', 'cache_clear_all', 'history_list',
+            'cmp_stats', 'cmp_test', 'cmp_start', 'cmp_run', 'cmp_cancel', 'cmp_list', 'cmp_restore', 'cmp_restore_all',
             'list_columns', 'list_edit', 'list_badges', 'list_pin', 'list_sort', 'apps_list', 'apps_backup', 'apps_restore', 'apps_delete', 'apps_download',
             'nf_list', 'nf_target', 'nf_delete', 'nf_clear', 'nf_moved', 'nf_moved_delete',
             'sm_status', 'sm_rebuild', 'sm_takeover', 'sm_undo', 'sm_compare', 'sm_why'], true)) {
@@ -540,6 +544,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
         if (str_starts_with($action, 'img_') || str_starts_with($action, 'pcache_')) {
             $this->speed()->handleAction($action);
+        }
+        if (str_starts_with($action, 'cmp_')) {
+            $this->compress()->handleAction($action);
         }
         $this->carts()->handleAction($action);
     }
@@ -769,6 +776,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     public function speed(): PageSpeed
     {
         return $this->features[PageSpeed::class] ??= new PageSpeed($this);
+    }
+
+    public function compress(): Compress
+    {
+        return $this->features[Compress::class] ??= new Compress($this);
     }
 
     public function database(): Database

@@ -34,7 +34,7 @@ final class Catalog
      */
     public const PAGES = [
         'cache'    => ['group' => 'speed',   'icon' => 'bolt',           'on' => ['speed_cache']],
-        'images'   => ['group' => 'speed',   'icon' => 'images',         'on' => ['speed_images']],
+        'images'   => ['group' => 'speed',   'icon' => 'images',         'on' => ['speed_images', 'cmp_upload']],
         'measure'  => ['group' => 'speed',   'icon' => 'chart',          'on' => []],
         'checks'   => ['group' => 'speed',   'icon' => 'check-circle',   'on' => []],
         'sitemap'  => ['group' => 'seo',     'icon' => 'tree-2',         'on' => ['sitemap_enabled']],
