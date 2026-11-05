@@ -6,7 +6,7 @@
     <creationDate>2026-10-28</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.12.2</version>
+    <version>1.13.0</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -130,6 +130,26 @@
                 </field>
                 <field name="cmp_exclude" type="textarea" rows="3" default="" filter="string"
                     label="PLG_SYSTEM_MERTOOLS_CMP_EXCLUDE_LABEL" description="PLG_SYSTEM_MERTOOLS_CMP_EXCLUDE_DESC" />
+            </fieldset>
+
+            <fieldset name="resize" label="PLG_SYSTEM_MERTOOLS_FIELDSET_RESIZE" page="images">
+                <field name="rsz_upload" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_RSZ_UPLOAD_LABEL" description="PLG_SYSTEM_MERTOOLS_RSZ_UPLOAD_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="rsz_shop_w" type="number" default="1600" min="0" max="20000" filter="integer" showon="rsz_upload:1"
+                    label="PLG_SYSTEM_MERTOOLS_RSZ_SHOP_W_LABEL" description="PLG_SYSTEM_MERTOOLS_RSZ_W_DESC" />
+                <field name="rsz_shop_h" type="number" default="1600" min="0" max="20000" filter="integer" showon="rsz_upload:1"
+                    label="PLG_SYSTEM_MERTOOLS_RSZ_SHOP_H_LABEL" description="PLG_SYSTEM_MERTOOLS_RSZ_H_DESC" />
+                <field name="rsz_blog_w" type="number" default="1920" min="0" max="20000" filter="integer" showon="rsz_upload:1"
+                    label="PLG_SYSTEM_MERTOOLS_RSZ_BLOG_W_LABEL" description="PLG_SYSTEM_MERTOOLS_RSZ_W_DESC" />
+                <field name="rsz_blog_h" type="number" default="1920" min="0" max="20000" filter="integer" showon="rsz_upload:1"
+                    label="PLG_SYSTEM_MERTOOLS_RSZ_BLOG_H_LABEL" description="PLG_SYSTEM_MERTOOLS_RSZ_H_DESC" />
+                <field name="rsz_other_w" type="number" default="2560" min="0" max="20000" filter="integer" showon="rsz_upload:1"
+                    label="PLG_SYSTEM_MERTOOLS_RSZ_OTHER_W_LABEL" description="PLG_SYSTEM_MERTOOLS_RSZ_W_DESC" />
+                <field name="rsz_other_h" type="number" default="2560" min="0" max="20000" filter="integer" showon="rsz_upload:1"
+                    label="PLG_SYSTEM_MERTOOLS_RSZ_OTHER_H_LABEL" description="PLG_SYSTEM_MERTOOLS_RSZ_H_DESC" />
             </fieldset>
 
             <fieldset name="measure_panel" label="PLG_SYSTEM_MERTOOLS_FIELDSET_OVERVIEW" page="measure">
@@ -348,6 +368,67 @@
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
+            </fieldset>
+
+            <fieldset name="badges" label="PLG_SYSTEM_MERTOOLS_FIELDSET_BADGES" page="badges">
+                <field name="badge_panel" type="mtbadges" hiddenLabel="true" parentclass="mt-bp-group"
+                    label="PLG_SYSTEM_MERTOOLS_BADGE_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_BADGE_PANEL_DESC" />
+                <field name="badge_on" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_BADGE_ON_LABEL" description="PLG_SYSTEM_MERTOOLS_BADGE_ON_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="badge_product" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="badge_on:1"
+                    label="PLG_SYSTEM_MERTOOLS_BADGE_PRODUCT_LABEL" description="PLG_SYSTEM_MERTOOLS_BADGE_PRODUCT_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="badge_lists" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="badge_on:1"
+                    label="PLG_SYSTEM_MERTOOLS_BADGE_LISTS_LABEL" description="PLG_SYSTEM_MERTOOLS_BADGE_LISTS_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="badge_style" type="list" default="gridbox"
+                    label="PLG_SYSTEM_MERTOOLS_BADGE_STYLE_LABEL" description="PLG_SYSTEM_MERTOOLS_BADGE_STYLE_DESC">
+                    <option value="gridbox">PLG_SYSTEM_MERTOOLS_BADGE_STYLE_GRIDBOX</option>
+                    <option value="pill">PLG_SYSTEM_MERTOOLS_BADGE_STYLE_PILL</option>
+                    <option value="soft">PLG_SYSTEM_MERTOOLS_BADGE_STYLE_SOFT</option>
+                    <option value="outline">PLG_SYSTEM_MERTOOLS_BADGE_STYLE_OUTLINE</option>
+                    <option value="glass">PLG_SYSTEM_MERTOOLS_BADGE_STYLE_GLASS</option>
+                    <option value="dot">PLG_SYSTEM_MERTOOLS_BADGE_STYLE_DOT</option>
+                    <option value="caps">PLG_SYSTEM_MERTOOLS_BADGE_STYLE_CAPS</option>
+                    <option value="tag">PLG_SYSTEM_MERTOOLS_BADGE_STYLE_TAG</option>
+                    <option value="gradient">PLG_SYSTEM_MERTOOLS_BADGE_STYLE_GRADIENT</option>
+                </field>
+                <field name="badge_colors" type="list" default="gridbox"
+                    label="PLG_SYSTEM_MERTOOLS_BADGE_COLORS_LABEL" description="PLG_SYSTEM_MERTOOLS_BADGE_COLORS_DESC">
+                    <option value="gridbox">PLG_SYSTEM_MERTOOLS_BADGE_COLORS_GRIDBOX</option>
+                    <option value="dark">PLG_SYSTEM_MERTOOLS_BADGE_COLORS_DARK</option>
+                    <option value="light">PLG_SYSTEM_MERTOOLS_BADGE_COLORS_LIGHT</option>
+                    <option value="one">PLG_SYSTEM_MERTOOLS_BADGE_COLORS_ONE</option>
+                </field>
+                <field name="badge_color" type="color" default="#1f2328" showon="badge_colors:one" format="hex"
+                    label="PLG_SYSTEM_MERTOOLS_BADGE_COLOR_LABEL" description="PLG_SYSTEM_MERTOOLS_BADGE_COLOR_DESC" />
+                <field name="badge_corner" type="list" default="tl"
+                    label="PLG_SYSTEM_MERTOOLS_BADGE_CORNER_LABEL" description="PLG_SYSTEM_MERTOOLS_BADGE_CORNER_DESC">
+                    <option value="tl">PLG_SYSTEM_MERTOOLS_BADGE_CORNER_TL</option>
+                    <option value="tr">PLG_SYSTEM_MERTOOLS_BADGE_CORNER_TR</option>
+                    <option value="bl">PLG_SYSTEM_MERTOOLS_BADGE_CORNER_BL</option>
+                    <option value="br">PLG_SYSTEM_MERTOOLS_BADGE_CORNER_BR</option>
+                </field>
+                <field name="badge_size" type="list" default="s"
+                    label="PLG_SYSTEM_MERTOOLS_BADGE_SIZE_LABEL" description="PLG_SYSTEM_MERTOOLS_BADGE_SIZE_DESC">
+                    <option value="s">PLG_SYSTEM_MERTOOLS_BADGE_SIZE_S</option>
+                    <option value="m">PLG_SYSTEM_MERTOOLS_BADGE_SIZE_M</option>
+                    <option value="l">PLG_SYSTEM_MERTOOLS_BADGE_SIZE_L</option>
+                </field>
+                <field name="badge_layout" type="list" default="column"
+                    label="PLG_SYSTEM_MERTOOLS_BADGE_LAYOUT_LABEL" description="PLG_SYSTEM_MERTOOLS_BADGE_LAYOUT_DESC">
+                    <option value="column">PLG_SYSTEM_MERTOOLS_BADGE_LAYOUT_COLUMN</option>
+                    <option value="row">PLG_SYSTEM_MERTOOLS_BADGE_LAYOUT_ROW</option>
+                </field>
+                <field name="badge_offset" type="number" default="20" min="0" max="80" filter="integer"
+                    label="PLG_SYSTEM_MERTOOLS_BADGE_OFFSET_LABEL" description="PLG_SYSTEM_MERTOOLS_BADGE_OFFSET_DESC" />
             </fieldset>
 
             <fieldset name="carts_panel" label="PLG_SYSTEM_MERTOOLS_FIELDSET_OVERVIEW" page="carts">

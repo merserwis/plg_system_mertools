@@ -23,7 +23,7 @@ The settings are still the parameters of the plugin, so nothing changes for the 
 | Tool | Where |
 |---|---|
 | Page cache, warm-up, *Clear cache* button in the top bar | *Page Cache* |
-| Images without waiting, WebP copies, compressed originals | *Images* |
+| Images without waiting, WebP copies, compressed originals, size on upload | *Images* |
 | PageSpeed Insights measurements | *Speed Measurements* |
 | Recommended settings of Gridbox, Joomla and the server | *Diagnostics* |
 | Faster first view (page shown at once, icons, main photo, videos, popups, marketing scripts) | *Configuration → First view* |
@@ -35,6 +35,7 @@ The settings are still the parameters of the plugin, so nothing changes for the 
 | Blog feeds, article data, even grid of the lists of posts, import of a Markdown document into a post | *Configuration → Blog* |
 | Product option links, discount %, price on request, product data | *Configuration → Shop* |
 | Omnibus | *Omnibus* |
+| Product badges (corner, colours, style, on the product page) | *Badges* |
 | Tidy up old carts | *Carts* |
 | Gridbox lists (columns, sorting, pinned pages, editing in the list, media), dark Gridbox panel | *Configuration → Lists in the administrator* |
 | Edit lock | *Configuration → Edit lock* |
@@ -156,6 +157,18 @@ The lowest price of the 30 days before a price reduction, shown next to the redu
 
 A visitor who views prices in another currency (currency switcher, currency of the language) sees the line in that currency: the history is kept in the store's default currency and its lowest price is converted as Gridbox converts the prices shown (the rate of the currency list, or the rate Gridbox fetched with its automatic rates on, rounded to the currency's decimals). A currency without a rate gets no line. Off by default, tab *Shop*.
 
+
+### 🏷 Shop — product badges: corner, colours, style, also on the product page (1.13.0)
+
+Gridbox's product badges (Sale, New, Discontinued, Out of stock…, set at the product in Gridbox) in a look chosen on page *Badges* (off by default):
+
+- **On the picture of the product page**, where Gridbox shows none: over the product's slideshow (not on its thumbnails) or on the first picture of its gallery, kept when a variation swaps the pictures. Worked out as on Gridbox's tiles: the sale badge as "- n%" from the price and the sale price; a product without variations and without stock gets only *Out of stock*.
+- **Corner** of the picture (top left as Gridbox, top right, bottom left, bottom right) and the distance from the edges; on tiles with the wishlist heart, badges in the top right corner go below it.
+- **Colours**: Gridbox's colour of each badge (the text dark or light, whichever reads better), or monochrome — all dark, all light, all in one colour chosen.
+- **Style**: *Gridbox* (as before), *Pill*, *Soft*, *Outline*, *Glass*, *Dot*, *Label* (capitals), *Tag*, *Gradient*; three sizes; one under another or side by side.
+- **In the lists** (on by default): the same look on the tiles of categories, search, the wishlist and product sliders; off, only the badges of the product page.
+
+The settings sit beside a preview on a product picture of the site with its own badges, which follows the form as it is changed: a card for every style (a click chooses it) and the corners of the picture to click.
 ### 🗂 Page layout — category pages: now in Better Categories
 
 Since 1.4.0 the category descriptions (where the category layout holds the placeholder “Category Description”) and the click on a whole row of Gridbox's Categories element are done by **Better Categories for Gridbox 1.7.0**, with more settings (place of the description, only its beginning with a “Read more” button). Better Categories switches both on at its update when *Category pages* was on here.
@@ -303,6 +316,8 @@ Lighter originals of the JPEG and PNG pictures, made like TinyJPG / TinyPNG but 
 
 A JPEG is saved again at the quality set (82), progressive, without EXIF/XMP/IPTC (camera, GPS) but with its colour profile, turned upright; a PNG gets a palette of up to 256 colours with transparency, checked against the picture. A result is used only when it is lighter by the share set (10 %). With `jpegoptim` and `pngquant` on the server they are used (better PNGs), else PHP's GD; the panel shows what the server has. Compressed pictures are marked and never compressed twice; animated PNGs, CMYK JPEGs and very large pictures are left alone; folders can be left out.
 
+
+**Size on upload** (1.13.0, off by default; tab *Size on upload*) — a picture uploaded larger than the frame of its place is made smaller right after the upload, its proportions kept, never made larger: **Shop** (the editor of a product or a shop app, the panel of a shop app; 1600 × 1600), **Blog** (the same for a blog app; 1920 × 1920), **Other** (any other page, Joomla's media manager; 2560 × 2560); 0 leaves a side free. The place is read from the page the upload comes from (Gridbox's media manager adds it to its uploads, so no Referer is needed). The smaller picture is saved with the compression settings, also with *Compress on upload* off, and its original is kept as a copy to restore (the list of copies shows the sizes). Pictures already on the site keep their size.
 ### 🧭 404 pages — moved pages followed, missing addresses logged and redirected
 
 A missing page (404) gets, in this order:

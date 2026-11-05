@@ -2,6 +2,29 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.13.0 — 2026-11-05
+
+### 📐 Images — Size on upload: a frame for the shop, the blog and the rest
+
+A picture uploaded larger than it needs to be can now be made smaller right after the upload, to fit a frame of its own place. **Images → Size on upload** (off by default): **Make smaller on upload** and a width and height at most for each place — **Shop** (1600 × 1600), **Blog** (1920 × 1920) and **Other** (2560 × 2560); 0 leaves that side free, both 0 leave the pictures of that place in their size.
+
+- The place is the page the picture is uploaded from: the editor of a product or of a page of a shop app, the panel of a shop app (also its layouts) — the shop; the same for a blog app — the blog; any other Gridbox page and Joomla's media manager — other. Gridbox's media manager adds the address of the editor it is open in to its uploads, so this works also on a site that sends no Referer.
+- A picture keeps its proportions and is never made larger; a photo stored on its side counts as it is shown (and is turned upright).
+- The smaller picture is saved with the compression settings (JPEG and PNG quality), also with *Compress on upload* off; with it on, a picture that fits its frame is compressed as before.
+- Its original is kept as a copy like that of a compressed picture: the list of copies in *Compressed originals* shows the sizes (e.g. 4000×3000 → 1600×1200) and *Restore* brings the large picture back. The panel shows the frames of the places.
+- Only uploads are made smaller: *Compress all pictures* never changes the size of the pictures already on the site.
+
+### 🏷 Shop — product badges in the corner, colours and style chosen, also on the product page
+
+The badges of the products (Sale, New, Discontinued, Out of stock… — set at the product in Gridbox) get a page of their own, **Shop → Badges** (off by default):
+
+- **On the picture of the product page** — Gridbox shows its badges only on the tiles of its lists; now they are also on the picture of the product: over its slideshow (not on the thumbnails) or on the first picture of its gallery. They stay when a variation with pictures of its own is chosen. They are worked out as Gridbox does for its tiles: the sale badge as "- n%", and a product without variations and without stock gets only *Out of stock*.
+- **The corner of the picture** — top left (as Gridbox), top right, bottom left or bottom right, with the distance from the edges; on the tiles with the wishlist heart, badges in the top right corner go below it.
+- **Colours** — Gridbox's colour of each badge, or monochrome: all dark, all light, or all in one colour chosen. On a colour of its own the text is dark or light, whichever reads better.
+- **Styles** — *Gridbox* (as before), *Pill*, *Soft*, *Outline*, *Glass*, *Dot*, *Label* (capitals), *Tag* and *Gradient*, in three sizes, one under another or side by side.
+- **In the lists** (on by default) — the same look on the tiles of categories, search, the wishlist and product sliders; off, only the product page gets it.
+- **A preview** beside the settings, on a product picture of the site with its own badges, follows the form at once (unsaved changes too): a card for every style (a click chooses it) and dots in the corners of the picture to choose the corner.
+
 ## 1.12.2 — 2026-11-05
 
 ### 🗜 Images — Restore all originals in a window with its progress

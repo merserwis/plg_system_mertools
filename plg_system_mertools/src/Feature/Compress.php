@@ -16,6 +16,11 @@
  *    uploader) leaves a look through the folder for the pictures changed during it, done where nobody
  *    waits: right after a response PHP could close, else after a later page or when the panel is
  *    opened. What is left waits the same way.
+ *  - Size on upload: a picture uploaded larger than the frame of its place — a product of the shop, a
+ *    post of the blog, anything else — is made smaller to fit it (the place: the page of Gridbox the
+ *    upload came from, by the address of its editor or panel: the Referer, or the one the media
+ *    manager adds to the upload where a site sends no Referer), also with Compress on upload off;
+ *    its original is kept as a copy like that of a compressed picture.
  *  - Copies of the originals older than the days chosen are removed once a day (and when the panel is
  *    opened).
  */
@@ -27,6 +32,7 @@ namespace Merserwis\Plugin\System\MerTools\Feature;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
+use Joomla\Database\DatabaseInterface;
 use Merserwis\Plugin\System\MerTools\Extension\MerTools;
 use Merserwis\Plugin\System\MerTools\Tool\CompressStore;
 use Merserwis\Plugin\System\MerTools\Tool\ImageCompressor;
@@ -40,13 +46,100 @@ final class Compress extends Feature
     /** the answer of an upload read at most this far for the paths of its pictures */
     private const SAID_MAX_BYTES = 1048576;
 
+    /** the places of an upload and the frame each has by default (width, height) */
+    public const PLACES = ['shop' => [1600, 1600], 'blog' => [1920, 1920], 'other' => [2560, 2560]];
+
     /** what the upload answered so far (see uploadWatch()) */
     private string $said = '';
+
+    /** the place the upload came from (see uploadPlace()) */
+    private string $place = 'other';
 
     /** Compress the pictures of an upload (the switch). */
     public function uploadsOn(): bool
     {
         return (bool) (int) $this->plugin->params->get('cmp_upload', 0);
+    }
+
+    /** Make the pictures of an upload fit the frame of their place (the switch). */
+    public function resizeOn(): bool
+    {
+        return (bool) (int) $this->plugin->params->get('rsz_upload', 0);
+    }
+
+    /**
+     * The frames of the places, place => [width, height] (0: that side not limited); a place without
+     * any limit and the switch off: none.
+     *
+     * @return array<string, int[]>
+     */
+    public function boxes(): array
+    {
+        if (!$this->resizeOn()) {
+            return [];
+        }
+        $out = [];
+        foreach (self::PLACES as $place => [$w, $h]) {
+            $box = [max(0, min(20000, (int) $this->plugin->params->get('rsz_' . $place . '_w', $w))),
+                max(0, min(20000, (int) $this->plugin->params->get('rsz_' . $place . '_h', $h)))];
+            if ($box[0] > 0 || $box[1] > 0) {
+                $out[$place] = $box;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * The place an upload came from: shop (the editor of a product, or of a page or the layouts of a
+     * shop app, the panel of a shop app), blog (the same for a blog app), other (anything else), read
+     * from the address of the page that sent it — mt_ref (added by MerTools to the uploads of Gridbox's
+     * media manager), else the Referer.
+     */
+    public function uploadPlace(): string
+    {
+        $input = Factory::getApplication()->getInput();
+        $ref   = trim($input->getString('mt_ref', '')) ?: (string) ($_SERVER['HTTP_REFERER'] ?? '');
+        $query = [];
+        parse_str((string) parse_url(html_entity_decode($ref, ENT_QUOTES), PHP_URL_QUERY), $query);
+        if (($query['option'] ?? '') !== 'com_gridbox' || !\is_scalar($query['id'] ?? null) || (int) $query['id'] <= 0) {
+            return 'other';
+        }
+        $id   = (int) $query['id'];
+        $view = (string) ($query['view'] ?? '');
+        $edit = (string) ($query['edit_type'] ?? '');
+        try {
+            $db = Factory::getContainer()->get(DatabaseInterface::class);
+            if ($view === 'editor' && $edit === '') {
+                $type = $db->setQuery('SELECT a.type FROM ' . $db->quoteName('#__gridbox_pages', 'p') . ' JOIN ' . $db->quoteName('#__gridbox_app', 'a')
+                    . ' ON a.id = p.app_id WHERE p.id = ' . $id, 0, 1)->loadResult();
+            } elseif (($view === 'editor' && \in_array($edit, ['blog', 'post-layout'], true)) || $view === 'apps') {
+                // the layouts of an app and its panel: the id is the app's
+                $type = $db->setQuery('SELECT type FROM ' . $db->quoteName('#__gridbox_app') . ' WHERE id = ' . $id, 0, 1)->loadResult();
+            } else {
+                return 'other';
+            }
+        } catch (\Throwable $e) {
+            return 'other';
+        }
+
+        return self::placeOf((string) $type);
+    }
+
+    /** The place of a Gridbox app type: products and booking are the shop, blog the blog. */
+    public static function placeOf(string $type): string
+    {
+        return match ($type) {
+            'products', 'booking' => 'shop',
+            'blog'                => 'blog',
+            default               => 'other',
+        };
+    }
+
+    /** The waiting uploads done for at most $seconds: compressed (the switch on) and made to fit their frames. */
+    private function workUploads(CompressStore $store, float $seconds, bool $scan = true): array
+    {
+        return $store->work($this->compressor(), $seconds, $scan, $this->boxes(), $this->uploadsOn());
     }
 
     /** The compressor with the saved settings, or with $form (the panel's try: the form as it is now). */
@@ -85,7 +178,7 @@ final class Compress extends Feature
     {
         $app   = Factory::getApplication();
         $input = $app->getInput();
-        if (!$this->uploadsOn() || $input->getMethod() !== 'POST' || $input->getCmd('mertools_action', '') !== ''
+        if ((!$this->uploadsOn() && $this->boxes() === []) || $input->getMethod() !== 'POST' || $input->getCmd('mertools_action', '') !== ''
             || !ImageCompressor::gd()) {
             return;
         }
@@ -93,7 +186,8 @@ final class Compress extends Feature
         if (!$user || $user->guest || !$this->bringsPicture($input)) {
             return;
         }
-        $since = (int) ($_SERVER['REQUEST_TIME'] ?? time());
+        $this->place = $this->uploadPlace();
+        $since       = (int) ($_SERVER['REQUEST_TIME'] ?? time());
         // the answer read as it goes out, in parts as before (the uploader's own buffers and headers as they were)
         ob_start(function (string $part, int $phase): string {
             // what the page throws away (ob_clean) never went out: not read
@@ -147,12 +241,12 @@ final class Compress extends Feature
         $this->said = '';
         // none named, or not all of them noted (the queue full): the folder looked through for the time of
         // the upload — after a later page or when the panel is opened, not while the editor waits
-        $noted = $paths !== [] && $store->notePaths($paths);
+        $noted = $paths !== [] && $store->notePaths($paths, $this->place);
         if (!$noted && (!$store->noteScan($since, time() + 1) || !$finished) && $paths === []) {
             return;
         }
         // while the editor still waits (mod_php): a few seconds, the rest after a later page or in the panel
-        $store->work($this->compressor(), $finished ? 30.0 : 4.0, $finished);
+        $this->workUploads($store, $finished ? 30.0 : 4.0, $finished);
     }
 
     /**
@@ -174,7 +268,7 @@ final class Compress extends Feature
                 $store = $this->store();
                 if ($store->waiting() && $this->plugin->finishResponse()) {
                     @set_time_limit(60);
-                    $store->work($this->compressor(), 8.0);
+                    $this->workUploads($store, 8.0);
                 }
             } catch (\Throwable $e) {
                 // tried again after a later page
@@ -233,7 +327,7 @@ final class Compress extends Feature
     {
         $store->expire($this->keepDays());
         if ($gd && $store->waiting()) {
-            $store->work($this->compressor(), 8.0);
+            $this->workUploads($store, 8.0);
         }
 
         return ['success' => true] + $this->figures($store);
@@ -247,6 +341,7 @@ final class Compress extends Feature
             'engines' => ImageCompressor::engines() + ['php' => PHP_VERSION],
             'days'    => $this->keepDays(),
             'uploads' => $this->uploadsOn(),
+            'resize'  => $this->boxes(),
             'finish'  => \function_exists('fastcgi_finish_request') || \function_exists('litespeed_finish_request'),
         ];
     }

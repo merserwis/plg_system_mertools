@@ -66,6 +66,7 @@ use Merserwis\Plugin\System\MerTools\Feature\Shop;
 use Merserwis\Plugin\System\MerTools\Feature\Sitemaps;
 use Merserwis\Plugin\System\MerTools\Feature\SiteSchema;
 use Merserwis\Plugin\System\MerTools\Tool\ArticleSchema;
+use Merserwis\Plugin\System\MerTools\Tool\Badges;
 use Merserwis\Plugin\System\MerTools\Tool\BlogGrid;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\Feed;
@@ -86,7 +87,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.12.2';
+    public const VERSION = '1.13.0';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -241,6 +242,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if (ProductSchema::enabled($this->params)) {
             $new = $this->shop()->productSchema($new);
         }
+        if (Badges::enabled($this->params) && Badges::options($this->params)['product']) {
+            $new = $this->shop()->productBadges($new);
+        }
         if (ArticleSchema::enabled($this->params)) {
             $new = $this->feeds()->articleSchema($new);
         }
@@ -346,6 +350,12 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
         if (Feed::enabled($this->params) && Feed::headMode($this->params) !== 'none') {
             $this->feeds()->feedHeadLinks($document);
+        }
+        if (Badges::enabled($this->params)) {
+            $o = Badges::options($this->params);
+            if ($o['product'] || $o['lists']) {
+                $document->addStyleDeclaration(Badges::css($o));
+            }
         }
         if (Omnibus::enabled($this->params)) {
             $document->addStyleDeclaration(Omnibus::css());

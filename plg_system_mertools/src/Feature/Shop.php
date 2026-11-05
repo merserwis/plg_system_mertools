@@ -7,7 +7,7 @@
  * Shop: the Discount % field of the product editor, price on request in the lists, the product data (JSON-LD) of a
  * product page and Omnibus — the price history (after each change sent to Gridbox by someone who may edit
  * it, hourly and when a Gridbox sale starts or ends) and the line of the lowest price before a reduction on
- * the finished page.
+ * the finished page; the badges of a product on the picture of its page (Badges).
  */
 
 namespace Merserwis\Plugin\System\MerTools\Feature;
@@ -21,6 +21,7 @@ use Joomla\CMS\Session\Session;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
 use Merserwis\Plugin\System\MerTools\Extension\MerTools;
+use Merserwis\Plugin\System\MerTools\Tool\Badges;
 use Merserwis\Plugin\System\MerTools\Tool\Feed;
 use Merserwis\Plugin\System\MerTools\Tool\History;
 use Merserwis\Plugin\System\MerTools\Tool\Omnibus;
@@ -121,6 +122,55 @@ final class Shop extends Feature
         }
 
         return ProductSchema::replace($html, ProductSchema::script($product));
+    }
+
+    /**
+     * The badges of the product (Gridbox's, as its tiles show them) on the picture of its page: into its
+     * slideshows and galleries, with the script that puts them back when a variation swaps the pictures.
+     */
+    public function productBadges(string $html): string
+    {
+        $input = $this->plugin->app()->getInput();
+        $id    = $input->getInt('id', 0);
+        if ($id <= 0 || $input->getCmd('option') !== 'com_gridbox' || $input->getCmd('view') !== 'page'
+            || (!str_contains($html, 'ba-item-product-slideshow') && !str_contains($html, 'ba-item-product-gallery'))) {
+            return $html;
+        }
+        try {
+            $db   = Factory::getContainer()->get(DatabaseInterface::class);
+            $type = (string) $db->setQuery('SELECT a.type FROM ' . $db->quoteName('#__gridbox_pages', 'p') . ' JOIN ' . $db->quoteName('#__gridbox_app', 'a')
+                . ' ON a.id = p.app_id WHERE p.id = ' . $id, 0, 1)->loadResult();
+            if (!\in_array($type, ['products', 'booking'], true)) {
+                return $html;
+            }
+            $data = $db->setQuery('SELECT price, sale_price, stock, ' . $db->quoteName('min') . ' FROM ' . $db->quoteName('#__gridbox_store_product_data')
+                . ' WHERE product_id = ' . $id, 0, 1)->loadAssoc();
+            if (!$data) {
+                return $html;
+            }
+            $rows = (array) $db->setQuery('SELECT b.title, b.color, b.type FROM ' . $db->quoteName('#__gridbox_store_badges_map', 'bm') . ' JOIN '
+                . $db->quoteName('#__gridbox_store_badges', 'b') . ' ON b.id = bm.badge_id WHERE bm.product_id = ' . $id . ' ORDER BY bm.order_list, bm.id')->loadAssocList();
+            $variations = (int) $db->setQuery('SELECT COUNT(*) FROM ' . $db->quoteName('#__gridbox_store_product_variations_map') . ' WHERE product_id = ' . $id)->loadResult() > 0;
+        } catch (\Throwable $e) {
+            return $html;
+        }
+        // Gridbox's own words for it (its language, loaded on its pages)
+        $lang = Factory::getApplication()->getLanguage();
+        if (!$lang->hasKey('OUT_OF_STOCK')) {
+            $lang->load('com_gridbox', JPATH_SITE);
+        }
+        $badges = Badges::forProduct($rows, $data, $variations, Text::_('OUT_OF_STOCK'));
+        if (!$badges) {
+            return $html;
+        }
+        $new = Badges::inject($html, Badges::html($badges));
+        if ($new === $html) {
+            return $html;
+        }
+        $tail = '<script src="' . Uri::root(true) . '/media/plg_system_mertools/js/mertools-badges' . (JDEBUG ? '' : '.min') . '.js?' . MerTools::VERSION . '" defer></script>';
+        $pos  = strripos($new, '</body>');
+
+        return $pos === false ? $new . $tail : substr($new, 0, $pos) . $tail . substr($new, $pos);
     }
 
     /**

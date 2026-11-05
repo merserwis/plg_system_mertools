@@ -334,6 +334,83 @@ $check('…its copy stays', is_file($copyOf('images/sub/fresh.jpg')), true);
 unlink($fresh . '/x');
 rmdir($fresh);
 
+// ---------------------------------------------------------------- size on upload: made to fit a frame
+$check('fit: a photo into a square frame', ImageCompressor::fit(4000, 3000, [1600, 1600]), [1600, 1200]);
+$check('fit: a smaller picture stays', ImageCompressor::fit(1000, 800, [1600, 1600]), null);
+$check('fit: only the height limited', ImageCompressor::fit(3000, 4000, [0, 1000]), [750, 1000]);
+$check('fit: no limits', ImageCompressor::fit(4000, 3000, [0, 0]), null);
+$check('fit: exactly the frame', ImageCompressor::fit(1600, 900, [1600, 1600]), null);
+$check('fit: never a side over its limit', ImageCompressor::fit(1001, 333, [500, 0]), [500, 166]);
+@mkdir($root . '/images/rsz', 0777, true);
+file_put_contents($root . '/images/rsz/photo.jpg', substr($jpeg, 0, 2 + $jfifLen) . $exif(1) . $icc . substr($jpeg, 2 + $jfifLen));
+file_put_contents($root . '/images/rsz/turned.jpg', "\xFF\xD8" . $exif(6) . $icc . substr($jpeg, 2));
+imagepng($png, $root . '/images/rsz/logo.png');
+$r = $gd->compress($root . '/images/rsz/photo.jpg', $out = $root . '/r1.jpg', [600, 600]);
+$check('resize JPEG: made smaller, kept its proportions', [$r['status'], $r['resized'], array_slice(getimagesize($out), 0, 3)], ['ok', [1200, 800, 600, 400], [600, 400, IMAGETYPE_JPEG]]);
+$check('resize JPEG: marked, colour profile kept, no EXIF', [ImageCompressor::marked($out), ImageCompressor::jpegIcc((string) file_get_contents($out)) === $icc,
+    array_values(array_filter(ImageCompressor::jpegSegments((string) file_get_contents($out)), fn ($s) => $s[0] === 0xE1))], [true, true, []]);
+$r = $gd->compress($root . '/images/rsz/turned.jpg', $out = $root . '/r2.jpg', [600, 600]);
+$check('resize JPEG on its side: the frame counts it as shown (800x1200 → 400x600)', [$r['resized'], array_slice(getimagesize($out), 0, 2)], [[800, 1200, 400, 600], [400, 600]]);
+$c = imagecolorat(imagecreatefromjpeg($out), 390, 8);
+$check('resize JPEG on its side: turned upright, red corner top-right', (($c >> 16) & 255) > 150 && (($c >> 8) & 255) < 110, true);
+$r = $gd->compress($root . '/images/rsz/logo.png', $out = $root . '/r3.png', [400, 0]);
+$p = imagecreatefrompng($out);
+$check('resize PNG: 800x500 → 400x250, transparency kept', [$r['status'], $r['resized'], array_slice(getimagesize($out), 0, 2), imagecolorsforindex($p, imagecolorat($p, 1, 1))['alpha']],
+    ['ok', [800, 500, 400, 250], [400, 250], 127]);
+$check('resize: a picture that fits, only resizing: left as it is', [$gd->compress($root . '/images/rsz/logo.png', $root . '/r4.png', [2000, 2000], false)['reason'], is_file($root . '/r4.png')], ['fits', false]);
+$check('resize: a picture that fits, with compression: compressed as before', $gd->compress($root . '/images/rsz/logo.png', $root . '/r4.png', [2000, 2000])['status'], 'ok');
+$check('resize: a marked picture larger than the frame made smaller', [$gd->compress($root . '/r1.jpg', $root . '/r5.jpg', [300, 300])['status'], array_slice(getimagesize($root . '/r5.jpg'), 0, 2)], ['ok', [300, 200]]);
+$flat = imagecreatetruecolor(900, 900);
+imagefill($flat, 0, 0, imagecolorallocate($flat, 20, 120, 220));
+imagepng($flat, $root . '/images/rsz/flat.png');
+$check('resize: a light picture (under 5 kB) larger than the frame made smaller too', [filesize($root . '/images/rsz/flat.png') < ImageCompressor::MIN_BYTES,
+    $gd->compress($root . '/images/rsz/flat.png', $root . '/r6.png', [300, 300])['resized']], [true, [900, 900, 300, 300]]);
+
+// the store: the place of an upload noted with it, its frame used; only resizing leaves the rest as it is
+$s3 = new CompressStore($root, 'images', [], $now + 500);
+$check('upload places noted', [$s3->notePaths(['images/rsz/photo.jpg'], 'shop'), $s3->notePaths(['images/rsz/logo.png'], 'blog'), $s3->state()['pending']],
+    [true, true, ['images/rsz/photo.jpg' => 'shop', 'images/rsz/logo.png' => 'blog']]);
+$logoMd5 = md5_file($root . '/images/rsz/logo.png');
+$done = $s3->work($gd, 10, true, ['shop' => [600, 600], 'other' => [100, 100]], false);
+$check('work, only resizing: the shop picture to its frame, the blog one (no frame) untouched', [array_column($done, 'resized', 'rel'),
+    array_slice(getimagesize($root . '/images/rsz/photo.jpg'), 0, 2), md5_file($root . '/images/rsz/logo.png') === $logoMd5],
+    [['images/rsz/photo.jpg' => [1200, 800, 600, 400]], [600, 400], true]);
+$check('…nothing waits', $s3->waiting(), false);
+$b = array_column($s3->backups('rsz'), 'r', 'rel');
+$check('…the copy lists the sizes', $b, ['images/rsz/photo.jpg' => [1200, 800, 600, 400]]);
+$check('…restore brings the large original back', [$s3->restore('images/rsz/photo.jpg'), array_slice(getimagesize($root . '/images/rsz/photo.jpg'), 0, 2)], ['ok', [1200, 800]]);
+// a place not known (a look through the folder, an older version): the frame of other
+file_put_contents($root . '/images/rsz/new.jpg', $jpeg);
+touch($root . '/images/rsz/new.jpg', $now + 600);
+$s3->noteScan($now + 590, $now + 610);
+$done = $s3->work($gd, 10, true, ['other' => [300, 0]], true);
+$check('work: a picture found by a look gets the frame of other', array_column($done, 'resized', 'rel'), ['images/rsz/new.jpg' => [1200, 800, 300, 200]]);
+
+// a picture MerTools made smaller found again (a look through the folder of another upload, a smaller frame):
+// left as it is, its copy of the large original kept (review: the copy was overwritten by the smaller picture)
+file_put_contents($root . '/images/rsz/big.jpg', $jpeg);
+touch($root . '/images/rsz/big.jpg', $now + 700);
+$s4 = new CompressStore($root, 'images', [], $now + 800);
+$s4->notePaths(['images/rsz/big.jpg'], 'shop');
+$s4->work($gd, 10, true, ['shop' => [600, 600], 'other' => [300, 300]], false);
+$made = md5_file($root . '/images/rsz/big.jpg');
+clearstatcache();
+$t = filemtime($root . '/images/rsz/big.jpg');
+$s4->noteScan($t - 1, $t + 1);
+$done = $s4->work($gd, 10, true, ['shop' => [600, 600], 'other' => [300, 300]], false);
+$check('found again by a look: left as it is (marked), not made smaller again', [array_column($done, 'reason', 'rel')['images/rsz/big.jpg'] ?? 'not tried',
+    array_slice(getimagesize($root . '/images/rsz/big.jpg'), 0, 2), md5_file($root . '/images/rsz/big.jpg') === $made], ['marked', [600, 400], true]);
+$check('…its copy still the large original', [$s4->restore('images/rsz/big.jpg'), array_slice(getimagesize($root . '/images/rsz/big.jpg'), 0, 2)], ['ok', [1200, 800]]);
+
+// a look through the folder keeps the place an upload already noted (review: it turned "blog" into "other")
+file_put_contents($root . '/images/rsz/post.jpg', $jpeg);
+touch($root . '/images/rsz/post.jpg', $now + 900);
+$s5 = new CompressStore($root, 'images', [], $now + 1000);
+$s5->notePaths(['images/rsz/post.jpg'], 'blog');
+$s5->noteScan($now + 890, $now + 910);
+$done = $s5->work($gd, 10, true, ['other' => [300, 300]], false);
+$check('a look keeps the place noted: the blog (no frame) picture untouched', [array_column($done, 'rel'), array_slice(getimagesize($root . '/images/rsz/post.jpg'), 0, 2)], [[], [1200, 800]]);
+
 // cleanup
 $rm = function (string $dir) use (&$rm) {
     foreach (scandir($dir) ?: [] as $n) {

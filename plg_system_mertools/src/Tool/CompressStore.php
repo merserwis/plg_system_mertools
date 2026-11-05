@@ -26,6 +26,8 @@
  *    path of the new picture it sends back to the editor) and noted (notePaths()); only when it named
  *    none is the folder looked through for the pictures changed during the upload (noteScan(), done
  *    by work() when nobody waits for it). They are compressed at once or a little later (work()).
+ *    The place of an upload (shop, blog, other: Images → Size on upload) is noted with each picture,
+ *    and a picture larger than the frame of its place is made smaller (also with compression off).
  *
  * The list of copies and the notes are in state.php of that folder (JSON after a line that stops PHP,
  * so the web server never shows it), the list of a run in job.php.
@@ -230,15 +232,16 @@ final class CompressStore
     // ---------------------------------------------------------------- one picture
 
     /**
-     * Compress one picture in place, its original kept as a copy.
+     * Compress one picture in place, its original kept as a copy; with $box (see ImageCompressor::compress())
+     * a picture larger than it made smaller first, with $squeeze false only that.
      *
-     * @return array{rel:string, status:string, reason:string, before:int, after:int, method:string, lossy:bool}
+     * @return array{rel:string, status:string, reason:string, before:int, after:int, method:string, lossy:bool, resized:int[]}
      *   reason also tried (not worth it with these settings before), changed (changed while compressed),
      *   backup (the copy of the original could not be made)
      */
-    public function process(ImageCompressor $c, string $rel, ?array &$state = null): array
+    public function process(ImageCompressor $c, string $rel, ?array &$state = null, ?array $box = null, bool $squeeze = true): array
     {
-        $entry = ['rel' => $rel, 'status' => 'skip', 'reason' => '', 'before' => 0, 'after' => 0, 'method' => '', 'lossy' => false];
+        $entry = ['rel' => $rel, 'status' => 'skip', 'reason' => '', 'before' => 0, 'after' => 0, 'method' => '', 'lossy' => false, 'resized' => []];
         $path  = $this->root . '/' . $rel;
         clearstatcache(true, $path);
         $stat = @stat($path);
@@ -252,9 +255,17 @@ final class CompressStore
         if ($noted !== '' && ($noted === $sig || $noted === $stat['size'] . ':' . $stat['mtime'] . ':restored')) {
             return ['reason' => str_ends_with($noted, ':restored') ? 'restored' : 'tried'] + $entry;
         }
-        $tmp = \dirname($path) . '/.mt-' . getmypid() . '-' . basename($path);
-        $res = $c->compress($path, $tmp);
-        $entry = ['status' => $res['status'], 'reason' => $res['reason'], 'after' => $res['after'], 'method' => $res['method'], 'lossy' => $res['lossy']] + $entry;
+        $marked = ImageCompressor::marked($path);
+        // the very file MerTools made (its mark, the MD5 noted with its copy) is not done again: made smaller once
+        // more (found by a look through the folder, another frame) it would put itself in place of the copy of its original
+        $own = $state['backups'][$rel]['h'] ?? '';
+        if ($marked && \is_string($own) && $own !== '' && @md5_file($path) === $own) {
+            return ['reason' => 'marked'] + $entry;
+        }
+        $tmp    = \dirname($path) . '/.mt-' . getmypid() . '-' . basename($path);
+        $res    = $c->compress($path, $tmp, $box, $squeeze);
+        $entry  = ['status' => $res['status'], 'reason' => $res['reason'], 'after' => $res['after'], 'method' => $res['method'], 'lossy' => $res['lossy'],
+            'resized' => $res['resized']] + $entry;
         if ($res['status'] !== 'ok') {
             @unlink($tmp);
             if (\in_array($res['reason'], self::NOTED, true)) {
@@ -269,11 +280,12 @@ final class CompressStore
         $done     = $entry;
         $out      = ['status' => 'fail', 'reason' => 'backup', 'after' => $entry['before']] + $entry;
         $replaced = '';
-        $written  = $this->update(function (array &$s) use ($rel, $path, $tmp, $stat, $done, &$out, &$replaced) {
+        $written  = $this->update(function (array &$s) use ($rel, $path, $tmp, $stat, $done, $marked, &$out, &$replaced) {
             $out = $done;
             clearstatcache(true, $path);
             $now = @stat($path);
-            if (!$now || $now['size'] !== $stat['size'] || $now['mtime'] !== $stat['mtime'] || ImageCompressor::marked($path)) {
+            // (a picture made smaller may have had the mark already)
+            if (!$now || $now['size'] !== $stat['size'] || $now['mtime'] !== $stat['mtime'] || ImageCompressor::marked($path) !== $marked) {
                 $out = ['status' => 'skip', 'reason' => 'changed', 'after' => $out['before']] + $out;
 
                 return;
@@ -295,7 +307,8 @@ final class CompressStore
             @chmod($path, $mode ?: 0644);
             $replaced = $copy;
             // h: the file the compression made — the original is brought back only over it
-            $s['backups'][$rel] = ['t' => $this->now(), 'b' => $out['before'], 'a' => $out['after'], 'h' => (string) @md5_file($path)];
+            $s['backups'][$rel] = ['t' => $this->now(), 'b' => $out['before'], 'a' => $out['after'], 'h' => (string) @md5_file($path)]
+                + ($out['resized'] ? ['r' => $out['resized']] : []);
             $s['total']['n']    = (int) ($s['total']['n'] ?? 0) + 1;
             $s['total']['b']    = (int) ($s['total']['b'] ?? 0) + $out['before'];
             $s['total']['a']    = (int) ($s['total']['a'] ?? 0) + $out['after'];
@@ -438,8 +451,8 @@ final class CompressStore
     }
 
     /**
-     * The copies of originals, newest first: [rel, t (when compressed), b (bytes before), a (after), c
-     * (bytes of the copy)]; $filter: a part of the path.
+     * The copies of originals, newest first: [rel, t (when compressed), b (bytes before), a (after), r
+     * (made smaller: [width, height, new width, new height], else [])]; $filter: a part of the path.
      */
     public function backups(string $filter = '', int $limit = 300): array
     {
@@ -449,7 +462,8 @@ final class CompressStore
             if ($filter !== '' && stripos((string) $rel, $filter) === false) {
                 continue;
             }
-            $list[] = ['rel' => (string) $rel, 't' => (int) ($b['t'] ?? 0), 'b' => (int) ($b['b'] ?? 0), 'a' => (int) ($b['a'] ?? 0)];
+            $list[] = ['rel' => (string) $rel, 't' => (int) ($b['t'] ?? 0), 'b' => (int) ($b['b'] ?? 0), 'a' => (int) ($b['a'] ?? 0),
+                'r' => array_map('intval', \array_slice((array) ($b['r'] ?? []), 0, 4))];
         }
         usort($list, fn ($x, $y) => $y['t'] <=> $x['t'] ?: strcmp($x['rel'], $y['rel']));
 
@@ -491,21 +505,21 @@ final class CompressStore
     }
 
     /**
-     * Note pictures (relative paths, see pathsIn()) as waiting; false when not all of them could be (the
-     * queue full, the notes not written).
+     * Note pictures (relative paths, see pathsIn()) as waiting, uploaded to the place $to (shop, blog,
+     * other); false when not all of them could be (the queue full, the notes not written).
      *
      * @param string[] $rels
      */
-    public function notePaths(array $rels): bool
+    public function notePaths(array $rels, string $to = 'other'): bool
     {
         $all     = true;
-        $written = $this->update(function (array &$s) use ($rels, &$all) {
+        $written = $this->update(function (array &$s) use ($rels, $to, &$all) {
             foreach ($rels as $rel) {
                 if (\count($s['pending']) >= self::MAX_PENDING && !isset($s['pending'][(string) $rel])) {
                     $all = false;
                     break;
                 }
-                $s['pending'][(string) $rel] = true;
+                $s['pending'][(string) $rel] = $to;
             }
         });
 
@@ -539,11 +553,14 @@ final class CompressStore
 
     /**
      * Compress the waiting uploaded pictures for at most $seconds (one worker at a time); with $scan the
-     * look through the folder an upload left (noteScan()) is done first.
+     * look through the folder an upload left (noteScan()) is done first. $boxes: the frame of each place
+     * (shop, blog, other => [width, height]) a picture uploaded there is made to fit; $squeeze false:
+     * only that, the pictures that fit are left as they are. A picture whose place is not known (found
+     * by a look through the folder, noted by an older version) counts as other.
      *
      * @return array<int, array> what each gave (see process())
      */
-    public function work(ImageCompressor $c, float $seconds, bool $scan = true): array
+    public function work(ImageCompressor $c, float $seconds, bool $scan = true, array $boxes = [], bool $squeeze = true): array
     {
         $lock = $this->lock('work');
         if (!$lock) {
@@ -563,7 +580,8 @@ final class CompressStore
                             $all = false;
                             break;
                         }
-                        $s['pending'][$rel] = true;
+                        // (a picture an upload noted keeps its place)
+                        $s['pending'][$rel] ??= true;
                     }
                     // kept when the queue is full (looked through again once it has room), and when an upload
                     // was noted while the folder was looked through (its own look)
@@ -572,7 +590,7 @@ final class CompressStore
                     }
                 }, $state);
             }
-            foreach (array_keys($state['pending']) as $rel) {
+            foreach ($state['pending'] as $rel => $to) {
                 if (microtime(true) > $end) {
                     break;
                 }
@@ -580,8 +598,10 @@ final class CompressStore
                 $this->update(function (array &$s) use ($rel) {
                     unset($s['pending'][$rel]);
                 }, $state);
-                if (!$this->excluded($rel) && is_file($this->root . '/' . $rel)) {
-                    $done[] = $this->process($c, $rel, $state);
+                // a place without a frame keeps its pictures' size; a place not known gets the frame of other
+                $box = $boxes[\is_string($to) ? $to : 'other'] ?? null;
+                if (!$this->excluded($rel) && is_file($this->root . '/' . $rel) && ($squeeze || $box)) {
+                    $done[] = $this->process($c, $rel, $state, $box, $squeeze);
                 }
             }
         } finally {

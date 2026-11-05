@@ -3,6 +3,7 @@
  * to the folder open in it. The dropped files go to Gridbox's own upload field (the one its button
  * "Upload" opens), so Gridbox checks the types, shows the count and reloads the folder as for that
  * button. Dragging the rows to a folder (Gridbox's move) is not a drag of files and is left alone.
+ * With Size on upload on, its uploads also say the page it is open in (mt_ref).
  * Config: <script type="application/json" id="mertools-media-config">.
  */
 (() => {
@@ -10,8 +11,21 @@
   const node = document.getElementById('mertools-media-config');
   const form = document.querySelector('#file-upload-form form');
   if (!node || !form || !window.mediaManager) return;
-  let t;
-  try { t = JSON.parse(node.textContent).texts; } catch (e) { return; }
+  let cfg;
+  try { cfg = JSON.parse(node.textContent); } catch (e) { return; }
+  const t = cfg.texts || {};
+  // Size on upload: each upload says the page of the editor or panel the media manager is open in (its
+  // place: shop, blog, other), also where the site sends no Referer; Gridbox reads mediaManager.action
+  // at every upload
+  if (cfg.ref && typeof window.mediaManager.action === 'string' && !/[?&]mt_ref=/.test(window.mediaManager.action)) {
+    try {
+      const topLoc = window.top.location;
+      if (topLoc.origin === location.origin) {
+        window.mediaManager.action += (window.mediaManager.action.includes('?') ? '&' : '?') + 'mt_ref=' + encodeURIComponent(topLoc.pathname + topLoc.search);
+      }
+    } catch (e) { /* another site's frame: the Referer only */ }
+  }
+  if (cfg.drop === false) return;
 
   const style = document.createElement('style');
   style.textContent = '.mt-drop{position:fixed;inset:8px;z-index:100000;display:none;align-items:center;justify-content:center;pointer-events:none;'

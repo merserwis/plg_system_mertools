@@ -44,7 +44,7 @@ $check('tiles: no store, no shop section', isset($tiles['shop']), false);
 $check('tiles: no store, no shop tab among the configuration', in_array('shop', array_column($tiles['config'], 'name'), true), false);
 $check('tiles: the configuration page itself is not a tile', in_array('config', array_merge(...array_values(array_map(fn ($g) => array_column($g, 'name'), $tiles))), true), false);
 $withStore = C::tiles(new Registry([]), $defaults, true);
-$check('tiles: with a store, the shop section', array_column($withStore['shop'], 'name'), ['omnibus', 'carts']);
+$check('tiles: with a store, the shop section', array_column($withStore['shop'], 'name'), ['omnibus', 'badges', 'carts']);
 $check('tiles: a configuration tile opens its tab', $withStore['config'][0]['link'], 'index.php?option=com_mertools&view=page&page=config&tab=url');
 $check('tiles: sections in order, configuration last', array_keys($withStore), ['speed', 'seo', 'shop', 'gridbox', 'config']);
 

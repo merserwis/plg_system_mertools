@@ -34,12 +34,13 @@ final class Catalog
      */
     public const PAGES = [
         'cache'    => ['group' => 'speed',   'icon' => 'bolt',           'on' => ['speed_cache']],
-        'images'   => ['group' => 'speed',   'icon' => 'images',         'on' => ['speed_images', 'cmp_upload']],
+        'images'   => ['group' => 'speed',   'icon' => 'images',         'on' => ['speed_images', 'cmp_upload', 'rsz_upload']],
         'measure'  => ['group' => 'speed',   'icon' => 'chart',          'on' => []],
         'checks'   => ['group' => 'speed',   'icon' => 'check-circle',   'on' => []],
         'sitemap'  => ['group' => 'seo',     'icon' => 'tree-2',         'on' => ['sitemap_enabled']],
         'notfound' => ['group' => 'seo',     'icon' => 'compass',        'on' => ['notfound_log', 'notfound_moved', 'notfound_redirect']],
         'omnibus'  => ['group' => 'shop',    'icon' => 'tag',            'on' => ['shop_omnibus'], 'store' => true],
+        'badges'   => ['group' => 'shop',    'icon' => 'star',           'on' => ['badge_on'], 'store' => true],
         'carts'    => ['group' => 'shop',    'icon' => 'cart',           'on' => ['cart_enabled'], 'store' => true],
         'history'  => ['group' => 'gridbox', 'icon' => 'clock',          'on' => ['history_enabled']],
         'apps'     => ['group' => 'gridbox', 'icon' => 'shield-alt',     'on' => ['apps_protect', 'apps_backup_delete', 'apps_backup_auto']],

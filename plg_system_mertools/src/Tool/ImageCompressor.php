@@ -20,6 +20,11 @@
  * comment, a PNG text "Comment: MerTools …"), so it is never compressed a second time — also when the
  * list of what was done is lost. Animated PNGs, CMYK JPEGs and very large pictures are left alone.
  *
+ * With a frame (an upload, Images → Size on upload) a picture larger than it is made smaller to fit
+ * in it first (its proportions kept, never made larger; a photo on its side counted as it is shown),
+ * by PHP's GD, then saved with the same settings — the smaller picture is used also when the saving
+ * is less than the share chosen, and also when it had the mark already.
+ *
  * The class only makes the lighter file; what to compress, the copies of the originals and the
  * replacing of the files are in CompressStore.
  */
@@ -41,6 +46,9 @@ final class ImageCompressor
 
     /** larger pictures are left alone (GD would need too much memory) */
     public const MAX_PIXELS = 24000000;
+
+    /** a picture made smaller to fit a frame may be larger (a photo of a phone): read once, written much smaller */
+    public const MAX_RESIZE_PIXELS = 52000000;
 
     /** the points of a PNG compared with its palette version */
     private const SAMPLES = 20000;
@@ -138,17 +146,42 @@ final class ImageCompressor
     }
 
     /**
-     * A lighter version of the picture $src written to $dest (a new file, $src stays as it is).
-     *
-     * @return array{status:string, reason:string, type:string, before:int, after:int, method:string, lossy:bool, file:bool}
-     *   status: ok (lighter by the share chosen), skip (not worth it or not for this picture), fail;
-     *   reason (of a skip or fail): small, large, type, marked, animated, cmyk, memory, gain, read, write;
-     *   file: $dest has the result (also with reason gain: what it would have been, for a try)
+     * The size [width, height] a picture of $w × $h shown gets to fit in the frame $box [width, height]
+     * (0: that side not limited), its proportions kept; null when it fits as it is.
      */
-    public function compress(string $src, string $dest): array
+    public static function fit(int $w, int $h, array $box): ?array
+    {
+        $bw    = max(0, (int) ($box[0] ?? 0));
+        $bh    = max(0, (int) ($box[1] ?? 0));
+        $ratio = min($bw > 0 ? $bw / max(1, $w) : INF, $bh > 0 ? $bh / max(1, $h) : INF);
+        if ($ratio >= 1 || $w < 1 || $h < 1) {
+            return null;
+        }
+        $nw = max(1, (int) round($w * $ratio));
+        $nh = max(1, (int) round($h * $ratio));
+        // rounding must not make a side larger than its limit
+        $nw = $bw > 0 ? min($nw, $bw) : $nw;
+        $nh = $bh > 0 ? min($nh, $bh) : $nh;
+
+        return $nw === $w && $nh === $h ? null : [$nw, $nh];
+    }
+
+    /**
+     * A lighter version of the picture $src written to $dest (a new file, $src stays as it is); with
+     * $box [width, height] (0: that side not limited) a picture larger than it made smaller to fit
+     * first; with $squeeze false a picture that fits the frame is left as it is (reason fits).
+     *
+     * @return array{status:string, reason:string, type:string, before:int, after:int, method:string, lossy:bool, file:bool, resized:int[]}
+     *   status: ok (lighter by the share chosen, or made smaller), skip (not worth it or not for this
+     *   picture), fail; reason (of a skip or fail): small, large, type, marked, animated, cmyk, memory,
+     *   gain, read, write, fits; file: $dest has the result (also with reason gain: what it would have
+     *   been, for a try); resized: [width, height, new width, new height] as shown, [] when not made smaller
+     */
+    public function compress(string $src, string $dest, ?array $box = null, bool $squeeze = true): array
     {
         $before = (int) @filesize($src);
-        $res    = ['status' => 'skip', 'reason' => '', 'type' => '', 'before' => $before, 'after' => $before, 'method' => '', 'lossy' => false, 'file' => false];
+        $res    = ['status' => 'skip', 'reason' => '', 'type' => '', 'before' => $before, 'after' => $before, 'method' => '', 'lossy' => false, 'file' => false,
+            'resized' => []];
         $info   = @getimagesize($src);
         if (!\is_array($info)) {
             return ['reason' => is_file($src) ? 'type' : 'read', 'status' => is_file($src) ? 'skip' : 'fail'] + $res;
@@ -158,13 +191,19 @@ final class ImageCompressor
         if ($res['type'] === '') {
             return ['reason' => 'type'] + $res;
         }
-        if ($before < self::MIN_BYTES) {
+        // the frame counts the picture as it is shown: a photo stored on its side has its sides swapped
+        $turn = $type === IMAGETYPE_JPEG ? ImageSize::orientation($src) : 1;
+        $fit  = $box ? ($turn >= 5 ? self::fit($h, $w, $box) : self::fit($w, $h, $box)) : null;
+        if ($fit === null && !$squeeze) {
+            return ['reason' => 'fits'] + $res;
+        }
+        if ($fit === null && $before < self::MIN_BYTES) {
             return ['reason' => 'small'] + $res;
         }
-        if ($before > self::MAX_BYTES || $w * $h > self::MAX_PIXELS || $w < 1 || $h < 1) {
+        if ($before > self::MAX_BYTES || $w * $h > ($fit ? self::MAX_RESIZE_PIXELS : self::MAX_PIXELS) || $w < 1 || $h < 1) {
             return ['reason' => 'large'] + $res;
         }
-        if (self::marked($src)) {
+        if ($fit === null && self::marked($src)) {
             return ['reason' => 'marked'] + $res;
         }
         if ($type === IMAGETYPE_JPEG && (int) ($info['channels'] ?? 3) === 4) {
@@ -180,7 +219,7 @@ final class ImageCompressor
         }
         @unlink($dest);
         try {
-            $made = $type === IMAGETYPE_JPEG ? $this->jpeg($src, $dest, $bin, $w, $h) : $this->png($src, $dest, $bin, $w, $h);
+            $made = $type === IMAGETYPE_JPEG ? $this->jpeg($src, $dest, $bin, $w, $h, $turn, $fit) : $this->png($src, $dest, $bin, $w, $h, $fit);
         } catch (\Throwable $e) {
             $made = ['fail' => 'read'];
         }
@@ -197,6 +236,12 @@ final class ImageCompressor
             return ['status' => 'fail', 'reason' => 'write'] + $res;
         }
         $res = ['after' => $after, 'method' => $made['method'], 'lossy' => $made['lossy'], 'file' => true] + $res;
+        if ($fit !== null) {
+            // made smaller: what was asked for, whatever it saved
+            $shown = $turn >= 5 ? [$h, $w] : [$w, $h];
+
+            return ['status' => 'ok', 'resized' => [$shown[0], $shown[1], $fit[0], $fit[1]]] + $res;
+        }
         if ($after > $before * (100 - $this->o['min']) / 100) {
             return ['reason' => 'gain'] + $res;
         }
@@ -207,11 +252,11 @@ final class ImageCompressor
     // ---------------------------------------------------------------- JPEG
 
     /** @return array{method?:string, lossy?:bool, fail?:string} */
-    private function jpeg(string $src, string $dest, string $bin, int $w, int $h): array
+    private function jpeg(string $src, string $dest, string $bin, int $w, int $h, int $turn, ?array $fit = null): array
     {
-        $turn = ImageSize::orientation($src);
         $icc  = self::jpegIcc($bin);
-        $tool = $this->o['engine'] === 'auto' ? (self::programs()['jpegoptim'] ?? '') : '';
+        // jpegoptim cannot make a picture smaller: GD does it
+        $tool = $this->o['engine'] === 'auto' && $fit === null ? (self::programs()['jpegoptim'] ?? '') : '';
         // jpegoptim keeps the pixels as they are: a photo on its side (EXIF orientation) is turned by GD
         if ($tool !== '' && $turn <= 1 && @copy($src, $dest)) {
             $out  = [];
@@ -226,7 +271,7 @@ final class ImageCompressor
             }
             @unlink($dest);
         }
-        if (!self::raiseMemory($w * $h * ($turn > 1 ? 12 : 6) + 16 * 1024 * 1024)) {
+        if (!self::raiseMemory($w * $h * ($turn > 1 ? 12 : 6) + ($fit ? $fit[0] * $fit[1] * 6 : 0) + 16 * 1024 * 1024)) {
             return ['fail' => 'memory'];
         }
         $img = @imagecreatefromstring($bin);
@@ -237,6 +282,12 @@ final class ImageCompressor
             $img = self::upright($img, $turn);
             if (!$img) {
                 return ['fail' => 'read'];
+            }
+        }
+        if ($fit !== null) {
+            $img = self::scaled($img, $fit[0], $fit[1], false);
+            if (!$img) {
+                return ['fail' => 'memory'];
             }
         }
         imageinterlace($img, true);
@@ -332,10 +383,11 @@ final class ImageCompressor
     // ---------------------------------------------------------------- PNG
 
     /** @return array{method?:string, lossy?:bool, fail?:string} */
-    private function png(string $src, string $dest, string $bin, int $w, int $h): array
+    private function png(string $src, string $dest, string $bin, int $w, int $h, ?array $fit = null): array
     {
         $colour = self::pngColourChunks($bin);
-        $tool   = $this->o['engine'] === 'auto' ? (self::programs()['pngquant'] ?? '') : '';
+        // pngquant cannot make a picture smaller: GD does it
+        $tool   = $this->o['engine'] === 'auto' && $fit === null ? (self::programs()['pngquant'] ?? '') : '';
         if ($tool !== '' && $this->o['png'] < 100) {
             $out  = [];
             $code = 1;
@@ -352,12 +404,19 @@ final class ImageCompressor
             }
             @unlink($dest);
         }
-        if (!self::raiseMemory($w * $h * 12 + 16 * 1024 * 1024)) {
+        if (!self::raiseMemory($w * $h * ($fit ? 6 : 12) + ($fit ? $fit[0] * $fit[1] * 12 : 0) + 16 * 1024 * 1024)) {
             return ['fail' => 'memory'];
         }
         $img = @imagecreatefromstring($bin);
         if (!$img) {
             return ['fail' => 'read'];
+        }
+        if ($fit !== null) {
+            $img = self::scaled($img, $fit[0], $fit[1], true);
+            if (!$img) {
+                return ['fail' => 'memory'];
+            }
+            [$w, $h] = $fit;
         }
         $data  = '';
         $lossy = false;
@@ -559,6 +618,25 @@ final class ImageCompressor
         }
 
         return $img;
+    }
+
+    /** The picture made smaller to $w × $h (GD's resampling); with $alpha its transparency kept. */
+    private static function scaled(\GdImage $img, int $w, int $h, bool $alpha): ?\GdImage
+    {
+        $out = @imagecreatetruecolor($w, $h);
+        if (!$out) {
+            return null;
+        }
+        if ($alpha) {
+            imagealphablending($out, false);
+            imagesavealpha($out, true);
+            imagefill($out, 0, 0, imagecolorallocatealpha($out, 0, 0, 0, 127));
+        }
+        if (!@imagecopyresampled($out, $img, 0, 0, 0, 0, $w, $h, imagesx($img), imagesy($img))) {
+            return null;
+        }
+
+        return $out;
     }
 
     /** Enough memory for $bytes more: raised when needed; false when the limit cannot be raised that far. */

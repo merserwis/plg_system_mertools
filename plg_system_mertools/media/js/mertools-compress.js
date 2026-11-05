@@ -111,11 +111,16 @@
       var note = !e.gd ? T.NO_GD : (!e.exec ? T.NO_EXEC : (!e.jpegoptim || !e.pngquant ? T.NO_PROGRAMS : ''));
       if (note) { row('', note); }
       row(T.UPLOADS, d.uploads ? T.UPLOADS_ON : T.UPLOADS_OFF);
+      var frames = Object.keys(d.resize || {}).map(function (p) {
+        var b = d.resize[p];
+        return T['PLACE_' + p.toUpperCase()] + ' ' + (b[0] || T.NO_LIMIT) + ' × ' + (b[1] || T.NO_LIMIT);
+      });
+      row(T.RESIZE, frames.length ? frames.join(' · ') : T.RESIZE_OFF);
       row(T.COMPRESSED, s.compressed ? num(s.compressed) + ' · ' + bytes(s.before) + ' → ' + bytes(s.after) + ' (−' + saving(s.before, s.after) + ' %)' : '0');
       row(T.BACKUPS, num(s.backups) + (s.backups ? ' · ' + bytes(s.backupBytes) : '') + ' · ' + t('BACKUPS_DAYS', d.days)
         + (s.oldest ? ' · ' + t('BACKUPS_OLDEST', date(s.oldest + d.days * 86400)) : ''));
       if (s.pending) { row(T.PENDING, num(s.pending)); }
-      if (!d.finish && d.uploads) { row('', T.NO_FINISH); }
+      if (!d.finish && (d.uploads || frames.length)) { row('', T.NO_FINISH); }
       runBtn.disabled = !e.gd;
       tryBtn.disabled = !e.gd;
       runBtn.lastChild.textContent = ' ' + (s.job ? t('RUN_RESUME', num(s.job.pos), num(s.job.total)) : T.RUN);
@@ -351,7 +356,8 @@
         d.list.forEach(function (b) {
           listBody.append(el('li', { class: 'mt-cmp-ok' }, [
             el('code', { text: b.rel }),
-            document.createTextNode(' ' + bytes(b.b) + ' → ' + bytes(b.a) + ' (−' + saving(b.b, b.a) + ' %) · ' + date(b.t) + ' · ' + t('LIST_UNTIL', date(b.t + d.days * 86400)) + ' '),
+            document.createTextNode(' ' + bytes(b.b) + ' → ' + bytes(b.a) + ' (' + (saving(b.b, b.a) >= 0 ? '−' : '+') + Math.abs(saving(b.b, b.a)) + ' %)'
+              + (b.r && b.r.length === 4 ? ' · ' + b.r[0] + '×' + b.r[1] + ' → ' + b.r[2] + '×' + b.r[3] : '') + ' · ' + date(b.t) + ' · ' + t('LIST_UNTIL', date(b.t + d.days * 86400)) + ' '),
             el('button', { type: 'button', class: 'btn btn-link btn-sm p-0 align-baseline', 'data-rel': b.rel, text: T.RESTORE })
           ]));
         });
