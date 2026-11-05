@@ -218,7 +218,8 @@ final class Compress extends Feature
                 'cmp_list'        => ['success' => true, 'list' => $store->backups(trim($input->getString('filter', '')), 500), 'days' => $this->keepDays()],
                 'cmp_restore'     => ['success' => true, 'result' => $store->restore(trim(str_replace('\\', '/', $input->getString('rel', '')), '/'))]
                     + $this->figures($store),
-                'cmp_restore_all' => ['success' => true, 'restore' => $store->restoreAll(15.0)] + $this->figures($store),
+                // short parts: the window's bar moves
+                'cmp_restore_all' => ['success' => true, 'restore' => $store->restoreAll(5.0, $input->getInt('skip', 0))] + $this->figures($store),
                 default           => ['success' => false, 'message' => Text::_('JERROR_ALERTNOAUTHOR')],
             };
         } catch (\Throwable $e) {

@@ -299,7 +299,9 @@ $check('a run stopped half-way goes on', (function () use ($store, $gd) {
     return $mid !== null && $mid['pos'] === 1 && $mid['total'] === 6;
 })(), true);
 $store->jobCancel();
-$check('restore all', $store->restoreAll(10), ['restored' => 2, 'changed' => 0, 'failed' => 0, 'left' => 0]);
+$all = $store->restoreAll(10);
+$check('restore all', array_diff_key($all, ['entries' => 1]), ['restored' => 2, 'changed' => 0, 'failed' => 0, 'left' => 0]);
+$check('…each picture in the entries', array_column($all['entries'], 'result', 'rel'), ['images/sub/new.jpg' => 'ok', 'images/photo.jpg' => 'ok']);
 
 // the notes cannot be written (a full disk: here state.php is a folder): the picture gets its original back at once
 $fresh = $root . '/images/sub/fresh.jpg';
@@ -318,10 +320,16 @@ file_put_contents($state, $saved);
 // restore all with a picture that cannot be written (its path taken by a folder): counted as failed, its copy stays
 $s2 = new CompressStore($root, 'images', ['skipme'], $now + 400);
 $check('fresh picture compressed', $s2->process($gd, 'images/sub/fresh.jpg')['status'], 'ok');
+file_put_contents($root . '/images/sub/later.jpg', $jpeg);
+$check('…and one after it', $s2->process($gd, 'images/sub/later.jpg')['status'], 'ok');
 unlink($fresh);
 mkdir($fresh);
 touch($fresh . '/x');
-$check('restore all: a failure counted', $s2->restoreAll(10), ['restored' => 0, 'changed' => 0, 'failed' => 1, 'left' => 0]);
+// a part out of time still takes one picture; the failed one stays at the front, skip passes over it
+$check('restore all: a failure counted', $s2->restoreAll(0.0), ['restored' => 0, 'changed' => 0, 'failed' => 1, 'left' => 1,
+    'entries' => [['rel' => 'images/sub/fresh.jpg', 'result' => 'fail']]]);
+$check('…the next part passes over it', $s2->restoreAll(0.0, 1), ['restored' => 1, 'changed' => 0, 'failed' => 0, 'left' => 0,
+    'entries' => [['rel' => 'images/sub/later.jpg', 'result' => 'ok']]]);
 $check('…its copy stays', is_file($copyOf('images/sub/fresh.jpg')), true);
 unlink($fresh . '/x');
 rmdir($fresh);

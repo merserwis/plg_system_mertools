@@ -3,7 +3,8 @@
  * server can use, what was compressed, the copies of the originals; a try on one picture with the
  * settings of the form as they are now (before and after side by side, a slider over the picture);
  * "Compress all pictures" in a window with a log, run a few seconds at a time (stop, go on later);
- * the copies of the originals in a window, each with its return. Requests go to the plugin's
+ * the copies of the originals in a window, each with its return; "Restore all the originals" in the
+ * window of the run, with its bar and a line per picture. Requests go to the plugin's
  * mertools_action handler with the form token.
  */
 (function () {
@@ -181,7 +182,8 @@
 
     // ---------------------------------------------------------------- compress all (the window with the log)
 
-    var dlg = null, logBox, bar, counts, showSkips, stopBtn, goBtn, closeBtn, running = false, stopAsked = false, sum = null, lines = 0;
+    // one window for both: mode 'run' (compress all) or 'restore' (restore all)
+    var dlg = null, titleEl, skipsRow, logBox, bar, counts, showSkips, stopBtn, goBtn, closeBtn, mode = 'run', running = false, stopAsked = false, sum = null, lines = 0;
 
     function makeDialog() {
       if (dlg) { return; }
@@ -192,11 +194,12 @@
       logBox = el('ol', { class: 'mt-cmp-log list-unstyled mb-0', 'aria-live': 'polite' });
       stopBtn = el('button', { type: 'button', class: 'btn btn-secondary', text: T.STOP });
       goBtn = el('button', { type: 'button', class: 'btn btn-primary', text: T.GO_ON });
+      titleEl = el('h3', { text: T.RUN_TITLE });
+      skipsRow = el('div', { class: 'form-check mb-2' }, [showSkips, el('label', { class: 'form-check-label', for: 'mt-cmp-skips', text: T.SHOW_SKIPS })]);
       dlg = el('dialog', { class: 'mt-cmp-dlg' }, [
-        el('div', { class: 'mt-cmp-head' }, [el('h3', { text: T.RUN_TITLE }), closeBtn]),
+        el('div', { class: 'mt-cmp-head' }, [titleEl, closeBtn]),
         el('div', { class: 'mt-cmp-body' }, [
-          el('div', { class: 'progress mb-2', style: 'height:1.25rem' }, [bar]), counts,
-          el('div', { class: 'form-check mb-2' }, [showSkips, el('label', { class: 'form-check-label', for: 'mt-cmp-skips', text: T.SHOW_SKIPS })]),
+          el('div', { class: 'progress mb-2', style: 'height:1.25rem' }, [bar]), counts, skipsRow,
           logBox
         ]),
         el('div', { class: 'mt-cmp-foot' }, [stopBtn, goBtn])
@@ -211,6 +214,20 @@
         var b = ev.target.closest('[data-rel]');
         if (b) { restoreOne(b.getAttribute('data-rel'), b); }
       });
+    }
+
+    function openDialog(kind) {
+      makeDialog();
+      mode = kind;
+      titleEl.textContent = kind === 'restore' ? T.RESTORE_ALL_TITLE : T.RUN_TITLE;
+      skipsRow.hidden = kind === 'restore';
+      logBox.replaceChildren();
+      lines = 0;
+    }
+    function setBar(pos, total) {
+      var pct = total ? Math.min(100, Math.round(pos / total * 100)) : 100;
+      bar.style.width = pct + '%';
+      bar.textContent = pct + ' %';
     }
 
     function logLine(e) {
@@ -230,9 +247,7 @@
       logBox.append(el('li', { class: 'mt-cmp-note' + (kind ? ' text-' + kind : ''), text: text }));
     }
     function showProgress(run) {
-      var pct = run.total ? Math.round(run.pos / run.total * 100) : 100;
-      bar.style.width = pct + '%';
-      bar.textContent = pct + ' %';
+      setBar(run.pos, run.total);
       var s = run.sum || {};
       counts.textContent = t('COUNTS', num(run.pos), num(run.total)) + ' · ' + T.C_OK + ': ' + num(s.ok) + ' · ' + T.C_SKIP + ': ' + num(s.skip)
         + ' · ' + T.C_FAIL + ': ' + num(s.fail) + (s.ok ? ' · ' + t('SAVED', bytes(s.before - s.after), saving(s.before, s.after)) : '');
@@ -241,7 +256,7 @@
     function buttons() {
       stopBtn.hidden = !running;
       stopBtn.disabled = false;
-      goBtn.hidden = running || !(last && last.stats.job);
+      goBtn.hidden = running || mode !== 'run' || !(last && last.stats.job);
     }
 
     function loop() {
@@ -271,11 +286,11 @@
     }
 
     runBtn.addEventListener('click', function () {
+      // a closed window may still wait for the answer of a part (of either kind): nothing else starts until it ends
+      if (running) { return; }
       var s = last && last.stats;
-      makeDialog();
       if (s && s.job) {
-        logBox.replaceChildren();
-        lines = 0;
+        openDialog('run');
         showProgress(s.job);
         dlg.showModal();
         loop();
@@ -285,8 +300,7 @@
       if (!window.confirm(question)) { return; }
       runBtn.disabled = true;
       post('cmp_start').then(function (d) {
-        logBox.replaceChildren();
-        lines = 0;
+        openDialog('run');
         showProgress({ pos: 0, total: d.count, sum: {} });
         note(t('STARTED', num(d.count)));
         dlg.showModal();
@@ -348,22 +362,64 @@
       listDlg.showModal();
       loadList();
     });
+    // ---------------------------------------------------------------- restore all (in the window of the run)
+
     restoreAllBtn.addEventListener('click', function () {
-      if (!window.confirm(T.RESTORE_ALL_CONFIRM)) { return; }
+      if (running || !window.confirm(T.RESTORE_ALL_CONFIRM)) { return; }
+      openDialog('restore');
       restoreAllBtn.disabled = true;
-      var total = 0, changed = 0, failed = 0;
+      running = true;
+      stopAsked = false;
+      buttons();
+      dlg.showModal();
+      // a picture left as it is (changed, fail) keeps its copy and comes back in the next part: listed once,
+      // its line again only when its result changes
+      var total = (last && last.stats.backups) || 0, seen = {}, n = { ok: 0, changed: 0, fail: 0, gone: 0 }, done = 0, left = 0, skip = 0;
+      function progress() {
+        total = Math.max(total, done + left);
+        setBar(done, total);
+        counts.textContent = t('RESTORE_ALL_COUNTS', num(done), num(total)) + ' · ' + T.C_RESTORED + ': ' + num(n.ok)
+          + ' · ' + T.C_CHANGED + ': ' + num(n.changed) + ' · ' + T.C_FAIL + ': ' + num(n.fail);
+      }
+      function line(e) {
+        var li = el('li', { class: e.result === 'ok' ? 'mt-cmp-ok' : (e.result === 'fail' ? 'mt-cmp-fail' : 'mt-cmp-left') });
+        li.append(el('span', { class: 'mt-cmp-mark', 'aria-hidden': 'true', text: e.result === 'ok' ? '✓' : (e.result === 'fail' ? '✗' : '–') }),
+          el('code', { text: e.rel }), document.createTextNode(' ' + (T['RESTORE_' + e.result] || e.result)));
+        logBox.append(li);
+        if (++lines > 3000) { logBox.firstChild.remove(); lines--; }
+      }
+      function end(text, kind) {
+        running = false;
+        buttons();
+        note(text, kind);
+        logBox.scrollTop = logBox.scrollHeight;
+        message(kind, text);
+        post('cmp_stats').then(buttons, function () { restoreAllBtn.disabled = false; buttons(); });
+      }
+      progress();
       (function step() {
-        post('cmp_restore_all').then(function (d) {
-          total += d.restore.restored;
-          changed += d.restore.changed;
-          failed += d.restore.failed || 0;
-          if (d.restore.left > 0 && d.restore.restored > 0) { message('info', t('RESTORE_ALL_MORE', num(total), num(d.restore.left))); step(); return; }
+        if (stopAsked) { end(t('RESTORE_ALL_STOPPED', num(n.ok)), 'warning'); return; }
+        post('cmp_restore_all', { skip: skip }).then(function (d) {
+          var r = d.restore;
+          // the pictures left as they are stay at the front of the server's list: the next part passes over them
+          skip += r.changed + r.failed;
+          r.entries.forEach(function (e) {
+            var was = seen[e.rel];
+            if (was === e.result) { return; }
+            if (was) { n[was]--; } else { done++; }
+            seen[e.rel] = e.result;
+            n[e.result] = (n[e.result] || 0) + 1;
+            line(e);
+          });
+          left = r.left;
+          logBox.scrollTop = logBox.scrollHeight;
+          progress();
+          if (r.left > 0) { step(); return; }
+          setBar(1, 1);
           // a picture that could not be written is not a success: said in a warning, its copy stays
-          message(failed || d.restore.left ? 'warning' : 'success', t('RESTORE_ALL_DONE', num(total))
-            + (changed ? ' ' + t('RESTORE_ALL_CHANGED', num(changed)) : '') + (failed ? ' ' + t('RESTORE_ALL_FAILED', num(failed)) : '')
-            + (d.restore.left ? ' ' + t('RESTORE_ALL_LEFT', num(d.restore.left)) : ''));
-          restoreAllBtn.disabled = !(last && last.stats.backups);
-        }, function (err) { message('danger', err.message); restoreAllBtn.disabled = false; });
+          end(t('RESTORE_ALL_DONE', num(n.ok)) + (n.changed ? ' ' + t('RESTORE_ALL_CHANGED', num(n.changed)) : '')
+            + (n.fail ? ' ' + t('RESTORE_ALL_FAILED', num(n.fail)) : ''), n.fail ? 'warning' : 'success');
+        }, function (err) { end(err.message, 'danger'); });
       })();
     });
 

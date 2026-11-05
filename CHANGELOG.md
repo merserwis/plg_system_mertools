@@ -2,6 +2,15 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.12.2 — 2026-11-05
+
+### 🗜 Images — Restore all originals in a window with its progress
+
+**Restore all originals** (Images → Compressed originals) only changed a line on the panel while it worked. Now it opens a window like the one of *Compress all pictures*: a progress bar, the counts (gone through, restored, changed after compression, errors) and a line for every picture — restored, left as it is because it was changed after the compression, or not written (its copy stays). **Stop** ends it after the part on its way; the pictures not reached keep their copies and the button finishes them later.
+
+- Many pictures that cannot be restored at the front of the copies (changed after the compression, a folder without the right to write) no longer stop the restore before the others: each part goes on after them.
+- *Compress all pictures* clicked while a part of the restore was still on its way (its window already closed) no longer mixes the two in one window: nothing starts until that part is in.
+
 ## 1.12.1 — 2026-11-05
 
 ### 🗜 Images — an upload no longer goes through the whole images folder

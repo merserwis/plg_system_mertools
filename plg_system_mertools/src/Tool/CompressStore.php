@@ -367,18 +367,22 @@ final class CompressStore
     }
 
     /**
-     * Bring back every original that still has a copy, for at most $seconds.
+     * Bring back every original that still has a copy, for at most $seconds (at least one picture, so
+     * every call moves on). The pictures left as they are (changed, fail) keep their copies and stay at
+     * the front of the list: the next call passes over them with $skip (the sum of changed and failed so
+     * far), or a front of such pictures longer than one call would never let the rest come back.
+     * entries says what happened to each picture of this call.
      *
-     * @return array{restored:int, changed:int, failed:int, left:int}
+     * @return array{restored:int, changed:int, failed:int, left:int, entries:list<array{rel:string, result:string}>}
      */
-    public function restoreAll(float $seconds): array
+    public function restoreAll(float $seconds, int $skip = 0): array
     {
         $end   = microtime(true) + $seconds;
         $state = $this->state();
-        $out   = ['restored' => 0, 'changed' => 0, 'failed' => 0, 'left' => 0];
-        $rels  = array_keys($state['backups']);
+        $out   = ['restored' => 0, 'changed' => 0, 'failed' => 0, 'left' => 0, 'entries' => []];
+        $rels  = \array_slice(array_keys($state['backups']), max(0, $skip));
         foreach ($rels as $i => $rel) {
-            if (microtime(true) > $end) {
+            if ($i > 0 && microtime(true) > $end) {
                 $out['left'] = \count($rels) - $i;
                 break;
             }
@@ -386,6 +390,7 @@ final class CompressStore
             $out['restored'] += $r === 'ok' ? 1 : 0;
             $out['changed']  += $r === 'changed' ? 1 : 0;
             $out['failed']   += $r === 'fail' ? 1 : 0;
+            $out['entries'][] = ['rel' => (string) $rel, 'result' => $r];
         }
 
         return $out;

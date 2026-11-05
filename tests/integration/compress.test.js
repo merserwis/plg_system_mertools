@@ -181,9 +181,46 @@ run(async ({ login }) => {
   await page.waitForSelector('.mt-cmp-figures dt');
   check('a copy past its days removed', !exists(copyOf(DIR + '/all/logo.png')));
   check('…the logo stays compressed', marked(DIR + '/all/logo.png'));
+  // Stop while a part is on its way (answered only afterwards, with more left): no next part; the window closed
+  // meanwhile and the compression asked for start nothing until that answer is in
+  let parts = 0, release;
+  const held = new Promise((r) => { release = r; });
+  const started = [];
+  const onRequest = (r) => { if (/mertools_action=cmp_(start|run)\b/.test(r.url())) { started.push(r.url()); } };
+  page.on('request', onRequest);
+  await page.route(/mertools_action=cmp_restore_all/, async (route) => {
+    parts++;
+    await held;
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true,
+      restore: { restored: 1, changed: 0, failed: 0, left: 3, entries: [{ rel: 'images/not-real.jpg', result: 'ok' }] } }) });
+  });
   await page.click('[data-mt-cmp-restore-all]');
-  await page.waitForSelector('.mt-cmp-result .alert-success');
+  await page.waitForSelector('dialog.mt-cmp-dlg[open] .mt-cmp-foot .btn-secondary:not([hidden])');
+  await page.click('dialog.mt-cmp-dlg[open] .mt-cmp-foot .btn-secondary');
+  await page.click('dialog.mt-cmp-dlg[open] .btn-close');
+  await page.click('[data-mt-cmp-run]');
+  const openedMeanwhile = await page.evaluate(() => !!document.querySelector('dialog.mt-cmp-dlg[open]'));
+  release();
+  await page.waitForSelector('.mt-cmp-result .alert-warning');
+  await page.waitForTimeout(1500);
+  check('restore all: Stop asks for no next part', parts === 1, String(parts));
+  check('…said on the panel', /^(Zatrzymane|Stopped)\b.*: 1\./.test(await page.textContent('.mt-cmp-result')), await page.textContent('.mt-cmp-result'));
+  check('…the compression not started while the part was on its way', !openedMeanwhile && started.length === 0, JSON.stringify(started));
+  await page.unroute(/mertools_action=cmp_restore_all/);
+  page.off('request', onRequest);
+
+  await page.click('[data-mt-cmp-restore-all]');
+  await page.waitForSelector('dialog.mt-cmp-dlg[open] .mt-cmp-note.text-success');
+  const restoreWin = await page.evaluate(() => {
+    const d = document.querySelector('dialog.mt-cmp-dlg[open]');
+    return { title: d.querySelector('h3').textContent, ok: [...d.querySelectorAll('li.mt-cmp-ok code')].map((c) => c.textContent).sort(),
+      bar: d.querySelector('.progress-bar').textContent, skips: d.querySelector('#mt-cmp-skips').closest('.form-check').hidden,
+      go: d.querySelector('.mt-cmp-foot .btn-primary').hidden, stop: d.querySelector('.mt-cmp-foot .btn-secondary').hidden };
+  });
+  check('restore all: in a window with a bar', restoreWin.bar === '100 %' && restoreWin.skips && restoreWin.go && restoreWin.stop && restoreWin.title !== '', JSON.stringify(restoreWin));
+  check('…a line for each picture back', restoreWin.ok.length === 2 && restoreWin.ok.every((r) => r.endsWith('.jpg')), JSON.stringify(restoreWin.ok));
   check('restore all: two back', /: 2\./.test(await page.textContent('.mt-cmp-result')), await page.textContent('.mt-cmp-result'));
+  await page.click('dialog.mt-cmp-dlg[open] .btn-close');
   check('…the uploads as they were uploaded', md5(DIR + '/media-upload.jpg') === uploadMd5 && md5(gbxRel) === uploadMd5);
   // a picture brought back is not compressed again by the next run
   await page.click('[data-mt-cmp-run]');

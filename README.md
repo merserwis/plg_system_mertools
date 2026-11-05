@@ -299,7 +299,7 @@ Lighter originals of the JPEG and PNG pictures, made like TinyJPG / TinyPNG but 
 - **Compress on upload** (off by default) — pictures uploaded in Gridbox or in Joomla's media manager are compressed right after the upload; MerTools takes them from what the uploader answers, without going through the whole images folder.
 - **Compress all pictures** — a window with a progress bar and the log of every picture (before → after, the saving, *Restore*); stopped, it goes on later from where it was.
 - **Try on one picture** — a picture from the disk compressed with the settings of the form (saved or not), shown next to the original with a slider; nothing of the site changes.
-- **Copies of the originals** — kept in `media/mertools-originals` for the days set (30), restored one by one or all at once, then removed by themselves.
+- **Copies of the originals** — kept in `media/mertools-originals` for the days set (30), restored one by one or all at once (in a window with a progress bar and a line for every picture, which can be stopped), then removed by themselves.
 
 A JPEG is saved again at the quality set (82), progressive, without EXIF/XMP/IPTC (camera, GPS) but with its colour profile, turned upright; a PNG gets a palette of up to 256 colours with transparency, checked against the picture. A result is used only when it is lighter by the share set (10 %). With `jpegoptim` and `pngquant` on the server they are used (better PNGs), else PHP's GD; the panel shows what the server has. Compressed pictures are marked and never compressed twice; animated PNGs, CMYK JPEGs and very large pictures are left alone; folders can be left out.
 
