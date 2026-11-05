@@ -9,10 +9,13 @@
  * picture before that, and the copies of the originals with their return (ImageCompressor makes the
  * lighter file, CompressStore keeps the copies and the notes).
  *
- *  - An upload: a POST with files (Gridbox's uploaders, Balbooa's apps) or Joomla's media manager, by a
- *    logged-in user. When the request ends, the JPEG and PNG pictures of the pictures' folder that came
- *    in during it are compressed, after the response where PHP can close it first; what is left waits
- *    and is done after a later page (or when the panel is opened).
+ *  - An upload: a POST with a JPEG or PNG file (Gridbox's uploaders, Balbooa's apps) or Joomla's media
+ *    manager, by a logged-in user. Its answer is read as it goes out (nothing in it changed): the
+ *    pictures of the pictures' folder it names that came in during the request are compressed when it
+ *    ends, after the response where PHP can close it first. An answer that names none (another
+ *    uploader) leaves a look through the folder for the pictures changed during it, done where nobody
+ *    waits: right after a response PHP could close, else after a later page or when the panel is
+ *    opened. What is left waits the same way.
  *  - Copies of the originals older than the days chosen are removed once a day (and when the panel is
  *    opened).
  */
@@ -33,6 +36,12 @@ final class Compress extends Feature
 {
     /** a picture tried in the panel is at most this heavy */
     private const TEST_MAX_BYTES = 26214400;
+
+    /** the answer of an upload read at most this far for the paths of its pictures */
+    private const SAID_MAX_BYTES = 1048576;
+
+    /** what the upload answered so far (see uploadWatch()) */
+    private string $said = '';
 
     /** Compress the pictures of an upload (the switch). */
     public function uploadsOn(): bool
@@ -81,10 +90,19 @@ final class Compress extends Feature
             return;
         }
         $user = $app->getIdentity();
-        if (!$user || $user->guest || (empty($_FILES) && $input->getCmd('option') !== 'com_media')) {
+        if (!$user || $user->guest || !$this->bringsPicture($input)) {
             return;
         }
         $since = (int) ($_SERVER['REQUEST_TIME'] ?? time());
+        // the answer read as it goes out, in parts as before (the uploader's own buffers and headers as they were)
+        ob_start(function (string $part, int $phase): string {
+            // what the page throws away (ob_clean) never went out: not read
+            if (!($phase & PHP_OUTPUT_HANDLER_CLEAN) && \strlen($this->said) < self::SAID_MAX_BYTES) {
+                $this->said .= substr($part, 0, self::SAID_MAX_BYTES - \strlen($this->said));
+            }
+
+            return $part;
+        }, 8192);
         register_shutdown_function(function () use ($since) {
             try {
                 $this->afterUpload($since);
@@ -94,24 +112,47 @@ final class Compress extends Feature
         });
     }
 
+    /** Does the request bring a JPEG or PNG file: a file of the form, or the file Joomla's media manager gets as JSON? */
+    private function bringsPicture($input): bool
+    {
+        $isPicture = fn ($name): bool => \is_string($name) && (bool) preg_match('/\.(jpe?g|png)$/i', trim($name));
+        $found     = false;
+        array_walk_recursive($_FILES, function ($v, $k) use ($isPicture, &$found) {
+            $found = $found || ($k === 'name' && $isPicture($v));
+        });
+        if ($found || $input->getCmd('option') !== 'com_media') {
+            return $found;
+        }
+        try {
+            return $isPicture($input->json->getString('name', ''));
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
     /**
-     * The end of an upload: the response closed first where PHP can (the look for the new pictures goes
-     * through the whole folder), then its new pictures noted and compressed.
+     * The end of an upload: the response closed first where PHP can, then the pictures its answer names
+     * noted and compressed (an answer that names none: the folder looked through, where nobody waits).
      */
     private function afterUpload(int $since): void
     {
         ignore_user_abort(true);
-        // what the uploader has written goes out first, then the response is closed where PHP can
+        // what the uploader has written goes out first (read for the paths), then the response is closed where PHP can
         while (ob_get_level() > 0 && @ob_end_flush()) {
         }
         $finished = $this->plugin->finishResponse();
         @set_time_limit(120);
         $store = $this->store();
-        if ($store->noteNew($since) === 0) {
+        $paths = $store->pathsIn($this->said, $since);
+        $this->said = '';
+        // none named, or not all of them noted (the queue full): the folder looked through for the time of
+        // the upload — after a later page or when the panel is opened, not while the editor waits
+        $noted = $paths !== [] && $store->notePaths($paths);
+        if (!$noted && (!$store->noteScan($since, time() + 1) || !$finished) && $paths === []) {
             return;
         }
         // while the editor still waits (mod_php): a few seconds, the rest after a later page or in the panel
-        $store->work($this->compressor(), $finished ? 30.0 : 4.0);
+        $store->work($this->compressor(), $finished ? 30.0 : 4.0, $finished);
     }
 
     /**
@@ -131,7 +172,7 @@ final class Compress extends Feature
         if ($tick) {
             try {
                 $store = $this->store();
-                if ($store->state()['pending'] && $this->plugin->finishResponse()) {
+                if ($store->waiting() && $this->plugin->finishResponse()) {
                     @set_time_limit(60);
                     $store->work($this->compressor(), 8.0);
                 }
@@ -190,7 +231,7 @@ final class Compress extends Feature
     private function opened(CompressStore $store, bool $gd): array
     {
         $store->expire($this->keepDays());
-        if ($gd && $store->state()['pending']) {
+        if ($gd && $store->waiting()) {
             $store->work($this->compressor(), 8.0);
         }
 

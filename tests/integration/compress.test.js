@@ -2,11 +2,14 @@
  * Integration test of the compressed originals (Images → Compressed originals, MerTools 1.12.0) on a
  * real Joomla + Gridbox in docker (the test copy gbx-sitemap-test): a temporary Super User
  *  - uploads a JPEG through Gridbox's media manager and one through Joomla's media manager: both are
- *    compressed on the server right after the upload, their originals kept as copies;
+ *    compressed on the server right after the upload, their originals kept as copies — found in what
+ *    the uploaders answer, not by a look through the folder (a picture changed by hand is left as it is);
  *  - tries the compression on a picture from the disk in the panel (with an unsaved quality): the
  *    result is shown next to the original, nothing stays on the server;
  *  - compresses all pictures in the window with the log, restores one from the window of the copies,
- *    lets one copy pass its days (removed when the panel opens) and restores all the others.
+ *    lets one copy pass its days (removed when the panel opens) and restores all the others;
+ *  - sends a JPEG to a page that does not say where it went: the look through the folder waits for the
+ *    panel (mod_php: not while the request waits) and takes only the pictures of the time of that request.
  * The pictures, the copies and the settings are put back as they were at the end.
  *
  *   node tests/integration/compress.test.js            the MerTools installed on the copy
@@ -30,6 +33,8 @@ const md5 = (rel) => sh('md5sum ' + WWW + rel + ' 2>/dev/null | cut -c1-32').tri
 const size = (rel) => Number(sh('stat -c %s ' + WWW + rel).trim());
 const exists = (rel) => sh('[ -e ' + WWW + rel + ' ] && echo y || echo n').trim() === 'y';
 /** the copy of a picture: under the random key of the copies folder */
+const state = () => JSON.parse(php(`$r = @file_get_contents('${WWW}media/mertools-originals/state.php');
+  echo $r ? substr($r, strpos($r, "\n") + 1) : '{}';`) || '{}');
 const copyOf = (rel) => 'media/mertools-originals/' + php(`$r = @file_get_contents('${WWW}media/mertools-originals/key.php');
   echo $r ? (json_decode(substr($r, strpos($r, "\n") + 1), true)['key'] ?? '') : '';`).trim() + '/' + rel;
 
@@ -75,6 +80,9 @@ run(async ({ login }) => {
   page.on('dialog', (d) => d.accept());
 
   // ---------------------------------------------------------------- uploads
+  // a picture changed "during" the uploads (its time in the future) that no uploader names
+  make(WWW + DIR + '/late.jpg', 'photo');
+  sh(`touch -d '+10 min' ${WWW}${DIR}/late.jpg`);
   await page.goto(ADMIN + 'index.php?option=com_mertools&view=page&page=images&tab=compress_panel');
   const token = await page.evaluate(() => Joomla.getOptions('csrf.token'));
   const gridbox = await page.evaluate(async ({ b64, token, dir }) => {
@@ -108,6 +116,10 @@ run(async ({ login }) => {
   check('media manager upload compressed', marked(DIR + '/media-upload.jpg'));
   check('…its original kept as a copy', md5(copyOf(DIR + '/media-upload.jpg')) === uploadMd5);
   check('pictures put in by hand not touched by an upload', md5(DIR + '/all/photo.jpg') === orig.photo);
+  check('…nor one changed during them that the uploaders do not name', !marked(DIR + '/late.jpg'));
+  const after = state();
+  check('the uploads found in the answers: no look through the folder left', !(after.scan && after.scan.since) && Object.keys(after.pending || {}).length === 0, JSON.stringify(after.scan));
+  sh(`rm -f ${WWW}${DIR}/late.jpg`);
   check('copies folder closed to the web', exists('media/mertools-originals/.htaccess'));
 
   // ---------------------------------------------------------------- the panel and a try
@@ -177,6 +189,32 @@ run(async ({ login }) => {
   await page.click('[data-mt-cmp-run]');
   await page.waitForSelector('dialog.mt-cmp-dlg[open] .mt-cmp-note.text-success', { timeout: 120000 });
   check('next run: the restored pictures left as they are', md5(DIR + '/all/photo.jpg') === orig.photo && md5(DIR + '/media-upload.jpg') === uploadMd5);
+  await page.click('dialog.mt-cmp-dlg .btn-close');
+
+  // ---------------------------------------------------------------- an uploader that does not say where the picture went
+  make(WWW + DIR + '/late.jpg', 'photo');
+  sh(`touch -d '+10 min' ${WWW}${DIR}/late.jpg`);
+  const other = await page.evaluate(async ({ b64, token }) => {
+    const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const body = new FormData();
+    body.append('file', new File([bin], 'other-upload.jpg', { type: 'image/jpeg' }));
+    body.append(token, '1');
+    const t = Date.now();
+    const r = await fetch('index.php?option=com_cpanel&view=cpanel', { method: 'POST', body });
+    await r.text();
+    return Date.now() - t;
+  }, { b64: uploadB64, token });
+  const waiting = state();
+  check('other uploader: the look through the folder noted', !!(waiting.scan && waiting.scan.since), JSON.stringify(waiting.scan) + ' ' + other + ' ms');
+  check('…not done while the request waited (mod_php)', !marked(DIR + '/late.jpg') && Object.keys(waiting.pending || {}).length === 0);
+  // a picture of the time of that request (as if the page had written it), and late.jpg after it
+  make(WWW + DIR + '/scan-me.jpg', 'photo');
+  sh(`touch -d @${waiting.scan.since} ${WWW}${DIR}/scan-me.jpg`);
+  await page.reload();
+  await page.waitForSelector('.mt-cmp-figures dt');
+  check('panel opened: the picture of that time compressed', marked(DIR + '/scan-me.jpg'));
+  check('…one changed after it left as it is', !marked(DIR + '/late.jpg'));
+  check('…nothing waits', !(state().scan || {}).since);
 });
 
 process.on('exit', () => {

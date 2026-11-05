@@ -22,8 +22,10 @@
  *    size, time and the settings, so the next run does not try it again with the same settings.
  *  - "Compress all": the list of the pictures of the folder is made once (jobStart()), then worked
  *    through a few seconds at a time (jobRun()), so a stop or a closed window can go on later.
- *  - Uploads: the pictures that came in during an upload are noted (noteNew()) and compressed at once
- *    or a little later (work()).
+ *  - Uploads: the pictures an upload wrote are found in what the uploader answered (pathsIn(): the
+ *    path of the new picture it sends back to the editor) and noted (notePaths()); only when it named
+ *    none is the folder looked through for the pictures changed during the upload (noteScan(), done
+ *    by work() when nobody waits for it). They are compressed at once or a little later (work()).
  *
  * The list of copies and the notes are in state.php of that folder (JSON after a line that stops PHP,
  * so the web server never shows it), the list of a run in job.php.
@@ -43,6 +45,9 @@ final class CompressStore
 
     /** uploaded pictures waiting at most */
     private const MAX_PENDING = 2000;
+
+    /** paths taken from one answer of an uploader at most */
+    private const MAX_SAID = 200;
 
     /** the reasons of a skip worth noting (finding them again costs reading the whole picture) */
     private const NOTED = ['gain', 'animated', 'memory', 'read'];
@@ -97,12 +102,12 @@ final class CompressStore
 
     /**
      * The JPEG and PNG pictures of the folder (relative to the site root), sorted; with $since only those
-     * changed since then. Hidden files and folders (a dot), folders left out and names that are not UTF-8
-     * are not listed.
+     * changed since then (and with $until not after it). Hidden files and folders (a dot), folders left
+     * out and names that are not UTF-8 are not listed.
      *
      * @return string[]
      */
-    public function candidates(?int $since = null): array
+    public function candidates(?int $since = null, ?int $until = null): array
     {
         $base = $this->root . '/' . $this->folder;
         if (!is_dir($base)) {
@@ -126,7 +131,7 @@ final class CompressStore
             }
         ), \RecursiveIteratorIterator::LEAVES_ONLY, \RecursiveIteratorIterator::CATCH_GET_CHILD);
         foreach ($iter as $f) {
-            if (!$f->isFile() || ($since !== null && $f->getMTime() < $since)) {
+            if (!$f->isFile() || ($since !== null && $f->getMTime() < $since) || ($until !== null && $f->getMTime() > $until)) {
                 continue;
             }
             $rel = ltrim(substr(str_replace('\\', '/', $f->getPathname()), \strlen($root)), '/');
@@ -134,6 +139,89 @@ final class CompressStore
                 $out[] = $rel;
             }
         }
+        sort($out, SORT_STRING);
+
+        return $out;
+    }
+
+    /**
+     * The pictures an uploader names in its answer ($said, the response of the request: Gridbox's JSON
+     * with "path", the "path" of Joomla's media manager as local-images:/…, an address with the folder in
+     * it; also compressed by Joomla's gzip), when they are JPEG or PNG pictures of the folder, not left
+     * out, and changed since $since (so during the upload). Relative to the site root, sorted.
+     *
+     * @return string[]
+     */
+    public function pathsIn(string $said, int $since): array
+    {
+        // compressed by Joomla (Global Configuration → Gzip page compression: gzip or deflate)
+        if (str_starts_with($said, "\x1f\x8b")) {
+            $said = (string) @gzdecode($said, 4194304);
+        } elseif (preg_match('/^\x78[\x01\x5e\x9c\xda]/', $said) && ($plain = @gzuncompress($said, 4194304)) !== false) {
+            $said = $plain;
+        }
+        if ($said === '') {
+            return [];
+        }
+        // each string of a JSON answer is taken whole (a name with spaces, letters escaped as \u…); else each
+        // quoted value of the answer whole, and the rest of it split at spaces
+        $whole = [];
+        $loose = '';
+        $json  = json_decode($said, true);
+        if (\is_array($json)) {
+            array_walk_recursive($json, function ($v) use (&$whole) {
+                if (\is_string($v) && $v !== '' && \strlen($v) < 4096) {
+                    $whole[] = $v;
+                }
+            });
+        } else {
+            $text = str_replace('\\/', '/', $said);
+            if (preg_match_all('/"([^"\r\n]{1,4095})"|\'([^\'\r\n]{1,4095})\'/', $text, $m, PREG_SET_ORDER)) {
+                foreach ($m as $hit) {
+                    $whole[] = $hit[1] !== '' ? $hit[1] : (string) ($hit[2] ?? '');
+                }
+            }
+            $loose = (string) preg_replace('/"[^"\r\n]*"|\'[^\'\r\n]*\'/', ' ', $text);
+        }
+        foreach ($whole as $v) {
+            if (str_contains($v, '%')) {
+                $whole[] = rawurldecode($v);
+            }
+        }
+        $folder = preg_quote($this->folder, '#');
+        $ext    = '\.(?:jpe?g|png)';
+        $found  = [];
+        $rels   = [];
+        foreach ($whole as $v) {
+            if (preg_match('#^local-([\w-]+):/+([^\r\n]+?' . $ext . ')$#i', $v, $m)) {
+                // Joomla's media manager: local-<the folder>:/<the path in it>
+                $rels[] = $m[1] . '/' . $m[2];
+            } elseif (preg_match('#(?<![\w.-])(' . $folder . '/[^"\'<>?\#\\\\\r\n]+?' . $ext . ')(?:[?\#][^\r\n]*)?$#i', $v, $m)) {
+                // a path or an address ending with the picture (a query after it): images/…, https://site/images/…
+                $rels[] = $m[1];
+            }
+        }
+        if ($loose !== '' && preg_match_all('#local-([\w-]+):/+([^"\'<>?\#\\\\\s]+?' . $ext . ')(?![\w.-])#i', $loose, $m, PREG_SET_ORDER)) {
+            foreach ($m as $hit) {
+                $rels[] = $hit[1] . '/' . $hit[2];
+            }
+        }
+        if ($loose !== '' && preg_match_all('#(?<![\w.-])(' . $folder . '/[^"\'<>?\#\\\\\s]+?' . $ext . ')(?![\w.-])#i', $loose, $m)) {
+            array_push($rels, ...$m[1]);
+        }
+        foreach ($rels as $rel) {
+            $rel = trim(str_replace('\\', '/', $rel), '/');
+            if (isset($found[$rel]) || \count($found) >= self::MAX_SAID || !str_starts_with($rel, $this->folder . '/')
+                || !self::safe($rel) || $this->excluded($rel) || !preg_match('//u', $rel)) {
+                continue;
+            }
+            $path = $this->root . '/' . $rel;
+            clearstatcache(true, $path);
+            if (is_file($path) && $this->inFolder($rel) && (int) @filemtime($path) >= $since) {
+                $found[$rel] = true;
+            }
+        }
+        $out = array_keys($found);
         sort($out, SORT_STRING);
 
         return $out;
@@ -154,7 +242,7 @@ final class CompressStore
         $path  = $this->root . '/' . $rel;
         clearstatcache(true, $path);
         $stat = @stat($path);
-        if (!$stat || !is_file($path) || !self::safe($rel)) {
+        if (!$stat || !is_file($path) || !self::safe($rel) || !$this->inFolder($rel)) {
             return ['status' => 'fail', 'reason' => 'read'] + $entry;
         }
         $entry['before'] = $entry['after'] = (int) $stat['size'];
@@ -389,30 +477,68 @@ final class CompressStore
 
     // ---------------------------------------------------------------- uploads
 
-    /** Note the pictures changed since $since (an upload) as waiting; how many are waiting now. */
+    /** Note the pictures changed since $since (an upload) as waiting, the folder looked through now; how many are waiting now. */
     public function noteNew(int $since): int
     {
-        $new   = $this->candidates($since);
-        $count = 0;
-        $this->update(function (array &$s) use ($new, &$count) {
-            foreach ($new as $rel) {
-                if (\count($s['pending']) >= self::MAX_PENDING) {
-                    break;
-                }
-                $s['pending'][$rel] = true;
-            }
-            $count = \count($s['pending']);
-        });
+        $this->notePaths($this->candidates($since));
 
-        return $count;
+        return \count($this->state()['pending']);
     }
 
     /**
-     * Compress the waiting uploaded pictures for at most $seconds (one worker at a time).
+     * Note pictures (relative paths, see pathsIn()) as waiting; false when not all of them could be (the
+     * queue full, the notes not written).
+     *
+     * @param string[] $rels
+     */
+    public function notePaths(array $rels): bool
+    {
+        $all     = true;
+        $written = $this->update(function (array &$s) use ($rels, &$all) {
+            foreach ($rels as $rel) {
+                if (\count($s['pending']) >= self::MAX_PENDING && !isset($s['pending'][(string) $rel])) {
+                    $all = false;
+                    break;
+                }
+                $s['pending'][(string) $rel] = true;
+            }
+        });
+
+        return $written && $all;
+    }
+
+    /**
+     * An upload whose uploader named no picture: the folder is to be looked through for the pictures
+     * changed from $since to $until — later, by work() when nobody waits for it (one look for all such
+     * uploads: the times joined; n counts them, so a look already going on does not drop a later one).
+     */
+    public function noteScan(int $since, int $until): bool
+    {
+        return $this->update(function (array &$s) use ($since, $until) {
+            $old       = $s['scan'];
+            $s['scan'] = [
+                'since' => isset($old['since']) ? min((int) $old['since'], $since) : $since,
+                'until' => isset($old['until']) ? max((int) $old['until'], $until) : $until,
+                'n'     => (int) ($old['n'] ?? 0) + 1,
+            ];
+        });
+    }
+
+    /** Uploaded pictures waiting, or a look through the folder after an upload. */
+    public function waiting(?array $state = null): bool
+    {
+        $state ??= $this->state();
+
+        return $state['pending'] !== [] || isset($state['scan']['since']);
+    }
+
+    /**
+     * Compress the waiting uploaded pictures for at most $seconds (one worker at a time); with $scan the
+     * look through the folder an upload left (noteScan()) is done first.
      *
      * @return array<int, array> what each gave (see process())
      */
-    public function work(ImageCompressor $c, float $seconds): array
+    public function work(ImageCompressor $c, float $seconds, bool $scan = true): array
     {
         $lock = $this->lock('work');
         if (!$lock) {
@@ -422,6 +548,25 @@ final class CompressStore
         try {
             $end   = microtime(true) + $seconds;
             $state = $this->state();
+            if ($scan && isset($state['scan']['since'])) {
+                $range = $state['scan'];
+                $new   = $this->candidates((int) $range['since'], (int) ($range['until'] ?? $this->now()));
+                $this->update(function (array &$s) use ($range, $new) {
+                    $all = true;
+                    foreach ($new as $rel) {
+                        if (\count($s['pending']) >= self::MAX_PENDING && !isset($s['pending'][$rel])) {
+                            $all = false;
+                            break;
+                        }
+                        $s['pending'][$rel] = true;
+                    }
+                    // kept when the queue is full (looked through again once it has room), and when an upload
+                    // was noted while the folder was looked through (its own look)
+                    if ($all && ($s['scan'] ?? []) === $range) {
+                        $s['scan'] = [];
+                    }
+                }, $state);
+            }
             foreach (array_keys($state['pending']) as $rel) {
                 if (microtime(true) > $end) {
                     break;
@@ -538,11 +683,11 @@ final class CompressStore
 
     // ---------------------------------------------------------------- the notes
 
-    /** @return array{backups:array, skipped:array, pending:array, total:array} */
+    /** @return array{backups:array, skipped:array, pending:array, total:array, scan:array} */
     public function state(): array
     {
         $s = $this->readFile($this->dir . '/state.php');
-        foreach (['backups', 'skipped', 'pending', 'total'] as $key) {
+        foreach (['backups', 'skipped', 'pending', 'total', 'scan'] as $key) {
             $s[$key] = isset($s[$key]) && \is_array($s[$key]) ? $s[$key] : [];
         }
 
@@ -707,6 +852,21 @@ final class CompressStore
         }
 
         return $dir !== $this->dir && $empty ? @rmdir($dir) : false;
+    }
+
+    /**
+     * The file of a relative path is in the pictures' folder itself: no link on the way below the folder
+     * (a link to a folder elsewhere, or a linked file, is not followed).
+     */
+    private function inFolder(string $rel): bool
+    {
+        $base = realpath($this->root . '/' . $this->folder);
+        $real = realpath($this->root . '/' . $rel);
+        if ($base === false || $real === false || !str_starts_with($rel, $this->folder . '/')) {
+            return false;
+        }
+
+        return str_replace('\\', '/', $real) === str_replace('\\', '/', $base) . substr($rel, \strlen($this->folder));
     }
 
     /** A relative path that stays in the pictures' folder (no "..", no hidden part). */

@@ -225,6 +225,50 @@ $done = $store->work($gd, 10);
 $check('upload: compressed', [count($done), $done[0]['rel'] ?? '', $done[0]['status'] ?? ''], [1, 'images/sub/new.jpg', 'ok']);
 $check('upload: nothing waits', $store->stats()['pending'], 0);
 
+// the paths an uploader names in its answer (no look through the folder)
+@mkdir($root . '/images/sub/new dir', 0777, true);
+foreach (['images/sub/g.jpg', 'images/sub/m.png', 'images/sub/new dir/zażółć ę.jpg', 'images/skipme/x.jpg', 'images/old.jpg', 'images/sub/a.webp'] as $f) {
+    file_put_contents($root . '/' . $f, $jpeg);
+    touch($root . '/' . $f, $f === 'images/old.jpg' ? $now - 100 : $now + 300);
+}
+$since = $now + 250;
+$check('said: Gridbox (escaped slashes)', $store->pathsIn('{"ext":"jpg","name":"g.jpg","folder":"images\/sub\/","path":"images\/sub\/g.jpg","url":"images\/sub\/g.jpg"}', $since), ['images/sub/g.jpg']);
+$check('said: Joomla media manager (adapter, unicode escaped, space)', $store->pathsIn(json_encode(['data' => ['path' => 'local-images:/sub/new dir/zażółć ę.jpg', 'url' => 'http://x/images/sub/new%20dir/za%C5%BC%C3%B3%C5%82%C4%87%20%C4%99.jpg']]), $since), ['images/sub/new dir/zażółć ę.jpg']);
+$check('said: gzip and deflate (Joomla gzip)', [$store->pathsIn(gzencode('{"path":"images/sub/m.png"}'), $since), $store->pathsIn(gzcompress('{"path":"images/sub/m.png"}'), $since)], [['images/sub/m.png'], ['images/sub/m.png']]);
+$check('said: an address in HTML', $store->pathsIn('<img src="https://site.pl/images/sub/m.png?v=2"> <a href=/images/sub/g.jpg>', $since), ['images/sub/g.jpg', 'images/sub/m.png']);
+$check('said: left out, older, missing, other type, outside, hidden, ..', $store->pathsIn('images/skipme/x.jpg images/old.jpg images/sub/none.jpg images/sub/a.webp myimages/sub/g.jpg images/.hidden/a.jpg images/sub/../sub/g.jpg', $since), []);
+$check('said: nothing', [$store->pathsIn('', $since), $store->pathsIn('{"success":true}', $since)], [[], []]);
+// a name with a space before another ".jpg": the whole name, not the start of it
+file_put_contents($root . '/images/sub/g.jpg 2.jpg', $jpeg);
+touch($root . '/images/sub/g.jpg 2.jpg', $now + 300);
+$check('said: a whole name with a space (JSON, HTML in quotes)', [$store->pathsIn('{"path":"images\/sub\/g.jpg 2.jpg"}', $since), $store->pathsIn('<img src="/images/sub/g.jpg 2.jpg">', $since)], [['images/sub/g.jpg 2.jpg'], ['images/sub/g.jpg 2.jpg']]);
+unlink($root . '/images/sub/g.jpg 2.jpg');
+// a folder linked to another place: not followed (by the answer nor by process())
+@mkdir($root . '/outside', 0777, true);
+file_put_contents($root . '/outside/a.jpg', $jpeg);
+touch($root . '/outside/a.jpg', $now + 300);
+symlink($root . '/outside', $root . '/images/link');
+$check('said: a linked folder not followed', [$store->pathsIn('{"path":"images/link/a.jpg"}', $since), $store->process($gd, 'images/link/a.jpg')['reason'], ImageCompressor::marked($root . '/outside/a.jpg')], [[], 'read', false]);
+unlink($root . '/images/link');
+unlink($root . '/outside/a.jpg');
+rmdir($root . '/outside');
+$check('said: noted', $store->notePaths(['images/sub/g.jpg', 'images/sub/m.png']), true);
+$done = $store->work($gd, 10);
+$check('said: both compressed, nothing else', [array_column($done, 'rel'), ImageCompressor::marked($root . '/images/sub/new dir/zażółć ę.jpg')], [['images/sub/g.jpg', 'images/sub/m.png'], false]);
+
+// an answer that names nothing: the look through the folder later, for the time of the upload only
+$check('scan: noted, nothing waits yet', [$store->noteScan($now + 290, $now + 310), $store->noteScan($now + 295, $now + 305), $store->stats()['pending'], $store->waiting()], [true, true, 0, true]);
+$check('scan: each look counted (one going on keeps a later one)', $store->state()['scan']['n'] ?? 0, 2);
+$check('scan: not done when asked not to', [$store->work($gd, 10, false), $store->waiting()], [[], true]);
+$done = $store->work($gd, 10);
+$check('scan: the picture of that time compressed, older and left out not', array_column($done, 'rel'), ['images/sub/new dir/zażółć ę.jpg']);
+$check('scan: nothing waits', $store->waiting(), false);
+foreach (['images/sub/g.jpg', 'images/sub/m.png', 'images/sub/new dir/zażółć ę.jpg', 'images/skipme/x.jpg', 'images/old.jpg', 'images/sub/a.webp'] as $f) {
+    $store->restore($f);
+    @unlink($root . '/' . $f);
+}
+@rmdir($root . '/images/sub/new dir');
+
 $check('compress all: the list', $store->jobStart(), 6);
 $steps   = 0;
 $reasons = [];

@@ -2,6 +2,16 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.12.1 — 2026-11-05
+
+### 🗜 Images — an upload no longer goes through the whole images folder
+
+With **Compress on upload** on, MerTools found the new pictures of an upload by going through every file of the images folder after it. On a site with many pictures and a server where PHP cannot close the response first (mod_php), the editor waited for that after every upload. Now the new pictures are taken from what the uploader answers to the editor — Gridbox's media manager and the uploaders of the editor and of the apps, Joomla's media manager, also with Joomla's *Gzip page compression* on — so only they are read and compressed.
+
+- Only a request that brings a JPEG or PNG file counts as an upload: an extension, a CSV or a theme sent no longer starts anything.
+- A picture changed in the folder in another way during an upload (FTP, another extension) is no longer compressed with it.
+- When an uploader does not say where the picture went, the folder is still looked through, but only for the pictures changed during that upload and never while the editor waits: right after the response where PHP can close it, else when the panel *Compressed originals* is opened. Several such uploads share one look.
+
 ## 1.12.0 — 2026-11-04
 
 ### 🗜 Images — compressed originals, on the site's own server

@@ -296,7 +296,7 @@ The same tab has the **faster pages** tools, done on the finished page (Gridbox 
 
 Lighter originals of the JPEG and PNG pictures, made like TinyJPG / TinyPNG but on the site's own server (nothing is sent to another service). Page *Images*, tabs *Compressed originals* and *Compression settings*:
 
-- **Compress on upload** (off by default) — pictures uploaded in Gridbox or in Joomla's media manager are compressed right after the upload.
+- **Compress on upload** (off by default) — pictures uploaded in Gridbox or in Joomla's media manager are compressed right after the upload; MerTools takes them from what the uploader answers, without going through the whole images folder.
 - **Compress all pictures** — a window with a progress bar and the log of every picture (before → after, the saving, *Restore*); stopped, it goes on later from where it was.
 - **Try on one picture** — a picture from the disk compressed with the settings of the form (saved or not), shown next to the original with a slider; nothing of the site changes.
 - **Copies of the originals** — kept in `media/mertools-originals` for the days set (30), restored one by one or all at once, then removed by themselves.
