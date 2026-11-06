@@ -37,6 +37,7 @@ use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Event\ErrorEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Router\Route;
@@ -81,13 +82,14 @@ use Merserwis\Plugin\System\MerTools\Tool\PriceRequest;
 use Merserwis\Plugin\System\MerTools\Tool\ProductLinks;
 use Merserwis\Plugin\System\MerTools\Tool\ProductSchema;
 use Merserwis\Plugin\System\MerTools\Tool\SiteSchema as SiteSchemaTool;
+use Merserwis\Plugin\System\MerTools\Tool\StaleCode;
 use Merserwis\Plugin\System\MerTools\Tool\StoreCurrency;
 use Merserwis\Plugin\System\MerTools\Tool\Tabs;
 use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.13.1';
+    public const VERSION = '1.13.2';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -95,29 +97,127 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     /** the tools of this request, made when first needed */
     private array $features = [];
 
+    /** event => [the method that does its work, priority] — all of them called through guard() */
+    private const LISTENERS = [
+        // before routing, so the clean address is served before Gridbox or the SEF router act
+        'onAfterInitialise'   => ['onAfterInitialise', Priority::HIGH],
+        // early, so a kept page is sent before other plugins do their work for nothing
+        'onAfterRoute'        => ['onAfterRoute', Priority::HIGH],
+        // after Gridbox has finished the page (its lazy loading and deferred loading)
+        'onAfterRender'       => ['onAfterRender', Priority::MIN],
+        // after System - Redirect, so a redirect set for a single address in Joomla still wins
+        'onError'             => ['onError', Priority::LOW],
+        // after the response has gone to the visitor: the work that does not have to keep them waiting
+        'onAfterRespond'      => ['onAfterRespond', Priority::MIN],
+        'onBeforeCompileHead' => ['onBeforeCompileHead', Priority::NORMAL],
+        // Gridbox's component booted: its lists get MerTools' order (pinned pages, sorting by an added column)
+        'onAfterExtensionBoot' => ['onAfterExtensionBoot', Priority::NORMAL],
+        // the administrator: the clear-cache button in the top bar, next to the Joomla version
+        'onAfterModuleList'   => ['onAfterModuleList', Priority::NORMAL],
+        'onExtensionAfterSave' => ['onExtensionAfterSave', Priority::NORMAL],
+        // Gridbox installed or updated: its tables may have been created again, without our indexes
+        'onExtensionAfterInstall' => ['onExtensionAfterInstallOrUpdate', Priority::NORMAL],
+        'onExtensionAfterUpdate'  => ['onExtensionAfterInstallOrUpdate', Priority::NORMAL],
+    ];
+
+    /** set once a request met files of two versions (StaleCode): noted and told only once */
+    private bool $staleSeen = false;
+
     public static function getSubscribedEvents(): array
     {
-        return [
-            // before routing, so the clean address is served before Gridbox or the SEF router act
-            'onAfterInitialise'   => ['onAfterInitialise', Priority::HIGH],
-            // early, so a kept page is sent before other plugins do their work for nothing
-            'onAfterRoute'        => ['onAfterRoute', Priority::HIGH],
-            // after Gridbox has finished the page (its lazy loading and deferred loading)
-            'onAfterRender'       => ['onAfterRender', Priority::MIN],
-            // after System - Redirect, so a redirect set for a single address in Joomla still wins
-            'onError'             => ['onError', Priority::LOW],
-            // after the response has gone to the visitor: the work that does not have to keep them waiting
-            'onAfterRespond'      => ['onAfterRespond', Priority::MIN],
-            'onBeforeCompileHead' => 'onBeforeCompileHead',
-            // Gridbox's component booted: its lists get MerTools' order (pinned pages, sorting by an added column)
-            'onAfterExtensionBoot' => 'onAfterExtensionBoot',
-            // the administrator: the clear-cache button in the top bar, next to the Joomla version
-            'onAfterModuleList'   => 'onAfterModuleList',
-            'onExtensionAfterSave' => 'onExtensionAfterSave',
-            // Gridbox installed or updated: its tables may have been created again, without our indexes
-            'onExtensionAfterInstall' => 'onExtensionAfterInstallOrUpdate',
-            'onExtensionAfterUpdate'  => 'onExtensionAfterInstallOrUpdate',
-        ];
+        return array_map(static fn (array $l) => ['guard', $l[1]], self::LISTENERS);
+    }
+
+    /**
+     * Every event goes through here to its method (LISTENERS). After an update PHP may still run some
+     * files of the previous version from OPcache next to new ones (see StaleCode); the error that mix
+     * gives does not break the page then: MerTools leaves the rest of that event's work, drops its files
+     * from OPcache once more, notes it in the log and tells it in the administrator, and the page goes on
+     * without it until PHP has the new files. Any other error, and every error with Joomla's debug on,
+     * goes on as before.
+     *
+     * onAfterRoute is the exception: its guards (deletion of apps, edit locks, the sorting Gridbox would
+     * put into its query, the requests of the settings panels, emptying kept pages after a change) must
+     * not be left out with the rest, so only its other steps are passed over one by one (soft()), and a
+     * guard that meets such an error still breaks the request, as before.
+     */
+    public function guard(EventInterface $event): void
+    {
+        $method = self::LISTENERS[$event->getName()][0] ?? null;
+        if ($method === null) {
+            return;
+        }
+        if ($method === 'onAfterRoute') {
+            $this->onAfterRoute();
+
+            return;
+        }
+        try {
+            $this->$method($event);
+        } catch (\Error $e) {
+            $this->stale($e, \in_array($method, ['onAfterRender', 'onAfterRespond'], true));
+        }
+    }
+
+    /** One step whose leaving out opens nothing: a mix of versions in it (see guard()) does not stop the steps after it. */
+    private function soft(callable $step, bool $rendered = false): void
+    {
+        try {
+            $step();
+        } catch (\Error $e) {
+            $this->stale($e, $rendered);
+        }
+    }
+
+    /** $e passed over when it is a mix of versions (see guard()), else thrown on. */
+    private function stale(\Error $e, bool $rendered): void
+    {
+        if ((\defined('JDEBUG') && JDEBUG) || !StaleCode::matches($e)) {
+            throw $e;
+        }
+        $this->staleCode($e, $rendered);
+    }
+
+    /** The first error of mixed versions in this request: see guard(); $rendered: the page is done, its message shown on the next one. */
+    private function staleCode(\Error $e, bool $rendered): void
+    {
+        if ($this->staleSeen) {
+            return;
+        }
+        $this->staleSeen = true;
+        // a page made without part of MerTools' work is not kept for the next visitors (see onAfterRender())
+        try {
+            $this->speed()->pageToStore = null;
+        } catch (\Throwable $ignored) {
+        }
+        $dropped = StaleCode::refreshOpcache([JPATH_PLUGINS . '/system/mertools', JPATH_ADMINISTRATOR . '/components/com_mertools']);
+        try {
+            Log::addLogger(['text_file' => 'plg_system_mertools.php'], Log::ALL, ['mertools']);
+            Log::add('Files of two versions of MerTools in OPcache (' . ($dropped ? 'dropped again' : 'cannot be dropped here') . '), its work skipped: '
+                . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(), Log::WARNING, 'mertools');
+        } catch (\Throwable $ignored) {
+        }
+        try {
+            $app  = $this->getApplication();
+            $user = $app->getIdentity();
+            if ($app->isClient('administrator') && $user && !$user->guest) {
+                $this->loadLanguage();
+                $text = Text::_('PLG_SYSTEM_MERTOOLS_STALE_CODE');
+                if (!$rendered) {
+                    if (!\in_array($text, array_column($app->getMessageQueue(), 'message'), true)) {
+                        $app->enqueueMessage($text, 'warning');
+                    }
+                } else {
+                    // Joomla keeps its messages for the next page only on a redirect
+                    $queue = (array) $app->getSession()->get('application.queue', []);
+                    if (!\in_array($text, array_column($queue, 'message'), true)) {
+                        $queue[] = ['message' => $text, 'type' => 'warning'];
+                        $app->getSession()->set('application.queue', $queue);
+                    }
+                }
+            }
+        } catch (\Throwable $ignored) {
+        }
     }
 
     /**
@@ -161,39 +261,40 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     public function onAfterRoute(): void
     {
         $app = $this->getApplication();
+        // the guards are called as they are, the rest through soft() (see guard())
         if ($app->isClient('administrator')) {
             // first: a refused deletion must not reach anything else
             $this->apps()->appDeleteGuard();
         }
         if ($app->isClient('site')) {
             $this->locks()->editLock();
-            $this->shop()->foldEndpoint();
+            $this->soft(fn () => $this->shop()->foldEndpoint());
         }
         if ($app->isClient('administrator') || $app->isClient('site')) {
             // before the history: it then notes the introduction as it is kept
-            $this->database()->introGuard();
-            $this->shop()->omnibusWatch();
-            $this->missing()->movedWatch();
-            $this->history()->trackHistory();
+            $this->soft(fn () => $this->database()->introGuard());
+            $this->soft(fn () => $this->shop()->omnibusWatch());
+            $this->soft(fn () => $this->missing()->movedWatch());
+            $this->soft(fn () => $this->history()->trackHistory());
             $this->speed()->purgeOnChange();
-            $this->compress()->uploadWatch();
-            $this->sitemaps()->watchChanges();
-            $this->pages()->endedWatch();
+            $this->soft(fn () => $this->compress()->uploadWatch());
+            $this->soft(fn () => $this->sitemaps()->watchChanges());
+            $this->soft(fn () => $this->pages()->endedWatch());
         }
         if ($app->isClient('administrator')) {
             $this->locks()->adminLockGuard();
             $this->handleAdministratorAction();
-            $this->settingsPage();
+            $this->soft(fn () => $this->settingsPage());
 
             return;
         }
         if ($app->isClient('site')) {
             // first: a sorting Gridbox would put into its query unchecked never reaches it
             $this->pages()->guardSort();
-            $this->pages()->redirectPage();
-            $this->feeds()->serveFeed();
-            $this->speed()->servePageCache();
-            $this->shop()->optionLinks();
+            $this->soft(fn () => $this->pages()->redirectPage());
+            $this->soft(fn () => $this->feeds()->serveFeed());
+            $this->soft(fn () => $this->speed()->servePageCache());
+            $this->soft(fn () => $this->shop()->optionLinks());
         }
     }
 
@@ -205,11 +306,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     {
         $app = $this->getApplication();
         if ($app->isClient('administrator')) {
-            $this->lists()->listColumns();
-            $this->lists()->mediaDropScript();
-            $this->lists()->dashboardScript();
-            $this->history()->historyInLists();
-            $this->apps()->appsScript();
+            $this->soft(fn () => $this->lists()->listColumns(), true);
+            $this->soft(fn () => $this->lists()->mediaDropScript(), true);
+            $this->soft(fn () => $this->lists()->dashboardScript(), true);
+            $this->soft(fn () => $this->history()->historyInLists(), true);
+            $this->soft(fn () => $this->apps()->appsScript(), true);
 
             return;
         }
@@ -217,16 +318,17 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             return;
         }
         $document = $app->getDocument();
+        // these steps one by one (see guard()): the headers below are set also when one of them is passed over
         if ($this->locks()->editorLock && $document && $document->getType() === 'html') {
-            $this->locks()->lockScript();
+            $this->soft(fn () => $this->locks()->lockScript(), true);
         }
         if ($document && $document->getType() === 'html') {
-            $this->shop()->discountScript();
-            $this->shop()->foldScript();
-            $this->editorSave()->saveScript();
-            $this->editorImport()->importScript();
-            $this->editorFields()->fillScript();
-            $this->lists()->mediaDropScript();
+            $this->soft(fn () => $this->shop()->discountScript(), true);
+            $this->soft(fn () => $this->shop()->foldScript(), true);
+            $this->soft(fn () => $this->editorSave()->saveScript(), true);
+            $this->soft(fn () => $this->editorImport()->importScript(), true);
+            $this->soft(fn () => $this->editorFields()->fillScript(), true);
+            $this->soft(fn () => $this->lists()->mediaDropScript(), true);
         }
         $page = $document && $document->getType() === 'html' && !$this->inBuilder();
         // the last listener: the headers other plugins have set are all there
@@ -278,8 +380,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
         if ($this->speed()->pageToStore) {
             // a message that came up while rendering is this visitor's; the page is kept as it is here,
-            // uncompressed (Joomla compresses the response afterwards; this listener is the last one)
-            if (PageCache::storable($new) && !$app->getMessageQueue()) {
+            // uncompressed (Joomla compresses the response afterwards; this listener is the last one);
+            // a page made without part of MerTools' work (a mix of versions, see guard()) is not kept
+            if (PageCache::storable($new) && !$app->getMessageQueue() && !$this->staleSeen) {
                 $this->speed()->pageToStore['ok']   = true;
                 $this->speed()->pageToStore['body'] = $new;
             } else {

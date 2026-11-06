@@ -400,6 +400,8 @@ English (default) and Polish. The settings follow the language of the Joomla adm
 3. The plugin is enabled on a fresh install. Open **Components → MerTools for Gridbox** and start with the **Quick Setup**.
 4. Check your site (see the note at the top) after every tool you turn on.
 
+**Right after an update** PHP may for a while still run some files of the previous version from OPcache, next to the new ones — on hosting where Joomla may not clear OPcache, where every PHP process keeps its own, or where PHP checks the files rarely. Since 1.13.2 MerTools then leaves its work on that page instead of breaking it, notes it in `administrator/logs/plg_system_mertools.php` and says so in the administrator; it works again by itself once PHP has the new files, at once after OPcache is cleared or PHP restarted in the hosting panel. *Components → MerTools for Gridbox → Diagnostics → OPcache after a save* shows how this hosting does it.
+
 ## Package structure
 
 | Extension | What it is |

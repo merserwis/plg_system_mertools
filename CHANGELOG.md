@@ -2,6 +2,22 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.13.2 — 2026-11-06
+
+### 🧯 Right after an update — the pages no longer break
+
+After the update to 1.13.1 one site showed *"Call to undefined method …Compress::boxes()"* on every page of the administrator, and its visitors got an error too, until it went away by itself minutes later. PHP still ran some files of the previous version of MerTools from OPcache, next to the new ones. MerTools already tells OPcache to drop its files after an update, but some hosting does not allow it, keeps an OPcache for every PHP process, or lets PHP look at the files only now and then.
+
+Now MerTools leaves its work on that page when it meets such a mix, so the page opens as if MerTools were off, and it works again by itself once PHP has the new files:
+
+- In the administrator a message says why, and that clearing OPcache or restarting PHP in the hosting panel brings it back at once.
+- The error is noted in `administrator/logs/plg_system_mertools.php`, and MerTools tells OPcache to drop its files once more.
+- Only the step that meets it is left out; the guards still work — of the deletion of apps, of the edit lock, of Gridbox's sorting, of the requests of the settings panels, the emptying of kept pages after a change —, and a guard that meets such an error still stops the request, as before. The security headers are set too.
+- A page made without part of MerTools' work is not kept in MerTools' page cache, so later visitors do not get it after PHP has the new files.
+- Only this kind of error is passed over: something of MerTools that its other file does not have yet. Any other error shows as before, and so does every error with Joomla's debug on.
+
+This works from the next update on: the update to 1.13.2 itself still runs the old files for that while, but no file the old ones use has changed.
+
 ## 1.13.1 — 2026-11-06
 
 ### 🛠 Gridbox 2.20.5 — the editor's saves seen again
