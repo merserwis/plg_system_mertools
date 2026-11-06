@@ -143,7 +143,7 @@ final class Shop extends Feature
             if (!\in_array($type, ['products', 'booking'], true)) {
                 return $html;
             }
-            $data = $db->setQuery('SELECT price, sale_price, stock, ' . $db->quoteName('min') . ' FROM ' . $db->quoteName('#__gridbox_store_product_data')
+            $data = $db->setQuery('SELECT price, sale_price, variations, stock, ' . $db->quoteName('min') . ' FROM ' . $db->quoteName('#__gridbox_store_product_data')
                 . ' WHERE product_id = ' . $id, 0, 1)->loadAssoc();
             if (!$data) {
                 return $html;
@@ -159,7 +159,12 @@ final class Shop extends Feature
         if (!$lang->hasKey('OUT_OF_STOCK')) {
             $lang->load('com_gridbox', JPATH_SITE);
         }
-        $badges = Badges::forProduct($rows, $data, $variations, Text::_('OUT_OF_STOCK'));
+        $percents = null;
+        if (Badges::sales($this->plugin->params) && \in_array('sale', array_column($rows, 'type'), true)) {
+            // the percentage of the price shown (the store's sales, the version chosen), which Gridbox does not work out
+            $percents = $this->salePercents([$id => $data])[$id] ?? null;
+        }
+        $badges = Badges::forProduct($rows, $data, $variations, Text::_('OUT_OF_STOCK'), $percents);
         if (!$badges) {
             return $html;
         }
@@ -171,6 +176,60 @@ final class Shop extends Feature
         $pos  = strripos($new, '</body>');
 
         return $pos === false ? $new . $tail : substr($new, 0, $pos) . $tail . substr($new, $pos);
+    }
+
+    /**
+     * The sale badges of the tiles of Gridbox's lists with the percentage of the price beside them: that
+     * of the default version when the product has one (the tile shows its price), with the store's sales
+     * (Gridbox → Discounts). Gridbox works it out from the product's own prices only ("- 0%").
+     */
+    public function tileSaleBadges(string $html): string
+    {
+        if (!str_contains($html, 'ba-blog-post-badge') || !($ids = PriceRequest::tileIds($html))) {
+            return $html;
+        }
+        try {
+            $db   = Factory::getContainer()->get(DatabaseInterface::class);
+            $in   = implode(',', array_map('intval', $ids));
+            $rows = (array) $db->setQuery('SELECT d.product_id, d.price, d.sale_price, d.variations FROM ' . $db->quoteName('#__gridbox_store_product_data', 'd')
+                . ' WHERE d.product_id IN (' . $in . ') AND EXISTS (SELECT 1 FROM ' . $db->quoteName('#__gridbox_store_badges_map', 'bm') . ' JOIN '
+                . $db->quoteName('#__gridbox_store_badges', 'b') . ' ON b.id = bm.badge_id WHERE bm.product_id = d.product_id AND b.type = ' . $db->quote('sale') . ')')
+                ->loadAssocList('product_id');
+            $texts = [];
+            foreach ($this->salePercents($rows) as $id => $percents) {
+                $from = Badges::salePercent($rows[$id]['price'], $rows[$id]['sale_price']);
+                $to   = $percents['texts'][$percents['shown']] ?? $from;
+                if ($from !== $to) {
+                    $texts[$id] = [$from, $to];
+                }
+            }
+        } catch (\Throwable $e) {
+            return $html;
+        }
+
+        return Badges::tileSales($html, $texts);
+    }
+
+    /**
+     * The sale badge's text of each item of products (id => row with price, sale_price, variations) at
+     * the price this visitor is shown: the store's sales for its access levels applied as Gridbox's
+     * calculateSalePrice does (see Badges::percents()).
+     *
+     * @return array<int, array{texts: array<string, string>, shown: string}>
+     */
+    private function salePercents(array $rows): array
+    {
+        $items = [];
+        foreach ($rows as $id => $row) {
+            $items[] = ['product_id' => (int) $id, 'price' => $row['price'], 'sale_price' => $row['sale_price'], 'variations' => $row['variations'] ?? ''];
+        }
+        try {
+            $levels = array_values(array_map('intval', Factory::getApplication()->getIdentity()?->getAuthorisedViewLevels() ?: []));
+        } catch (\Throwable $e) {
+            $levels = [];
+        }
+
+        return Badges::percents($rows, self::newOmnibusStore($levels ?: null)->shownPrices($items));
     }
 
     /**
@@ -354,7 +413,8 @@ final class Shop extends Feature
     }
 
     /** The price history, with the guest's access levels and the site's time zone (Gridbox's sales follow both). */
-    public static function newOmnibusStore(): OmnibusStore
+    /** @param ?int[] $levels the access levels whose sales count (null: a guest's) */
+    public static function newOmnibusStore(?array $levels = null): OmnibusStore
     {
         try {
             $zone = new \DateTimeZone((string) Factory::getApplication()->get('offset', 'UTC') ?: 'UTC');
@@ -362,7 +422,7 @@ final class Shop extends Feature
             $zone = new \DateTimeZone('UTC');
         }
 
-        return new OmnibusStore(Factory::getContainer()->get(DatabaseInterface::class), MerTools::guestLevels(), $zone);
+        return new OmnibusStore(Factory::getContainer()->get(DatabaseInterface::class), $levels ?? MerTools::guestLevels(), $zone);
     }
 
     /**

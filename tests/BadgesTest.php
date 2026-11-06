@@ -46,6 +46,43 @@ $check('wrapper: Gridbox\'s classes, colour as Gridbox writes it, text escaped, 
     '<div class="ba-blog-post-badge-wrapper mt-badges-page" data-mt-badges><span class="ba-blog-post-badge" style="--badge-color:rgba(1, 2, 3, 1);">A&amp;B &lt;i&gt;</span>'
     . '<span class="ba-blog-post-badge out-of-stock-badge">Brak</span><span class="ba-blog-post-badge">X</span></div>');
 
+// ---------------------------------------------------------------- the store's sales in the percentage
+$check('store\'s sales on by default', Badges::sales(new Registry()), true);
+$check('store\'s sales off', Badges::sales(new Registry(['badge_sales' => '0'])), false);
+$check('percent: as Gridbox (none, 20%, a free product, a price shown as a float)', [Badges::salePercent('9758', ''), Badges::salePercent('9758', '7806.4'), Badges::salePercent('0', ''), Badges::salePercent('100', '79.9988')],
+    ['- 0%', '- 20%', '- 0%', '- 20%']);
+$check('percent: a discount above the price: - 100%', Badges::salePercent('50', '0'), '- 100%');
+$check('product page: the sale price shown gives the percentage', Badges::forProduct([$rows[0]], ['sale_price' => '7318.5'] + $in, false, 'x')[0]['title'], '- 25%');
+
+// the items of a product: the base, two versions (the second default, priced 200), a store's sale of 25 (an amount) on all
+$prow = [7 => ['price' => '100', 'sale_price' => '', 'variations' => json_encode(['a1' => ['price' => '100', 'sale_price' => ''], 'b2' => ['price' => '200', 'sale_price' => '', 'default' => true], 'c3' => ['price' => '80', 'sale_price' => '72']])]];
+$pshown = ['7' => ['product' => 7, 'sale' => 75.0, 'via' => 4], 'a1' => ['product' => 7, 'sale' => 75.0, 'via' => 4], 'b2' => ['product' => 7, 'sale' => 175.0, 'via' => 4], 'c3' => ['product' => 7, 'sale' => 72.0, 'own' => true]];
+$pc = Badges::percents($prow, $pshown);
+$check('percents: each item at its price shown, a version\'s own sale price kept, the default shown first', $pc,
+    [7 => ['texts' => ['7' => '- 25%', 'a1' => '- 25%', 'b2' => '- 13%', 'c3' => '- 10%'], 'shown' => 'b2']]);
+$check('percents: no versions, no sale of the store: Gridbox\'s own', Badges::percents([5 => ['price' => '50', 'sale_price' => '40', 'variations' => '[]']], []), [5 => ['texts' => ['5' => '- 20%'], 'shown' => '5']]);
+$check('percents: a discount above the price', Badges::percents([5 => ['price' => '50', 'sale_price' => '']], ['5' => ['product' => 5, 'sale' => null, 'via' => 1]])[5]['texts']['5'], '- 100%');
+$fp = Badges::forProduct([$rows[0], $rows[1]], $in, true, 'x', $pc[7]);
+$check('product page: the text of the version shown first, all of them for the version chosen', $fp[0], ['title' => '- 13%', 'color' => '#f64231', 'out' => false, 'sale' => $pc[7]['texts']]);
+$check('…only on the sale badge', isset($fp[1]['sale']), false);
+$check('…the texts on the badge for the script', str_contains(Badges::html($fp), '<span class="ba-blog-post-badge" style="--badge-color:#f64231;" data-mt-sale="{&quot;7&quot;:&quot;- 25%&quot;,&quot;a1&quot;:&quot;- 25%&quot;,&quot;b2&quot;:&quot;- 13%&quot;,&quot;c3&quot;:&quot;- 10%&quot;}">- 13%</span>'), true);
+$check('…a product without versions: no texts for the script', array_key_exists('sale', Badges::forProduct([$rows[0]], $in, false, 'x', ['texts' => ['9' => '- 5%'], 'shown' => '9'])[0]), false);
+
+$tile = fn (int $id, string $badges, string $cls = 'ba-blog-post ba-store-app-product') => '<div class="' . $cls . '" data-id="' . $id . '"><div class="ba-blog-post-image">'
+    . '<div class="ba-blog-post-badge-wrapper">' . "\n" . $badges . '</div><div class="ba-blog-post-wishlist-wrapper" tabindex="0"></div></div><div class="ba-blog-post-add-to-cart-price">X</div></div>';
+$sale = fn (string $t, string $c = '#f64231') => "\t<span class=\"ba-blog-post-badge\" style=\"--badge-color:$c;\">$t</span>\n";
+$list = '<div class="ba-blog-posts-wrapper">' . $tile(7, $sale('- 0%') . $sale('Bestseller', '#ffc700')) . $tile(8, $sale('- 0%')) . $tile(9, $sale('- 10%')) . '</div>';
+$got  = Badges::tileSales($list, [7 => ['- 0%', '- 20%'], 9 => ['- 10%', '- 15%']]);
+$check('tiles: Gridbox\'s text of the products given changed, the others as they are', $got,
+    '<div class="ba-blog-posts-wrapper">' . $tile(7, $sale('- 20%') . $sale('Bestseller', '#ffc700')) . $tile(8, $sale('- 0%')) . $tile(9, $sale('- 15%')) . '</div>');
+$check('tiles: a text not Gridbox\'s (a badge titled otherwise) left as it is', Badges::tileSales($tile(7, $sale('Promo')), [7 => ['- 0%', '- 20%']]), $tile(7, $sale('Promo')));
+$check('tiles: none given: as it is', Badges::tileSales($list, []), $list);
+$check('tiles: a li tile of a slider', Badges::tileSales(str_replace(['<div class="ba-blog-post ba-store-app-product"', '</div></div></div>'], ['<li class="ba-store-app-product slide"', '</div></div></li>'], $tile(7, $sale('- 0%'))), [7 => ['- 0%', '- 5%']]),
+    str_replace(['<div class="ba-blog-post ba-store-app-product"', '</div></div></div>'], ['<li class="ba-store-app-product slide"', '</div></div></li>'], $tile(7, $sale('- 5%'))));
+$pagebadges = '<div class="ba-blog-post-badge-wrapper mt-badges-page" data-mt-badges><span class="ba-blog-post-badge">- 0%</span></div>';
+$check('tiles: the badges of the product page after the last tile left as they are', Badges::tileSales($tile(7, '') . $pagebadges, [7 => ['- 0%', '- 20%']]), $tile(7, '') . $pagebadges);
+$check('tiles: a tile without the id left as it is', Badges::tileSales(str_replace(' data-id="7"', '', $tile(7, $sale('- 0%'))), [7 => ['- 0%', '- 20%']]), str_replace(' data-id="7"', '', $tile(7, $sale('- 0%'))));
+
 // ---------------------------------------------------------------- into the pictures of the page
 $w = '<div data-mt-badges>B</div>';
 $page = '<div class="ba-item-product-slideshow ba-item" id="item-1"><div class="slideshow-wrapper dots-position-outside"><ul class="ba-slideshow ba-fade-in">'

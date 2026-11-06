@@ -167,6 +167,7 @@ Gridbox's product badges (Sale, New, Discontinued, Out of stock…, set at the p
 - **Colours**: Gridbox's colour of each badge (the text dark or light, whichever reads better), or monochrome — all dark, all light, all in one colour chosen.
 - **Style**: *Gridbox* (as before), *Pill*, *Soft*, *Outline*, *Glass*, *Dot*, *Label* (capitals), *Tag*, *Gradient*; three sizes; one under another or side by side.
 - **In the lists** (on by default): the same look on the tiles of categories, search, the wishlist and product sliders; off, only the badges of the product page.
+- **Store discounts in the sale percentage** (on by default, 1.13.3; works also with the badges above off): Gridbox works out the sale badge only from the product's own sale price, so a product lowered by a discount of the store (Gridbox → Discounts) shows "- 0%" beside its lowered price. MerTools shows the percentage of the price the customer sees, on the tiles (a product with variations: its default variation) and on the product page, where it follows the variation chosen; a discount of an amount as a percentage, a discount for other access levels not for a guest, a product with a sale price of its own as before.
 
 The settings sit beside a preview on a product picture of the site with its own badges, which follows the form as it is changed: a card for every style (a click chooses it) and the corners of the picture to click.
 ### 🗂 Page layout — category pages: now in Better Categories

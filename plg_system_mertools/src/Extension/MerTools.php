@@ -89,7 +89,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.13.2';
+    public const VERSION = '1.13.3';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -347,6 +347,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
         if (Badges::enabled($this->params) && Badges::options($this->params)['product']) {
             $new = $this->shop()->productBadges($new);
+        }
+        if (Badges::sales($this->params) && str_contains($new, 'ba-store-app-product')) {
+            $this->soft(function () use (&$new): void {
+                $new = $this->shop()->tileSaleBadges($new);
+            }, true);
         }
         if (ArticleSchema::enabled($this->params)) {
             $new = $this->feeds()->articleSchema($new);

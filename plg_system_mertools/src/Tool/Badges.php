@@ -16,7 +16,8 @@
  *    or light as the colour needs it (CSS relative colours, white where the browser cannot) — in the
  *    style of Gridbox with Gridbox's colours its own text colour, as before.
  *  - The badges of the product page are worked out as Gridbox does for its tiles: its badges in their
- *    order, the sale badge as "- n%" from the price and the sale price, and only "Out of stock" for a
+ *    order, the sale badge as "- n%" from the price and the sale price shown (with the store's sales,
+ *    Gridbox → Discounts, which Gridbox leaves out: "- 0%"; on its tiles too), and only "Out of stock" for a
  *    product without variations whose stock is below its minimum. They go into the product's slideshow
  *    (over the picture, not the thumbnails) or the first picture of its gallery, made by the server
  *    (seen at once); mertools-badges.js puts them back when Gridbox swaps the pictures of a variation.
@@ -56,6 +57,12 @@ final class Badges
     public static function enabled(Registry $params): bool
     {
         return (bool) (int) $params->get('badge_on', 0);
+    }
+
+    /** The sale badges with the store's sales (Gridbox → Discounts) in their percentage: on the tiles and the product page. */
+    public static function sales(Registry $params): bool
+    {
+        return (bool) (int) $params->get('badge_sales', 1);
     }
 
     /**
@@ -242,9 +249,12 @@ final class Badges
      * @param list<array{title:string, color:string, type:string}> $badges the badges of the product, in order
      * @param array{price:mixed, sale_price:mixed, stock:mixed, min:mixed} $data its row of product data
      *
-     * @return list<array{title:string, color:string, out:bool}>
+     * @param ?array{texts: array<string, string>, shown: string} $percents the sale badge's text of each item
+     *        at the price shown (percents()): the one shown first, and all of them for the version chosen
+     *
+     * @return list<array{title:string, color:string, out:bool, sale?:array<string, string>}>
      */
-    public static function forProduct(array $badges, array $data, bool $variations, string $outOfStock): array
+    public static function forProduct(array $badges, array $data, bool $variations, string $outOfStock, ?array $percents = null): array
     {
         $min   = !empty($data['min']) ? (float) $data['min'] : 1;
         $stock = $data['stock'] ?? null;
@@ -255,18 +265,103 @@ final class Badges
         $out = [];
         foreach ($badges as $badge) {
             $title = (string) ($badge['title'] ?? '');
+            $sale = null;
             if (($badge['type'] ?? '') === 'sale') {
-                $price = (float) ($data['price'] ?? 0);
-                $sale  = (string) ($data['sale_price'] ?? '');
-                $title = '- ' . ($price == 0 ? 0 : round(100 - (($sale === '' ? $price : (float) $sale) * 100 / $price))) . '%';
+                $title = self::salePercent($data['price'] ?? 0, $data['sale_price'] ?? '');
+                if ($percents && isset($percents['texts'][$percents['shown']])) {
+                    $title = $percents['texts'][$percents['shown']];
+                    $sale  = \count($percents['texts']) > 1 ? $percents['texts'] : null;
+                }
             }
             if ($title === '') {
                 continue;
             }
-            $out[] = ['title' => $title, 'color' => (string) ($badge['color'] ?? ''), 'out' => false];
+            $out[] = ['title' => $title, 'color' => (string) ($badge['color'] ?? ''), 'out' => false] + ($sale ? ['sale' => $sale] : []);
         }
 
         return $out;
+    }
+
+    /**
+     * The text of the sale badge as Gridbox writes it (StoreHelper::getProductBadges): "- n%" from the
+     * price and the sale price ('' none: "- 0%").
+     */
+    public static function salePercent($price, $sale): string
+    {
+        $price = (float) $price;
+        $sale  = (string) $sale;
+
+        return '- ' . ($price == 0 ? 0 : round(100 - (($sale === '' ? $price : (float) $sale) * 100 / $price))) . '%';
+    }
+
+    /**
+     * The sale badge's text of every item of products at the price shown: the product (key = its id) and
+     * each version (Gridbox's key), "- n%" from its price and its sale price — its own (as Gridbox keeps
+     * it), or that of a sale of the store when shownPrices() set one ('via'; above the price: 0). 'shown'
+     * is the item whose price Gridbox shows first: the default version, else the product.
+     *
+     * @param array<int, array<string, mixed>>    $rows  product id => row of product data (price, sale_price, variations)
+     * @param array<string, array<string, mixed>> $shown OmnibusStore::shownPrices() of the rows
+     *
+     * @return array<int, array{texts: array<string, string>, shown: string}>
+     */
+    public static function percents(array $rows, array $shown): array
+    {
+        $out = [];
+        foreach ($rows as $id => $row) {
+            $id    = (int) $id;
+            $items = [(string) $id => $row];
+            foreach ((array) (json_decode((string) ($row['variations'] ?? ''), true) ?: []) as $key => $version) {
+                if (\is_array($version) && (string) $key !== '') {
+                    $items[(string) $key] = $version;
+                }
+            }
+            $texts = [];
+            $first = (string) $id;
+            foreach ($items as $key => $item) {
+                $key  = (string) $key;
+                $sale = isset($shown[$key]['via']) && (int) ($shown[$key]['product'] ?? 0) === $id ? (string) ($shown[$key]['sale'] ?? 0) : (string) ($item['sale_price'] ?? '');
+                $texts[$key] = self::salePercent($item['price'] ?? 0, $sale);
+                if ($key !== (string) $id && !empty($item['default']) && $first === (string) $id) {
+                    $first = $key;
+                }
+            }
+            $out[$id] = ['texts' => $texts, 'shown' => $first];
+        }
+
+        return $out;
+    }
+
+    /**
+     * The sale badges of the tiles of Gridbox's lists with the percentage of the price shown: Gridbox
+     * works it out from the product's own sale price only, so a sale of the store (Gridbox → Discounts)
+     * gets "- 0%" beside the lowered price. $texts: product id => [Gridbox's text, the right one]; only a
+     * badge of Gridbox's own wrapper whose text is Gridbox's is changed.
+     *
+     * @param array<int, array{0: string, 1: string}> $texts
+     */
+    public static function tileSales(string $html, array $texts): string
+    {
+        if (!$texts) {
+            return $html;
+        }
+        $tile = '#(<(?:li|div)\b[^>]*\sclass="(?:[^"]*\s)?ba-store-app-product(?=[\s"])[^>]*>)(.*?)(?=<(?:li|div)\b[^>]*\sclass="(?:[^"]*\s)?ba-store-app-product(?=[\s"])|$)#s';
+
+        return preg_replace_callback($tile, static function (array $m) use ($texts): string {
+            if (!preg_match('/\sdata-id="(\d+)"/', $m[1], $id) || !isset($texts[(int) $id[1]])) {
+                return $m[0];
+            }
+            [$from, $to] = $texts[(int) $id[1]];
+            // the tile's own wrapper (that of the product page, MerTools', has a class more)
+            $body = preg_replace_callback('#<div class="ba-blog-post-badge-wrapper">.*?</div>#s', static fn (array $w): string => (string) preg_replace_callback(
+                '#(<span class="ba-blog-post-badge"[^>]*>)\s*([^<]*?)\s*(</span>)#',
+                static fn (array $b): string => html_entity_decode($b[2], ENT_QUOTES | ENT_HTML5, 'UTF-8') === $from
+                    ? $b[1] . htmlspecialchars($to, ENT_QUOTES, 'UTF-8') . $b[3] : $b[0],
+                $w[0]
+            ), $m[2], 1);
+
+            return $body === null ? $m[0] : $m[1] . $body;
+        }, $html) ?? $html;
     }
 
     /** The wrapper of the badges of the product page (Gridbox's classes, so its own look applies to it too). */
@@ -277,7 +372,8 @@ final class Badges
         foreach ($badges as $b) {
             $colour = $b['out'] ? null : self::colour($b['color']);
             $out   .= '<span class="ba-blog-post-badge' . ($b['out'] ? ' out-of-stock-badge' : '') . '"'
-                . ($colour !== null ? ' style="--badge-color:' . $colour . ';"' : '') . '>' . $e($b['title']) . '</span>';
+                . ($colour !== null ? ' style="--badge-color:' . $colour . ';"' : '')
+                . (!empty($b['sale']) ? ' data-mt-sale="' . $e((string) json_encode($b['sale'], JSON_UNESCAPED_UNICODE)) . '"' : '') . '>' . $e($b['title']) . '</span>';
         }
 
         return $out . '</div>';

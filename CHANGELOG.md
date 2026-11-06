@@ -2,6 +2,20 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.13.3 — 2026-11-06
+
+### 🏷 Sale badge — the store's discounts in its percentage
+
+Gridbox works out the percentage of the sale badge ("- n%") only from the product's own sale price. A product lowered by a discount of the store (Gridbox → Discounts) showed its lowered price with **"- 0%"** beside it — on the tiles of the lists and, with MerTools' badges, on the picture of the product page.
+
+Now the badge shows the percentage of the price the customer sees:
+
+- On the tiles of categories, search, the wishlist and product sliders, and on the picture of the product page.
+- A product with variations: on the tiles the percentage of its default variation, whose price the tile shows; on the product page it follows the variation chosen (with a discount of an amount each variation has its own percentage).
+- A discount of a set amount is shown as a percentage too (e.g. 25 zł off 100 zł: "- 25%").
+- As Gridbox applies its discounts: only to a product without a sale price of its own (a product with one keeps its own percentage), only while the discount runs, and only for the access levels it is for — a guest does not see the percentage of a discount for logged-in customers.
+- Setting *Store discounts in the sale percentage* on page *Badges*, on by default; it works also with MerTools' badges off.
+
 ## 1.13.2 — 2026-11-06
 
 ### 🧯 Right after an update — the pages no longer break
