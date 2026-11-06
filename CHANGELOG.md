@@ -2,6 +2,24 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.14.0 — 2026-11-06
+
+### 🖼 Images in AVIF and JPEG XL — lighter than WebP, with WebP still there
+
+Besides its WebP copies, MerTools can now make the copies of the site's images in **AVIF** and **JPEG XL** (page *Images*, settings *Also AVIF* and *Also JPEG XL*, both off by default). The page puts such an image in a `<picture>`: the browser takes the first format it can show — JPEG XL (Safari, Chrome from version 155), then AVIF (every current browser), then the WebP copy, the oldest browsers the original. Each browser still takes the width that fits its screen.
+
+- **How much lighter**: measured on photos of a shop against the WebP copies, at the same look (SSIMULACRA2): AVIF about a fifth lighter; JPEG XL a little better and lighter mostly for large photos. A format is kept for an image only when its copies are lighter than its WebP copies.
+- **Made with what the server has**: AVIF by PHP's GD (built with AVIF), by Imagick or by the program avifenc; JPEG XL by Imagick with JPEG XL (ImageMagick 7 with libjxl) or by the program cjxl. Each way is tried once on a small picture and read back — ImageMagick lists formats it can only read —, again when the panel *Overview* opens; the panel shows for each format whether it is on, what makes it and its copies.
+- **Transparency**: ImageMagick 6 writes AVIF without it; made that way, AVIF is not used for a PNG with transparency (it keeps its WebP copies). The quality of AVIF made by ImageMagick 6 is set where it takes it (the settings of the wand, not of the image — set only there, every AVIF came out at one quality).
+- **Never while a visitor waits**: AVIF and JPEG XL take much longer to make than WebP, so they are made only after a page has been sent (PHP-FPM or LiteSpeed); with mod_php the panel says so and the pages keep WebP. A picture whose encoding stops PHP (memory, time) is noted first and not tried again with every page.
+- **The look of the page does not change**: the `<picture>` makes no box of its own. An image that is a link of its own keeps WebP only (Gridbox's lightbox opens only for an image whose parent is not a link), so do the images of a before/after slider and an image already in a `<picture>` or `<noscript>`. The largest image at the top is still fetched first.
+- The copies folder `media/mertools-img` tells Apache and LiteSpeed the types of AVIF and JPEG XL (an older server may not know them, and with *nosniff* a wrong type can keep an image from showing).
+- Copies no image uses any more are removed a week later, as the WebP ones, and so are those of a format switched off; *Remove all copies* removes them too. Backgrounds and the product slideshow keep their WebP copies; an image shown only where it cannot be in a `<picture>` (a background, a link of its own) gets no AVIF or JPEG XL copies.
+
+### 📊 Dashboard — own dates kept without a race
+
+With *Dashboard keeps its range of dates* (1.13.1) and own dates kept, the dashboard asked for the statistics of today and of the dates kept at the same moment, and Gridbox drew whichever answer came last — now and then today's figures under the label of the dates kept. Now only the dates kept are asked for.
+
 ## 1.13.3 — 2026-11-06
 
 ### 🏷 Sale badge — the store's discounts in its percentage

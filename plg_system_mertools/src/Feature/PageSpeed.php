@@ -24,6 +24,7 @@ use Joomla\CMS\Session\Session;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
 use Merserwis\Plugin\System\MerTools\Extension\MerTools;
+use Merserwis\Plugin\System\MerTools\Tool\ImageFormats;
 use Merserwis\Plugin\System\MerTools\Tool\ImageOptimizer;
 use Merserwis\Plugin\System\MerTools\Tool\ImageSize;
 use Merserwis\Plugin\System\MerTools\Tool\PageCache;
@@ -55,7 +56,30 @@ final class PageSpeed extends Feature
 
     public function imageOptimizer(): ImageOptimizer
     {
-        return new ImageOptimizer(JPATH_ROOT, Uri::getInstance()->toString(['scheme', 'host', 'port']), Uri::root(true), MerTools::cacheBase());
+        return (new ImageOptimizer(JPATH_ROOT, Uri::getInstance()->toString(['scheme', 'host', 'port']), Uri::root(true), MerTools::cacheBase()))
+            ->formats($this->imageFormats());
+    }
+
+    /**
+     * The newer formats switched on (JPEG XL, AVIF) that this server can make, format => way
+     * (ImageFormats::encoders()). None on a server that cannot close the response before the work
+     * (mod_php): making them takes seconds, a visitor would wait.
+     */
+    public function imageFormats(): array
+    {
+        $p    = $this->plugin->params;
+        $want = array_filter(['jxl' => (int) $p->get('speed_jxl', 0), 'avif' => (int) $p->get('speed_avif', 0)]);
+        if (!$want || !(int) $p->get('speed_images', 1) || !(int) $p->get('speed_webp', 1) || !self::canFinish()) {
+            return [];
+        }
+
+        return array_intersect_key(ImageFormats::encoders(MerTools::cacheBase()), $want);
+    }
+
+    /** Can this server close the response and work on after it (PHP-FPM, LiteSpeed)? */
+    public static function canFinish(): bool
+    {
+        return \function_exists('fastcgi_finish_request') || \function_exists('litespeed_finish_request');
     }
 
     /**
@@ -81,8 +105,12 @@ final class PageSpeed extends Feature
         $finished = $this->plugin->finishResponse();
         try {
             $images = $this->imageOptimizer();
-            // while a visitor still waits (no fastcgi_finish_request): half a second and small pictures only
-            if ($images->work($finished ? 8.0 : 0.5, $finished ? ImageOptimizer::MAX_PIXELS : 4000000) > 0) {
+            // while a visitor still waits (no fastcgi_finish_request): half a second, small pictures and WebP only;
+            // after the response the newer formats too, with time for a slow encoder (a picture begun is finished)
+            if ($finished) {
+                @set_time_limit(60);
+            }
+            if ($images->work($finished ? 8.0 : 0.5, $finished ? ImageOptimizer::MAX_PIXELS : 4000000, $finished) > 0) {
                 $stamp = $base . '/mertools-img-purged';
                 if ($images->pending() === 0 || !is_file($stamp) || (int) @filemtime($stamp) < time() - 600) {
                     @touch($stamp);
@@ -852,7 +880,7 @@ final class PageSpeed extends Feature
                 $defaults = ['url_collapse_slashes' => 1, 'notfound_redirect' => 0, 'layout_clip_x' => 1, 'shop_option_links' => 1,
                     'cart_enabled' => 1, 'tel_enabled' => 1, 'dark_enabled' => 0, 'speed_show' => 1, 'speed_images' => 1, 'speed_mainphoto' => 1, 'speed_slideimg' => 1,
                     'speed_video' => 1, 'speed_video_phone' => 'none', 'speed_scripts' => 0, 'speed_cache' => 0, 'speed_cache_data' => 1,
-                    'speed_icons' => 1, 'speed_webp' => 1, 'speed_gif' => 1, 'speed_popups' => 1, 'layout_post_rows' => 1, 'tabs_accordion' => 1, 'db_indexes' => 1, 'layout_menu_fit' => 0];
+                    'speed_icons' => 1, 'speed_webp' => 1, 'speed_avif' => 0, 'speed_jxl' => 0, 'speed_gif' => 1, 'speed_popups' => 1, 'layout_post_rows' => 1, 'tabs_accordion' => 1, 'db_indexes' => 1, 'layout_menu_fit' => 0];
                 $speed->save($m, MerTools::VERSION, Speed::enabledTools($this->plugin->params->toArray(), $defaults), time());
             } elseif ($action === 'speed_baseline') {
                 $speed->setBaseline($input->post->getInt('id', 0));
@@ -892,13 +920,14 @@ final class PageSpeed extends Feature
                 $guest  = !$user || $user->guest;
                 if ($images) {
                     // only what is switched on is looked up (and queued)
-                    $copies = function (string $url) use ($images, $webp, $gif, $guest): ?array {
+                    // $newer: the picture can be in a <picture>, so it asks for the newer formats too
+                    $copies = function (string $url, bool $newer = true) use ($images, $webp, $gif, $guest): ?array {
                         $isGif = (bool) preg_match('#\.gif(?:[?\#]|$)#i', $url);
                         if ($isGif ? !$gif : !$webp) {
                             return null;
                         }
 
-                        return $images->lookup($url, $guest);
+                        return $images->lookup($url, $guest, $newer);
                     };
                 }
                 $html = Speedup::images($html, $site, fn (string $url) => $sizes->get($url), $copies, true, $gif, $nonce);
@@ -943,12 +972,33 @@ final class PageSpeed extends Feature
         return $html;
     }
 
+    /**
+     * The newer formats for the panel: format => ['on' => switched on, 'via' => the way this server
+     * makes it ('' none; "-opaque": not for pictures with transparency), 'finish' => the work can run
+     * after the response].
+     */
+    private function newerFormats(): array
+    {
+        $p   = $this->plugin->params;
+        $via = ImageFormats::encoders(MerTools::cacheBase());
+        $out = [];
+        foreach (array_keys(ImageFormats::TYPES) as $format) {
+            $out[$format] = ['on' => (bool) (int) $p->get('speed_' . $format, 0), 'via' => $via[$format] ?? '', 'finish' => self::canFinish()];
+        }
+
+        return $out;
+    }
+
     /** The panels of lighter pictures (figures, make now, remove) and of kept pages (figures, empty). */
     public function handleAction(string $action): void
     {
         if (str_starts_with($action, 'img_')) {
             try {
                 $this->imageSweep(true);
+                if ($action === 'img_stats') {
+                    // the panel opened: what this server can make is tried again
+                    ImageFormats::encoders(MerTools::cacheBase(), true);
+                }
                 $images = $this->imageOptimizer();
                 if ($action === 'img_run') {
                     if (!ImageOptimizer::supported()) {
@@ -964,7 +1014,7 @@ final class PageSpeed extends Feature
                     $this->purgeKeptPages();
                     $images = $this->imageOptimizer();
                 }
-                $this->plugin->sendJson(['success' => true, 'stats' => $images->stats() + ['supported' => ImageOptimizer::supported()]]);
+                $this->plugin->sendJson(['success' => true, 'stats' => $images->stats() + ['supported' => ImageOptimizer::supported(), 'newer' => $this->newerFormats()]]);
             } catch (\Throwable $e) {
                 $this->plugin->sendJson(['success' => false, 'message' => $e->getMessage()]);
             }

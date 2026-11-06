@@ -79,6 +79,9 @@ final class ImageOptimizer
     /** inside work(): the queue in memory is the truth (removals), not the file */
     private bool $working = false;
 
+    /** @var array<string, string> the newer formats wanted, and how this server makes them (ImageFormats::encoders()) */
+    private array $via = [];
+
     /**
      * @param string $root     site root (JPATH_ROOT)
      * @param string $siteBase "https://www.example.com" (scheme and host, no slash)
@@ -97,6 +100,17 @@ final class ImageOptimizer
         }
     }
 
+    /**
+     * The formats newer than WebP the pages offer and the work makes (format => way, from
+     * ImageFormats::encoders()); none by default.
+     */
+    public function formats(array $via): self
+    {
+        $this->via = array_intersect_key(array_replace(ImageFormats::TYPES, $via), $via);
+
+        return $this;
+    }
+
     /** GD with WebP: the copies can be made on this server. */
     public static function supported(): bool
     {
@@ -106,12 +120,14 @@ final class ImageOptimizer
     // ---------------------------------------------------------------- pages
 
     /**
-     * What a page may use for the picture at $url: ['srcset' => "url 480w, …", 'frame' => [srcset of
-     * the first frame], 'anim' => url of the animation] — or null (not local, not a JPEG/PNG/GIF,
-     * not ready yet: then the picture is queued, if $queue: a page only a logged-in user sees does not
-     * queue its pictures, their copies would be public).
+     * What a page may use for the picture at $url: ['srcset' => "url 480w, …", 'sources' => [type =>
+     * srcset] of the newer formats (formats()), 'frame' => [srcset of the first frame], 'anim' => url of
+     * the animation] — or null (not local, not a JPEG/PNG/GIF, not ready yet: then the picture is
+     * queued, if $queue: a page only a logged-in user sees does not queue its pictures, their copies
+     * would be public). A picture lacking only a newer format is offered without it and queued — when
+     * $newer: a picture shown where it cannot be in a <picture> (a background, a link) does not ask for them.
      */
-    public function lookup(string $url, bool $queue = true): ?array
+    public function lookup(string $url, bool $queue = true, bool $newer = true): ?array
     {
         $rel = $this->relative($url);
         if ($rel === null || !preg_match('#\.(jpe?g|png|gif)$#i', $rel)) {
@@ -123,15 +139,9 @@ final class ImageOptimizer
             return null;
         }
         $entry = $this->entry($rel);
-        // made again: a copy that is gone (removed by hand, a site copied without media/mertools-img), and
-        // the copies of a photo stored on its side made before 1.7.0 (sideways; their entry has no "o")
-        if (!$entry || $entry['m'] !== (int) $stat['mtime'] || $entry['s'] !== (int) $stat['size']
-            || (($entry['x'] ?? '') === 'ok' && (!$this->copiesThere($entry)
-                || (!isset($entry['o']) && preg_match('#\.jpe?g$#i', $rel) && ImageSize::orientation($path) > 1)))) {
-            if ($queue && !isset($this->queue[$rel]) && \count($this->queue) < self::MAX_QUEUE) {
-                $this->queue[$rel] = true;
-                $this->added[$rel] = true;
-                $this->dirtyQueue  = true;
+        if (!$entry || !$this->fresh($rel, $entry, $stat)) {
+            if ($queue) {
+                $this->enqueue($rel);
             }
 
             return null;
@@ -142,6 +152,19 @@ final class ImageOptimizer
         $out = [];
         if (!empty($entry['v'])) {
             $out['srcset'] = $this->srcset($entry['v']);
+            $sources       = [];
+            foreach ($this->via as $format => $way) {
+                $copies = $entry[ImageFormats::KEYS[$format]] ?? null;
+                if (\is_array($copies) && $copies && $this->filesThere($copies)) {
+                    $sources[ImageFormats::TYPES[$format]] = $this->srcset($copies);
+                }
+            }
+            if ($sources) {
+                $out['sources'] = $sources;
+            }
+            if ($queue && $newer && $this->missing($entry)) {
+                $this->enqueue($rel);
+            }
         }
         if (!empty($entry['f'])) {
             $out['frame'] = $this->srcset($entry['f']);
@@ -153,10 +176,68 @@ final class ImageOptimizer
         return $out ?: null;
     }
 
-    /** Are all the files of the copies of an entry there? */
+    /**
+     * Is the entry the one of the picture as it is now? Made again: a changed picture, a WebP copy that
+     * is gone (removed by hand, a site copied without media/mertools-img), and the copies of a photo
+     * stored on its side made before 1.7.0 (sideways; their entry has no "o").
+     */
+    private function fresh(string $rel, array $entry, array $stat): bool
+    {
+        return ($entry['m'] ?? null) === (int) $stat['mtime'] && ($entry['s'] ?? null) === (int) $stat['size']
+            && (($entry['x'] ?? '') !== 'ok' || ($this->copiesThere($entry)
+                && (isset($entry['o']) || !preg_match('#\.jpe?g$#i', $rel) || ImageSize::orientation($this->root . '/' . $rel) <= 1)));
+    }
+
+    /** The entry of a picture whose WebP copies are made and there (only newer formats may be missing), or null. */
+    private function current(string $rel): ?array
+    {
+        $entry = $this->entry($rel);
+        $stat  = @stat($this->root . '/' . $rel);
+
+        return $entry && $stat !== false && ($entry['x'] ?? '') === 'ok' && $this->fresh($rel, $entry, $stat) ? $entry : null;
+    }
+
+    /**
+     * The newer formats (formats()) an entry with WebP copies still lacks: never tried, or a copy gone.
+     * A format tried without a lighter result ([]) is not tried again for the same picture.
+     *
+     * @return string[]
+     */
+    private function missing(array $entry): array
+    {
+        if (($entry['x'] ?? '') !== 'ok' || empty($entry['v'])) {
+            return [];
+        }
+        $out = [];
+        foreach ($this->via as $format => $way) {
+            $copies = $entry[ImageFormats::KEYS[$format]] ?? null;
+            if (!\is_array($copies) || ($copies && !$this->filesThere($copies))) {
+                $out[] = $format;
+            }
+        }
+
+        return $out;
+    }
+
+    private function enqueue(string $rel): void
+    {
+        if (!isset($this->queue[$rel]) && \count($this->queue) < self::MAX_QUEUE) {
+            $this->queue[$rel] = true;
+            $this->added[$rel] = true;
+            $this->dirtyQueue  = true;
+        }
+    }
+
+    /** Are all the WebP files of the copies of an entry there? */
     private function copiesThere(array $entry): bool
     {
-        foreach (array_merge(array_values((array) ($entry['v'] ?? [])), array_values((array) ($entry['f'] ?? []))) as $copy) {
+        return $this->filesThere(array_merge(array_values((array) ($entry['v'] ?? [])), array_values((array) ($entry['f'] ?? []))));
+    }
+
+    /** @param array<int|string, string> $copies relative paths */
+    private function filesThere(array $copies): bool
+    {
+        foreach ($copies as $copy) {
             if (!is_file($this->root . '/' . $copy)) {
                 return false;
             }
@@ -203,11 +284,13 @@ final class ImageOptimizer
     // ---------------------------------------------------------------- making the copies
 
     /**
-     * Makes the copies of queued pictures for at most $seconds.
+     * Makes the copies of queued pictures for at most $seconds (a picture begun is finished). $extra:
+     * also the copies in the newer formats (formats()) — slow (AVIF: seconds for a large picture), so
+     * never while a visitor waits; one begun after $seconds is left for a later round.
      *
      * @return int pictures that got new copies
      */
-    public function work(float $seconds, int $maxPixels = self::MAX_PIXELS): int
+    public function work(float $seconds, int $maxPixels = self::MAX_PIXELS, bool $extra = true): int
     {
         if (!$this->queue || !self::supported()) {
             return 0;
@@ -238,11 +321,32 @@ final class ImageOptimizer
                 unset($this->queue[$rel]);
                 $this->dirtyQueue = true;
                 $this->save(false);
-                $entry = $this->make((string) $rel, $maxPixels);
-                if ($entry !== null) {
-                    $this->put((string) $rel, $entry);
-                    $made += $entry['x'] === 'ok' ? 1 : 0;
+                $rel   = (string) $rel;
+                $entry = $this->current($rel);
+                $new   = false;
+                if ($entry === null) {
+                    $entry = $this->make($rel, $maxPixels);
+                    if ($entry !== null) {
+                        $this->put($rel, $entry);
+                        $new = $entry['x'] === 'ok';
+                    }
                 }
+                $missing = $entry !== null && $extra && microtime(true) - $start <= $seconds ? $this->missing($entry) : [];
+                if ($missing) {
+                    // noted as tried before the work: a picture whose encoding makes PHP die (memory, time)
+                    // is not tried again with every page
+                    foreach ($missing as $format) {
+                        $entry[ImageFormats::KEYS[$format]] = [];
+                    }
+                    $this->put($rel, $entry);
+                    $this->save();
+                    $entry = $this->extras($rel, $entry, $missing);
+                    $this->put($rel, $entry);
+                    foreach ($missing as $format) {
+                        $new = $new || !empty($entry[ImageFormats::KEYS[$format]]);
+                    }
+                }
+                $made += $new ? 1 : 0;
                 // the parts of the manifest at most once a second and at the end, not after every
                 // picture; a round cut short loses a second of work at most (made again)
                 $flush = microtime(true) - $saved >= 1.0;
@@ -313,27 +417,109 @@ final class ImageOptimizer
         if (($type !== IMAGETYPE_JPEG && $type !== IMAGETYPE_PNG) || ($turn >= 5 ? $h : $w) < self::MIN_WIDTH || $entry['s'] < self::MIN_BYTES) {
             return $entry;
         }
-        $img = $type === IMAGETYPE_JPEG ? @imagecreatefromjpeg($path) : @imagecreatefrompng($path);
+        $img = self::open($path, $type, $w, $h, $turn);
         if (!$img) {
             $entry['x'] = 'fail';
 
             return $entry;
         }
-        $img = self::trueColor($img, $w, $h, $type === IMAGETYPE_PNG);
-        if ($turn > 1) {
-            $img = self::upright($img, $turn);
-            if (!$img) {
-                // a copy on its side would be worse than none
-                $entry['x'] = 'fail';
-
-                return $entry;
-            }
-            [$w, $h] = [imagesx($img), imagesy($img)];
-        }
+        [$w, $h]    = [imagesx($img), imagesy($img)];
         $entry['v'] = $this->copies($img, $w, $h, $dir, $hash . '-' . $name, self::WIDTHS, $entry['s']);
         $entry['x'] = $entry['v'] ? 'ok' : 'skip';
 
         return $entry;
+    }
+
+    /**
+     * A JPEG or PNG read as true colour (its transparency kept) and turned upright as its EXIF data
+     * says (a copy on its side would be worse than none): null when GD cannot do it.
+     */
+    private static function open(string $path, int $type, int $w, int $h, int $turn): ?\GdImage
+    {
+        $img = $type === IMAGETYPE_JPEG ? @imagecreatefromjpeg($path) : @imagecreatefrompng($path);
+        if (!$img) {
+            return null;
+        }
+        $img = self::trueColor($img, $w, $h, $type === IMAGETYPE_PNG);
+
+        return $turn > 1 ? self::upright($img, $turn) : $img;
+    }
+
+    /**
+     * The copies in the newer formats $formats of a picture with WebP copies: in the widths of its WebP
+     * copies, named as they are. A format is kept only when its copies together are lighter than the
+     * WebP ones (the browser takes the newer format whenever it can show it); else, and when it could
+     * not be written, the entry notes it as tried ([]).
+     */
+    private function extras(string $rel, array $entry, array $formats): array
+    {
+        $path = $this->root . '/' . $rel;
+        $info = @getimagesize($path);
+        if (!\is_array($info) || !\in_array((int) $info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG], true) || $info[0] * $info[1] > self::MAX_PIXELS) {
+            return $entry;
+        }
+        [$w, $h, $type] = [(int) $info[0], (int) $info[1], (int) $info[2]];
+        $turn           = (int) ($entry['o'] ?? 1);
+        if (!self::raiseMemory($w * $h * ($turn > 1 ? 15 : 10) + 32 * 1024 * 1024)) {
+            return $entry;
+        }
+        $img = self::open($path, $type, $w, $h, $turn);
+        if (!$img) {
+            return $entry;
+        }
+        [$w, $h] = [imagesx($img), imagesy($img)];
+        $alpha   = $type === IMAGETYPE_PNG && ImageFormats::transparent($path);
+        $this->mimeTypes();
+        $webp    = 0;
+        foreach ($entry['v'] as $copy) {
+            $webp += (int) @filesize($this->root . '/' . $copy);
+        }
+        foreach ($formats as $format) {
+            $copies = [];
+            $bytes  = 0;
+            // a way that loses transparency: the WebP copies serve such a picture
+            if ($alpha && ImageFormats::opaqueOnly($this->via[$format])) {
+                $entry[ImageFormats::KEYS[$format]] = [];
+                continue;
+            }
+            foreach ($entry['v'] as $width => $name) {
+                $width = (int) $width;
+                $out   = (string) preg_replace('#\.webp$#', '.' . $format, (string) $name);
+                $copy  = $out === $name ? null : ($width >= $w ? $img : @imagescale($img, $width, max(1, (int) round($h * $width / $w)), IMG_BICUBIC));
+                if ($copy && $copy !== $img) {
+                    imagealphablending($copy, false);
+                    imagesavealpha($copy, true);
+                }
+                if (!$copy || !ImageFormats::write($copy, $format, $this->via[$format], $this->root . '/' . $out, $alpha)) {
+                    $bytes = PHP_INT_MAX;
+                    break;
+                }
+                $copies[$width] = $out;
+                clearstatcache(true, $this->root . '/' . $out);
+                $bytes += (int) @filesize($this->root . '/' . $out);
+            }
+            if ($bytes >= $webp) {
+                foreach ($copies as $made) {
+                    @unlink($this->root . '/' . $made);
+                }
+                $copies = [];
+            }
+            $entry[ImageFormats::KEYS[$format]] = $copies;
+        }
+
+        return $entry;
+    }
+
+    /**
+     * Apache and LiteSpeed send the newer formats with their types: an older mime.types may not know
+     * them, and with "nosniff" (MerTools' security headers) a wrong type can keep them from showing.
+     */
+    private function mimeTypes(): void
+    {
+        $file = $this->root . '/' . self::DIR . '/.htaccess';
+        if (!is_file($file) && (is_dir(\dirname($file)) || @mkdir(\dirname($file), 0755, true))) {
+            @file_put_contents($file, "<IfModule mod_mime.c>\nAddType image/avif .avif\nAddType image/jxl .jxl\n</IfModule>\n");
+        }
     }
 
     /**
@@ -384,8 +570,10 @@ final class ImageOptimizer
     // ---------------------------------------------------------------- figures and clean-up
 
     /**
-     * @return array{ok: int, pending: int, skipped: int, failed: int, files: int, bytes: int, unused: int, unusedBytes: int}
-     *         unused: copies no entry names any more, removed a week after they were found so (sweep())
+     * @return array{ok: int, pending: int, skipped: int, failed: int, files: int, bytes: int, unused: int, unusedBytes: int,
+     *         formats: array<string, array{files: int, bytes: int}>}
+     *         unused: copies no entry names any more, removed a week after they were found so (sweep());
+     *         formats: the copies of each format (webp, avif, jxl)
      */
     public function stats(): array
     {
@@ -398,12 +586,16 @@ final class ImageOptimizer
             }
         }
         [$files, $bytes, $unused, $unusedBytes] = [0, 0, 0, 0];
-        $dir = $this->root . '/' . self::DIR;
+        $formats = array_fill_keys(self::EXTENSIONS, ['files' => 0, 'bytes' => 0]);
+        $dir     = $this->root . '/' . self::DIR;
         if (is_dir($dir)) {
             foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)) as $f) {
-                if ($f->isFile() && str_ends_with($f->getFilename(), '.webp')) {
+                $format = $f->isFile() ? self::copyFormat($f->getFilename()) : '';
+                if ($format !== '') {
                     $files++;
                     $bytes += $f->getSize();
+                    $formats[$format]['files']++;
+                    $formats[$format]['bytes'] += $f->getSize();
                     if (!isset($used[$this->relativeCopy($f->getPathname())])) {
                         $unused++;
                         $unusedBytes += $f->getSize();
@@ -413,14 +605,15 @@ final class ImageOptimizer
         }
 
         return ['ok' => $counts['ok'], 'pending' => \count($this->queue), 'skipped' => $counts['skip'], 'failed' => $counts['fail'],
-            'files' => $files, 'bytes' => $bytes, 'unused' => $unused, 'unusedBytes' => $unusedBytes];
+            'files' => $files, 'bytes' => $bytes, 'unused' => $unused, 'unusedBytes' => $unusedBytes, 'formats' => $formats];
     }
 
     /**
      * The daily tidying up, under the lock of the work: the entries of pictures that are gone are
-     * dropped, and a copy no entry names any more (an older copy of a changed picture, a copy of a
-     * removed one) is removed once it has been unused for GRACE: a page kept before (by MerTools, a
-     * proxy or a browser) may still show it. Copies a worker left half written go after an hour.
+     * dropped, so are the copies of the newer formats not in formats() (switched off), and a copy no
+     * entry names any more (an older copy of a changed picture, a copy of a removed one) is removed once
+     * it has been unused for GRACE: a page kept before (by MerTools, a proxy or a browser) may still show
+     * it. Copies a worker left half written go after an hour.
      *
      * @return array{dropped: int, removed: int, unused: int} entries dropped, copies removed, copies waiting
      */
@@ -446,17 +639,25 @@ final class ImageOptimizer
             foreach ($this->partFiles() as $part => $file) {
                 $entries = self::readJson($file);
                 $kept    = [];
+                $changed = false;
                 foreach ($entries as $rel => $entry) {
                     if (!\is_array($entry) || !is_file($this->root . '/' . $rel)) {
                         $done['dropped']++;
                         continue;
+                    }
+                    // a newer format switched off (or no longer made here): its copies become unused, removed a week later
+                    foreach (ImageFormats::KEYS as $format => $key) {
+                        if (isset($entry[$key]) && !isset($this->via[$format])) {
+                            unset($entry[$key]);
+                            $changed = true;
+                        }
                     }
                     $kept[$rel] = $entry;
                     foreach (self::copiesOf($entry) as $copy) {
                         $used[$copy] = true;
                     }
                 }
-                if (\count($kept) !== \count($entries)) {
+                if ($changed || \count($kept) !== \count($entries)) {
                     self::writeJson($file, $kept);
                 }
             }
@@ -480,7 +681,7 @@ final class ImageOptimizer
                         continue;
                     }
                     $rel = $this->relativeCopy($path);
-                    if (!str_ends_with($name, '.webp') || isset($used[$rel])) {
+                    if (self::copyFormat($name) === '' || isset($used[$rel])) {
                         continue;
                     }
                     $since = (int) ($seen[$rel] ?? $now);
@@ -775,13 +976,29 @@ final class ImageOptimizer
         return \count($entries) > self::MAX_PART ? \array_slice($entries, -self::MAX_PART, null, true) : $entries;
     }
 
-    /** @return string[] the files of the copies of an entry, relative to the site root */
+    /** @return string[] the files of the copies of an entry (every format), relative to the site root */
     private static function copiesOf(array $entry): array
     {
-        return array_map('strval', array_merge(array_values((array) ($entry['v'] ?? [])), array_values((array) ($entry['f'] ?? []))));
+        $all = [];
+        foreach (array_merge(['v', 'f'], array_values(ImageFormats::KEYS)) as $key) {
+            $all = array_merge($all, array_values((array) ($entry[$key] ?? [])));
+        }
+
+        return array_map('strval', $all);
     }
 
-    /** A file of the copies folder as the manifest names it (media/mertools-img/ab/….webp). */
+    /** the file types of the copies: what the figures count and the tidying up may remove */
+    public const EXTENSIONS = ['webp', 'avif', 'jxl'];
+
+    /** The format of a copy by its name ('webp', 'avif', 'jxl'), '' for another file. */
+    private static function copyFormat(string $name): string
+    {
+        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+
+        return \in_array($ext, self::EXTENSIONS, true) ? $ext : '';
+    }
+
+    /** A file of the copies folder as the manifest names it (media/mertools-img/ab/….webp, .avif, .jxl). */
     private function relativeCopy(string $path): string
     {
         return ltrim(str_replace('\\', '/', substr($path, \strlen($this->root))), '/');

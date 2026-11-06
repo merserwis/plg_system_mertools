@@ -41,12 +41,7 @@ const run = async (body) => {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: scheme, acceptDownloads: true });
     await ctx.addCookies([{ name: 'userColorScheme', value: scheme, url: URL_ }]);
     const page = await ctx.newPage();
-    page.on('pageerror', (e) => {
-      // Gridbox 2.20.5's own: its page settings ask for the product options and user groups without the
-      // session token its editor now wants (403), then read the empty answer — not MerTools'
-      if (/com_gridbox\/libraries\/modules\/pageSettings\.js/.test(String(e.stack).split('\n')[1] || '') && /of null \(reading '(forEach|list)'\)/.test(e.message)) return;
-      check('no script error on ' + page.url(), false, e.message);
-    });
+    page.on('pageerror', (e) => check('no script error on ' + page.url(), false, e.message));
     await page.goto(ADMIN);
     await page.fill('#mod-login-username', user);
     await page.fill('#mod-login-password', pass);

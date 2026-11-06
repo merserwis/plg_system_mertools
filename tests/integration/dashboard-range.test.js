@@ -2,7 +2,8 @@
  * Integration test of the range of dates of Gridbox's dashboard (1.13.1), on the docker Joomla + Gridbox:
  * a range chosen in Gridbox's own list (Month) is the one the dashboard opens with next time — its
  * statistics asked for in that range —, own dates too (Gridbox's date event, as its calendar sends it);
- * the arrows that move the day are not a choice; with the setting off it opens in Day as before.
+ * the arrows that move the day are not a choice; with the setting off it opens in Day as before;
+ * own dates kept are asked for alone (1.13.4: not also today's, whose answer could come last).
  *
  *   node tests/integration/dashboard-range.test.js [--install]
  */
@@ -21,11 +22,15 @@ run(async ({ login }) => {
     sql(`UPDATE #__extensions SET params = JSON_SET(params, '$.dash_range', '1') WHERE ${PLUGIN}`);
     // the statistics Gridbox asks for: the last request's range
     let last = null;
+    let asked = [];
     page.on('request', (r) => {
-      if (/task=orders\.getStatistic/.test(r.url())) last = r.postData() || '';
+      if (!/task=orders\.getStatistic/.test(r.url())) return;
+      last = r.postData() || '';
+      asked.push(field('type') + ' ' + field('date'));
     });
     const open = async () => {
       last = null;
+      asked = [];
       await page.goto(ADMIN + 'index.php?option=com_gridbox&view=dashboard');
       await page.waitForSelector('.ba-store-statistic-select');
       await page.waitForTimeout(2500);
@@ -57,6 +62,8 @@ run(async ({ login }) => {
     s = await open();
     check('own dates kept with their dates', s.type === 'c' && s.value === '2026-10-01 - 2026-10-15' && /2026.*-.*2026/.test(s.text), JSON.stringify(s));
     check('…its statistics asked for those dates', field('type') === 'c' && field('date') === '2026-10-01 - 2026-10-15', String(last).slice(0, 300));
+    // Gridbox draws whichever answer comes last: no request for other own dates (today's, of its list) beside them
+    check('…and for no other own dates', asked.filter((a) => a.startsWith('c ')).length === 1, JSON.stringify(asked));
     // off: as Gridbox
     sql(`UPDATE #__extensions SET params = JSON_SET(params, '$.dash_range', '0') WHERE ${PLUGIN}`);
     s = await open();

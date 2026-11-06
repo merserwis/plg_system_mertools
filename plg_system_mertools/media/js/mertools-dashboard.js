@@ -33,8 +33,18 @@
       const li = select.querySelector('li[data-value="' + saved.type + '"]');
       if (li) {
         text.value = li.dataset.text || li.textContent.trim();
-        $(hidden).val(saved.type).trigger('change');
-        if (saved.type === 'c' && day(saved.from) && day(saved.to) && wrapper) {
+        const own = saved.type === 'c' && day(saved.from) && day(saved.to) && wrapper;
+        // own dates: Gridbox's change would ask for today's figures and its date event for those dates,
+        // both at once, and draw whichever answer comes last — only the second is asked for
+        const page = own && typeof DashboardPage === 'function' && typeof DashboardPage.statisticFilter === 'function' ? DashboardPage : null;
+        const filter = page && page.statisticFilter;
+        if (page) page.statisticFilter = () => {};
+        try {
+          $(hidden).val(saved.type).trigger('change');
+        } finally {
+          if (page) page.statisticFilter = filter;
+        }
+        if (own) {
           wrapper.querySelectorAll('.ba-store-statistic-custom-action input').forEach((input) => {
             input.value = input.dataset.key === 'to' ? saved.to : saved.from;
           });

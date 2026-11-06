@@ -46,14 +46,15 @@ final class Speedup
      *    ZONE_EAGER images) load at once, the largest of them first (fetchpriority); every image
      *    further down waits until the visitor scrolls near it (the browser's own lazy loading);
      *  - with $copies: lighter copies in the size of the screen (srcset), and for a heavy animated
-     *    GIF at the top ($gif) its first frame at once, the animation after the page has loaded.
+     *    GIF at the top ($gif) its first frame at once, the animation after the page has loaded;
+     *    copies in newer formats (JPEG XL, AVIF) in a <picture> around the image (picture()).
      *
      * Tracking pixels, hidden images and images of other sites are left alone.
      *
      * @param string        $html
      * @param string        $siteBase "https://www.merserwis.pl" (scheme and host, no slash)
      * @param callable      $size     fn(string $url): ?array [width, height] of a local image
-     * @param callable|null $copies   fn(string $url): ?array ImageOptimizer::lookup()
+     * @param callable|null $copies   fn(string $url, bool $newer): ?array ImageOptimizer::lookup() ($newer: it may be in a <picture>)
      * @param bool          $plain    also images Gridbox does not load by script (lazy loading off in Gridbox)
      * @param bool          $gif      a heavy animated GIF at the top: first frame first
      * @param string        $nonce    the page's CSP nonce (nonced())
@@ -69,9 +70,10 @@ final class Speedup
         $zoneLeft    = self::ZONE_EAGER;
         $priority    = !preg_match('#\sfetchpriority="high"#i', $html);
         $animated    = false;
+        $spans       = null;
 
         $html = (string) preg_replace_callback('#<img\b[^>]*>#i',
-            function (array $m) use ($siteBase, $size, $copies, $plain, $gif, $header, $headerStart, $headerEnd, $zoneEnd, &$eagerLeft, &$zoneLeft, &$priority, &$animated, &$html) {
+            function (array $m) use ($siteBase, $size, $copies, $plain, $gif, $header, $headerStart, $headerEnd, $zoneEnd, &$eagerLeft, &$zoneLeft, &$priority, &$animated, &$html, &$spans) {
                 [$tag, $offset] = $m[0];
                 $lazySrc = preg_match('#\sdata-gridbox-lazyload-src="([^"]+)"#i', $tag, $ls) ? $ls[1] : null;
                 if ($lazySrc === null && (!$plain || !preg_match('#\ssrc="([^"]+)"#i', $tag, $ps))) {
@@ -131,7 +133,10 @@ final class Speedup
                 }
 
                 // lighter copies; the first frame of a heavy animated GIF at the top
-                $info  = $copies ? $copies($src) : null;
+                // only a picture that can be put in a <picture> asks for the newer formats
+                $wrap    = $copies && self::wrappable($html, $offset, $tag, $spans ??= self::enclosures($html));
+                $info    = $copies ? $copies($src, $wrap) : null;
+                $sources = [];
                 $sizes = $info ? self::sizes($html, $offset, $dims ? (int) $dims[0] : 0) : null;
                 if ($info && $sizes !== null && !preg_match('#\ssrcset=#i', $tag)) {
                     if ($gif && $eager && !$inHeader && isset($info['frame'], $info['anim'])) {
@@ -142,6 +147,10 @@ final class Speedup
                     } elseif (isset($info['srcset'])) {
                         $tag = self::addAttr($tag, 'srcset', $info['srcset']);
                         $tag = self::addAttr($tag, 'sizes', $sizes);
+                        // the newer formats (JPEG XL, AVIF): the browser takes the first it can show
+                        if (!empty($info['sources']) && $wrap) {
+                            $sources = $info['sources'];
+                        }
                     }
                 }
                 // the largest picture at the top is usually what the visitor waits for: fetched first
@@ -150,7 +159,8 @@ final class Speedup
                     $priority = false;
                 }
 
-                return $tag;
+                // last: every attribute above belongs to the <img>
+                return $sources ? self::picture($tag, $sources, (string) $sizes) : $tag;
             }, $html, -1, $count, PREG_OFFSET_CAPTURE);
 
         if ($animated) {
@@ -158,6 +168,75 @@ final class Speedup
         }
 
         return $html;
+    }
+
+    /**
+     * May a picture be put in a <picture> with its newer formats? Not one whose parent is a link
+     * (Gridbox's lightbox opens only for a picture whose parent is not a link), not one in a <picture>
+     * or a <noscript> already, not a picture of Gridbox's before/after slider (its CSS: img + img).
+     */
+    public static function wrappable(string $html, int $offset, string $tag, ?array $spans = null): bool
+    {
+        if (preg_match('#\sclass="[^"]*\bba-(?:before|after)-img\b#i', $tag)) {
+            return false;
+        }
+        $before = substr($html, max(0, $offset - 4000), min($offset, 4000));
+        if (preg_match('#<a\b[^>]*>\s*$#i', $before)) {
+            return false;
+        }
+        foreach ($spans ?? self::enclosures($html) as [$start, $end]) {
+            if ($offset > $start && $offset < $end) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Where the <picture> and <noscript> elements of a page are, [start, end] of each — however long
+     * what they hold (a data: address of thousands of characters). One left open runs to the end.
+     *
+     * @return array<int, array{0: int, 1: int}>
+     */
+    public static function enclosures(string $html): array
+    {
+        $spans = [];
+        foreach (['picture', 'noscript'] as $name) {
+            if (!preg_match_all('#<(/?)' . $name . '\b#i', $html, $m, PREG_OFFSET_CAPTURE)) {
+                continue;
+            }
+            $open = null;
+            foreach ($m[0] as $i => [, $at]) {
+                if ($m[1][$i][0] === '') {
+                    $open ??= $at;
+                } elseif ($open !== null) {
+                    $spans[] = [$open, $at];
+                    $open    = null;
+                }
+            }
+            if ($open !== null) {
+                $spans[] = [$open, \strlen($html)];
+            }
+        }
+
+        return $spans;
+    }
+
+    /**
+     * The <img> in a <picture> with a <source> for each newer format (type => srcset, the first the
+     * browser can show wins; the <img> with its WebP srcset and the original serves the others). The
+     * <picture> makes no box of its own (display: contents): the picture is laid out as before.
+     */
+    public static function picture(string $img, array $sources, string $sizes): string
+    {
+        $out = '<picture style="display:contents">';
+        foreach ($sources as $type => $srcset) {
+            $out .= '<source type="' . htmlspecialchars((string) $type, ENT_QUOTES, 'UTF-8', false) . '" srcset="'
+                . htmlspecialchars((string) $srcset, ENT_QUOTES, 'UTF-8', false) . '" sizes="' . htmlspecialchars($sizes, ENT_QUOTES, 'UTF-8', false) . '">';
+        }
+
+        return $out . $img . '</picture>';
     }
 
     /** the first section of the page: so many of its images load at once */
@@ -213,7 +292,7 @@ final class Speedup
      * media rule (data-mt-bg="n"). The same address in data-src (Gridbox loads slides from it) is
      * replaced too. Pictures without copies (yet) and of other sites stay as they are.
      *
-     * @param callable $copies   fn(string $url): ?array ImageOptimizer::lookup()
+     * @param callable $copies   fn(string $url, bool $newer): ?array ImageOptimizer::lookup() (called with $newer false)
      * @param array    $variants filled: full-width copy => [768 => copy, 480 => copy] (for a preload of the same picture)
      * @param string   $nonce    the page's CSP nonce (nonced())
      */
@@ -233,7 +312,8 @@ final class Speedup
                 if (!self::isLocal($src, $siteBase) || !preg_match('#\.(jpe?g|png)(?:[?\#]|$)#i', $src)) {
                     return $tag;
                 }
-                $info = $copies($src);
+                // a background has no <picture>: its WebP copies only, no newer formats asked for
+                $info = $copies($src, false);
                 if (!$info || empty($info['srcset']) || !preg_match_all('#(\S+) (\d+)w#', $info['srcset'], $c, PREG_SET_ORDER)) {
                     return $tag;
                 }

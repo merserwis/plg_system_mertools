@@ -35,6 +35,17 @@
       if (s.failed) { row(T.FAILED, num(s.failed)); }
       row(T.FILES, num(s.files) + ' · ' + mb(s.bytes));
       if (s.unused) { row(T.UNUSED, num(s.unused) + ' · ' + mb(s.unusedBytes)); }
+      // the newer formats: switched on or not, what this server makes them with, their copies
+      Object.keys(s.newer || {}).forEach(function (f) {
+        var n = s.newer[f], way = String(n.via || '').replace(/-opaque$/, ''), opaque = /-opaque$/.test(n.via || '');
+        var name = { gd: 'GD', imagick: 'Imagick' }[way] || way, text;
+        if (!n.finish) { text = T.FMT_NOFINISH; }
+        else if (!way) { text = T.FMT_NONE.replace('%s', T['FMT_NONE_' + f.toUpperCase()]); }
+        else { text = (n.on ? T.FMT_ON : T.FMT_OFF).replace('%s', name) + (opaque ? '; ' + T.FMT_OPAQUE : ''); }
+        var c = (s.formats || {})[f];
+        if (c && c.files) { text += ' · ' + T.FMT_COPIES.replace('%s', num(c.files)) + ' · ' + mb(c.bytes); }
+        row(T['FMT_' + f.toUpperCase()], text);
+      });
       run.disabled = !s.supported;
       if (!s.supported) { message('warning', T.NO_GD); }
     }

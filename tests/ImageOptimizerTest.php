@@ -7,7 +7,10 @@
 define('_JEXEC', 1);
 require __DIR__ . '/../plg_system_mertools/src/Tool/ImageSize.php';
 require __DIR__ . '/../plg_system_mertools/src/Tool/ImageOptimizer.php';
+require __DIR__ . '/../plg_system_mertools/src/Tool/ImageFormats.php';
+require __DIR__ . '/../plg_system_mertools/src/Tool/ImageCompressor.php';
 
+use Merserwis\Plugin\System\MerTools\Tool\ImageFormats;
 use Merserwis\Plugin\System\MerTools\Tool\ImageOptimizer;
 use Merserwis\Plugin\System\MerTools\Tool\ImageSize;
 
@@ -310,6 +313,164 @@ proc_close($child);
 $check('clear: waits until the worker has finished', $waited > 0.8, true);
 $check('clear: then everything gone', is_dir($root . '/media/mertools-img') && (new FilesystemIterator($root . '/media/mertools-img'))->valid(), false);
 $check('clear: the parts of the manifest gone too', glob($cache . '/mertools-images*.json'), []);
+
+// ---------------------------------------------------------------- 1.14.0: the newer formats (AVIF, JPEG XL) in <picture>
+$check('is: AVIF by its first bytes', [ImageFormats::is('avif', (function () use ($root) { file_put_contents($root . '/t.avif', "\0\0\0\x1cftypavif\0\0\0\0"); return $root . '/t.avif'; })()),
+    ImageFormats::is('avif', (function () use ($root) { file_put_contents($root . '/t.heic', "\0\0\0\x18ftypheic\0\0\0\0"); return $root . '/t.heic'; })())], [true, false]);
+$check('is: JPEG XL, a code stream and a container', [ImageFormats::is('jxl', (function () use ($root) { file_put_contents($root . '/t.jxl', "\xFF\x0A..."); return $root . '/t.jxl'; })()),
+    ImageFormats::is('jxl', (function () use ($root) { file_put_contents($root . '/t2.jxl', "\x00\x00\x00\x0CJXL \x0D\x0A\x87\x0A"); return $root . '/t2.jxl'; })()),
+    ImageFormats::is('jxl', $root . '/t.avif')], [true, true, false]);
+// the real ways of this PHP: probed once, kept with what they depend on
+$real = ImageFormats::encoders($cache);
+$check('encoders: what this server can make (kept in the cache)', [is_file($cache . '/mertools-img-formats.json'), array_diff(array_keys($real), ['avif', 'jxl'])], [true, []]);
+$kept = json_decode((string) file_get_contents($cache . '/mertools-img-formats.json'), true);
+file_put_contents($cache . '/mertools-img-formats.json', json_encode(['key' => $kept['key'], 'at' => time(), 'via' => ['avif' => 'kept']]));
+$check('encoders: read from the cache while fresh', ImageFormats::encoders($cache), ['avif' => 'kept']);
+file_put_contents($cache . '/mertools-img-formats.json', json_encode(['key' => 'other PHP', 'at' => time(), 'via' => ['avif' => 'kept']]));
+$check('encoders: probed again for another PHP or ImageMagick', ImageFormats::encoders($cache), $real);
+$check('encoders: probed again when asked (the panel)', ImageFormats::encoders($cache, true), $real);
+
+// fake encoders: AVIF small, JPEG XL heavier than the WebP copies
+$fakeWrites = [];
+ImageFormats::fake([
+    'avif' => function (GdImage $img, string $file) use (&$fakeWrites) { $fakeWrites[] = imagesx($img); return file_put_contents($file, "\0\0\0\x1cftypavif" . str_repeat('a', 40)) > 0; },
+    'jxl'  => fn (GdImage $img, string $file) => file_put_contents($file, "\xFF\x0A" . str_repeat('j', 4000000)) > 0,
+]);
+$via = ImageFormats::encoders($cache);
+$check('formats: JPEG XL first, then AVIF (the order of <source>)', $via, ['jxl' => 'fake', 'avif' => 'fake']);
+$pg = (new ImageOptimizer($root, $site, '', $cache, 1000))->formats($via);
+$check('a new picture: queued', $pg->lookup('/images/photo one.jpg'), null);
+$pg->lookup('/images/sub/alpha.png');
+$pg->save();
+$check('work: WebP and the newer formats in one round', (new ImageOptimizer($root, $site, '', $cache, 1000))->formats($via)->work(60.0), 2);
+$pg = (new ImageOptimizer($root, $site, '', $cache, 1000))->formats($via);
+$p  = $pg->lookup('/images/photo one.jpg');
+$strip = fn (string $s) => preg_replace('#/media/mertools-img/[0-9a-f]{2}/[0-9a-f]{10}-#', '', $s);
+$check('photo: AVIF offered in the widths of its WebP copies', $strip($p['sources']['image/avif'] ?? ''), str_replace('.webp', '.avif', $strip($p['srcset'] ?? '')));
+$check('…made from copies of those widths', $fakeWrites, [480, 768, 1080, 1440, 1600, 480, 768, 1000]);
+$check('…JPEG XL not lighter than the WebP copies: not offered, its files removed', [array_keys($p['sources'] ?? []), glob($root . '/media/mertools-img/*/*.jxl')], [['image/avif'], []]);
+$e = $pg->entries()['images/photo one.jpg'];
+$check('…noted as tried: not made again', [$e['j'] ?? null, $pg->pending()], [[], 0]);
+$check('the copies folder tells Apache the types of AVIF and JPEG XL', (string) @file_get_contents($root . '/media/mertools-img/.htaccess'),
+    "<IfModule mod_mime.c>\nAddType image/avif .avif\nAddType image/jxl .jxl\n</IfModule>\n");
+$check('png: AVIF too', isset($pg->lookup('/images/sub/alpha.png')['sources']['image/avif']), true);
+$check('setting off (no formats): WebP only', array_key_exists('sources', (new ImageOptimizer($root, $site, '', $cache, 1000))->lookup('/images/photo one.jpg') ?? []), false);
+$st = $pg->stats();
+$check('stats: the copies of each format', [$st['formats']['avif']['files'], $st['formats']['jxl']['files'], $st['formats']['webp']['files'] > 0], [8, 0, true]);
+// an AVIF copy removed by hand: offered without it, made again
+unlink($root . '/media/mertools-img/' . explode('/media/mertools-img/', explode(' ', $p['sources']['image/avif'])[0])[1]);
+$pg = (new ImageOptimizer($root, $site, '', $cache, 1000))->formats($via);
+$q  = $pg->lookup('/images/photo one.jpg');
+$check('an AVIF copy gone: WebP still offered, the picture queued', [isset($q['srcset']), isset($q['sources']), $pg->pending()], [true, false, 1]);
+$pg->save();
+$webpBefore = $pg->entries()['images/photo one.jpg']['v'];
+$mtimes = array_map(fn ($c) => filemtime($root . '/' . $c), $webpBefore);
+clearstatcache();
+$fakeWrites = [];
+(new ImageOptimizer($root, $site, '', $cache, 1000))->formats($via)->work(60.0);
+$check('…only the newer format made again (the WebP copies kept)', [count($fakeWrites), array_map(fn ($c) => filemtime($root . '/' . $c), $webpBefore) === $mtimes],
+    [5, true]);
+$check('…and offered again', isset((new ImageOptimizer($root, $site, '', $cache, 1000))->formats($via)->lookup('/images/photo one.jpg')['sources']['image/avif']), true);
+// while a visitor waits ($extra false): WebP only, the newer formats left for a later round
+$im2 = imagecreatetruecolor(900, 600);
+for ($i = 0; $i < 2500; $i++) {
+    imagefilledellipse($im2, mt_rand(0, 900), mt_rand(0, 600), mt_rand(5, 50), mt_rand(5, 50), imagecolorallocate($im2, mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255)));
+}
+imagejpeg($im2, $root . '/images/second.jpg', 92);
+$pg = (new ImageOptimizer($root, $site, '', $cache, 1000))->formats($via);
+$pg->lookup('/images/second.jpg');
+$pg->save();
+$fakeWrites = [];
+(new ImageOptimizer($root, $site, '', $cache, 1000))->formats($via)->work(60.0, ImageOptimizer::MAX_PIXELS, false);
+$pg = (new ImageOptimizer($root, $site, '', $cache, 1000))->formats($via);
+$r2 = $pg->lookup('/images/second.jpg');
+$check('no newer formats while a visitor waits: WebP offered, queued again for them', [count($fakeWrites), isset($r2['srcset']), isset($r2['sources']), $pg->pending()], [0, true, false, 1]);
+// an encoder that fails: noted as tried, WebP stays
+ImageFormats::fake(['avif' => fn () => false]);
+$pg->save();
+$w = (new ImageOptimizer($root, $site, '', $cache, 1000))->formats(ImageFormats::encoders($cache));
+$check('an encoder that fails: nothing new', $w->work(60.0), 0);
+$e2 = (new ImageOptimizer($root, $site, '', $cache, 1000))->entries()['images/second.jpg'];
+$check('…tried, WebP copies kept, no file left over', [$e2['a'] ?? null, count($e2['v']) > 0, glob($root . '/media/mertools-img/*/*second*.avif'), glob($root . '/media/mertools-img/*/*.tmp')], [[], true, [], []]);
+// a way that loses transparency (ImageMagick 6 and AVIF): pictures with transparency keep their WebP copies only
+ImageFormats::fake(['avif' => fn (GdImage $img, string $file) => file_put_contents($file, "\0\0\0\x1cftypavif" . str_repeat('a', 40)) > 0]);
+$check('transparent: a PNG with an alpha channel, not a JPEG', [ImageFormats::transparent($root . '/images/sub/alpha.png'), ImageFormats::transparent($root . '/images/second.jpg')], [true, false]);
+$opaquePng = imagecreatetruecolor(800, 500);
+for ($i = 0; $i < 2500; $i++) {
+    imagefilledellipse($opaquePng, mt_rand(0, 800), mt_rand(0, 500), mt_rand(5, 50), mt_rand(5, 50), imagecolorallocate($opaquePng, mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255)));
+}
+imagepng($opaquePng, $root . '/images/opaque.png');
+$check('transparent: a PNG without alpha channel or tRNS', ImageFormats::transparent($root . '/images/opaque.png'), false);
+// a palette PNG whose tRNS comes after 100 KB of text: found by walking the chunks
+$chunk = fn (string $type, string $data) => pack('N', strlen($data)) . $type . $data . pack('N', crc32($type . $data));
+$pal   = imagecreate(400, 300);
+imagecolorallocate($pal, 255, 255, 255);
+imagecolortransparent($pal, imagecolorallocate($pal, 0, 0, 0));
+ob_start();
+imagepng($pal);
+$bin  = (string) ob_get_clean();
+$plte = strpos($bin, 'PLTE') - 4;
+$plteEnd = $plte + 12 + unpack('N', substr($bin, $plte, 4))[1];
+$check('…the palette PNG made by GD has a tRNS', str_contains($bin, 'tRNS'), true);
+file_put_contents($root . '/images/late-trns.png', substr($bin, 0, $plte) . $chunk('tEXt', 'Comment' . "\0" . str_repeat('z', 100000)) . substr($bin, $plte));
+$check('transparent: a tRNS after 100 KB of other chunks', ImageFormats::transparent($root . '/images/late-trns.png'), true);
+file_put_contents($root . '/images/text-trns.png', substr($bin, 0, $plte) . $chunk('tEXt', 'Comment' . "\0" . 'tRNS in a text') . substr(str_replace('tRNS', 'tRNx', substr($bin, $plte, 200000)), 0));
+$check('transparent: the word tRNS inside another chunk does not count', ImageFormats::transparent($root . '/images/text-trns.png'), false);
+@unlink($root . '/images/late-trns.png');
+@unlink($root . '/images/text-trns.png');
+foreach (['images/sub/alpha.png', 'images/opaque.png'] as $u) {
+    $op = (new ImageOptimizer($root, $site, '', $cache, 1000))->formats(['avif' => 'fake-opaque']);
+    $op->lookup('/' . $u);
+    $op->save();
+}
+// alpha.png has its AVIF already: removed to be made again with the opaque way
+$ae = (new ImageOptimizer($root, $site, '', $cache, 1000))->entries()['images/sub/alpha.png']['a'] ?? [];
+foreach ($ae as $c) {
+    @unlink($root . '/' . $c);
+}
+$op = (new ImageOptimizer($root, $site, '', $cache, 1000))->formats(['avif' => 'fake-opaque']);
+$op->lookup('/images/sub/alpha.png');
+$op->save();
+(new ImageOptimizer($root, $site, '', $cache, 1000))->formats(['avif' => 'fake-opaque'])->work(60.0);
+$oe = (new ImageOptimizer($root, $site, '', $cache, 1000))->entries();
+$check('a way losing transparency: none for a transparent PNG, made for an opaque one', [$oe['images/sub/alpha.png']['a'] ?? null, count($oe['images/opaque.png']['a'] ?? [])], [[], 3]);
+
+// a picture that cannot be in a <picture> (a background, a link) does not ask for the newer formats
+$third = imagecreatetruecolor(700, 500);
+for ($i = 0; $i < 2000; $i++) {
+    imagefilledellipse($third, mt_rand(0, 700), mt_rand(0, 500), mt_rand(5, 50), mt_rand(5, 50), imagecolorallocate($third, mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255)));
+}
+imagejpeg($third, $root . '/images/background.jpg', 92);
+$bg = (new ImageOptimizer($root, $site, '', $cache, 1000))->formats(['avif' => 'fake']);
+$bg->lookup('/images/background.jpg', true, false);
+$bg->save();
+(new ImageOptimizer($root, $site, '', $cache, 1000))->formats(['avif' => 'fake'])->work(60.0, ImageOptimizer::MAX_PIXELS, false);
+$bg = (new ImageOptimizer($root, $site, '', $cache, 1000))->formats(['avif' => 'fake']);
+$bgSeen = $bg->lookup('/images/background.jpg', true, false);
+$check('a background: WebP copies, not queued again for AVIF', [isset($bgSeen['srcset']), $bg->pending()], [true, 0]);
+$bg->lookup('/images/background.jpg');
+$check('…the same picture as an <img>: queued for AVIF', $bg->pending(), 1);
+$bg->save();
+(new ImageOptimizer($root, $site, '', $cache, 1000))->work(1.0);
+
+// a PNG left by an encoder PHP stopped (*.png.tmp) goes with the other half-written files
+file_put_contents($root . '/media/mertools-img/x.webp.1.png.tmp', 'x');
+touch($root . '/media/mertools-img/x.webp.1.png.tmp', $now - 7200);
+(new ImageOptimizer($root, $site, '', $cache, 1000))->formats(['avif' => 'fake'])->sweep($now);
+$check('sweep: a PNG an encoder left behind removed after an hour', is_file($root . '/media/mertools-img/x.webp.1.png.tmp'), false);
+
+// the sweep removes AVIF copies no picture uses any more
+file_put_contents($root . '/media/mertools-img/stray.avif', 'x');
+$sw2 = (new ImageOptimizer($root, $site, '', $cache, 1000))->formats(['avif' => 'fake']);
+$check('sweep: an AVIF copy no entry names is unused, removed a week after', [$sw2->sweep($now)['unused'], $sw2->sweep($now + ImageOptimizer::GRACE + 1)['removed'], is_file($root . '/media/mertools-img/stray.avif')], [1, 1, false]);
+$avifNow = count(glob($root . '/media/mertools-img/*/*.avif'));
+$sw3 = new ImageOptimizer($root, $site, '', $cache, 1000);
+$r3  = $sw3->sweep($now);
+$check('sweep with AVIF switched off: its copies unused, the entries without them', [$r3['unused'], isset($sw3->entries()['images/photo one.jpg']['a']), $avifNow > 0], [$avifNow, false, true]);
+$check('…removed a week later, the WebP copies kept', [$sw3->sweep($now + ImageOptimizer::GRACE + 1)['removed'], count(glob($root . '/media/mertools-img/*/*.avif')), isset($sw3->lookup('/images/photo one.jpg')['srcset'])], [$avifNow, 0, true]);
+ImageFormats::fake(null);
+(new ImageOptimizer($root, $site, '', $cache, 1000))->clear();
+$check('clear: the AVIF copies gone too', glob($root . '/media/mertools-img/*/*.avif'), []);
 
 exec('rm -rf ' . escapeshellarg($root));
 echo $fail ? "\n$fail FAILED\n" : "\nALL PASS\n";

@@ -108,6 +108,12 @@ final class ImageCompressor
         return !\in_array('exec', $off, true);
     }
 
+    /** The path of a program of the server MerTools can use (jpegoptim, pngquant, cjxl, avifenc), '' when none. */
+    public static function program(string $name): string
+    {
+        return self::programs()[$name] ?? '';
+    }
+
     /** @return array<string, string> the programs of the server MerTools uses, name => path */
     private static function programs(): array
     {
@@ -118,7 +124,7 @@ final class ImageCompressor
         if (!self::canExec()) {
             return self::$programs;
         }
-        foreach (['jpegoptim', 'pngquant'] as $name) {
+        foreach (['jpegoptim', 'pngquant', 'cjxl', 'avifenc'] as $name) {
             $out  = [];
             $code = 1;
             @exec('command -v ' . $name . ' 2>/dev/null', $out, $code);

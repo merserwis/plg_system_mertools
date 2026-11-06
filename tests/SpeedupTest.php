@@ -100,6 +100,33 @@ $check('sizes: unknown width = no copies', Speedup::sizes('<div>', 5, 0), null);
 $check('sizes: after a list picture, own width again', Speedup::sizes('<div class="ba-col-12"><div class="ba-blog-post-image"><a href="/p"><img></a></div></div><div class="x">', 104, 602), '(max-width: 602px) 100vw, 602px');
 $check('srcset escaped', str_contains(Speedup::images('<header></header><div class="ba-section"></div><div class="ba-section"><img src="/images/photo-q.jpg"></div>', $site, $dimsOf,
     fn ($u) => ['srcset' => '/a b.webp 480w"x'], true), 'srcset="/a b.webp 480w&quot;x"'), true);
+// 1.14.0: the newer formats in a <picture> (JPEG XL, AVIF first; the <img> keeps WebP and the original)
+$fmt = fn ($u) => ['srcset' => '/m/p-480.webp 480w, /m/p-800.webp 800w', 'sources' => ['image/jxl' => '/m/p-480.jxl 480w, /m/p-800.jxl 800w', 'image/avif' => '/m/p-480.avif 480w, /m/p-800.avif 800w']];
+$pageOf = fn (string $body) => '<header></header><div class="ba-section"></div><div class="ba-section">' . $body . '</div>';
+$pic = Speedup::images($pageOf('<img src="/images/known.jpg" alt="a">'), $site, $size, $fmt, true);
+$check('picture: sources in order, then the img with WebP', $has($pic, '<picture style="display:contents"><source type="image/jxl" srcset="/m/p-480.jxl 480w, /m/p-800.jxl 800w" sizes="(max-width: 800px) 100vw, 800px">'
+    . '<source type="image/avif" srcset="/m/p-480.avif 480w, /m/p-800.avif 800w" sizes="(max-width: 800px) 100vw, 800px"><img style="aspect-ratio:800/600" src="/images/known.jpg" alt="a" loading="lazy"'), true);
+$check('…the img keeps its WebP srcset, the picture closed after it', (bool) preg_match('#<img [^>]*srcset="/m/p-480\.webp 480w, /m/p-800\.webp 800w"[^>]*></picture>#', $pic), true);
+$check('picture: idempotent', Speedup::images($pic, $site, $size, $fmt, true), $pic);
+$top = Speedup::images('<header></header><div class="ba-section"><img src="/images/known.jpg" alt="t"></div><div class="ba-section"></div>', $site, $size, $fmt, true);
+$check('picture: the largest picture at the top fetched first — on the img, the picture closed', (bool) preg_match('#<img [^>]*fetchpriority="high"[^>]*></picture>#', $top) && !str_contains($top, '</picture '), true);
+$check('picture: not for a picture whose parent is a link (Gridbox lightbox)', $has(Speedup::images($pageOf('<a href="/x"> <img src="/images/known.jpg"></a>'), $site, $size, $fmt, true), '<picture'), false);
+$check('…but for one in a link with more inside', $has(Speedup::images($pageOf('<a href="/x"><div class="ba-image-wrapper"><img src="/images/known.jpg"></div></a>'), $site, $size, $fmt, true), '<picture'), true);
+$check('picture: not inside a <picture> already', substr_count(Speedup::images($pageOf('<picture><source srcset="/x.webp"><img src="/images/known.jpg"></picture>'), $site, $size, $fmt, true), '<picture'), 1);
+$long = '<picture><source media="(max-width:600px)" srcset="data:image/webp;base64,' . str_repeat('A', 9000) . '"><img src="/images/known.jpg"></picture>';
+$check('picture: not inside a <picture> whose sources are longer than any window (a data: address)', substr_count(Speedup::images($pageOf($long), $site, $size, $fmt, true), '<picture'), 1);
+$check('…nor in a long <noscript>', $has(Speedup::images($pageOf('<noscript>' . str_repeat('x', 9000) . '<img src="/images/known.jpg"></noscript>'), $site, $size, $fmt, true), '<picture style'), false);
+$check('…but after a <picture> that is closed', substr_count(Speedup::images($pageOf($long . '<p>' . str_repeat('y', 5000) . '</p><img src="/images/known.jpg">'), $site, $size, $fmt, true), '<picture style="display:contents">'), 1);
+$check('enclosures: an open <picture> runs to the end', Speedup::enclosures('<p><picture><img></p>'), [[3, 21]]);
+$asked = [];
+$spy   = function (string $u, bool $newer = true) use (&$asked, $fmt) { $asked[] = basename($u) . ':' . ($newer ? 'newer' : 'webp'); return $fmt($u); };
+Speedup::images($pageOf('<img src="/images/known.jpg"><a href="/x"><img src="/images/known-link.jpg"></a>'), $site, $size, $spy, true);
+Speedup::backgrounds('<div style="background-image: url(/images/slide.jpg)"></div>', $site, $spy);
+$check('only a picture that can be in a <picture> asks for the newer formats (not a link, not a background)', $asked, ['known.jpg:newer', 'known-link.jpg:webp', 'slide.jpg:webp']);
+$check('picture: not in a <noscript>', $has(Speedup::images($pageOf('<noscript><img src="/images/known.jpg"></noscript>'), $site, $size, $fmt, true), '<picture'), false);
+$check('picture: not for the before/after slider (img + img)', $has(Speedup::images($pageOf('<div class="ba-before-after-wrapper"><img class="ba-before-img" src="/images/known.jpg"><img class="ba-after-img" src="/images/known.jpg"></div>'), $site, $size, $fmt, true), '<picture'), false);
+$check('picture: none without newer formats (WebP only, as before)', $has(Speedup::images($pageOf('<img src="/images/known.jpg">'), $site, $size, fn ($u) => ['srcset' => '/m/p-480.webp 480w'], true), '<picture'), false);
+$check('picture: a source escaped', $has(Speedup::picture('<img src="/a.jpg">', ['image/avif' => '/a b.avif 480w"x'], '100vw'), 'srcset="/a b.avif 480w&quot;x"'), true);
 $ic = Speedup::iconStyles($page);
 $check('icons: icon style sheet loads alongside', str_contains($ic, '<link rel="stylesheet" href="/templates/gridbox/library/icons/fontawesome/fontawesome.css" media="print" onload="this.media=\'all\'"><noscript><link rel="stylesheet" href="/templates/gridbox/library/icons/fontawesome/fontawesome.css"></noscript>'), true);
 $check('icons: other style sheets unchanged', str_contains($ic, '<link rel="stylesheet" href="/templates/gridbox/css/gridbox.css">'), true);
