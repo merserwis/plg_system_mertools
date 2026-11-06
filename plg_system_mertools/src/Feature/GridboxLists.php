@@ -550,6 +550,27 @@ final class GridboxLists extends Feature
     }
 
     /**
+     * Gridbox's dashboard: its sales statistics open in the range of dates last chosen (day, week,
+     * month, year, or own dates with them) instead of always the day — kept in the browser
+     * (mertools-dashboard.js).
+     */
+    public function dashboardScript(): void
+    {
+        $app = $this->plugin->app();
+        if (!(int) $this->plugin->params->get('dash_range', 1) || $app->getInput()->getCmd('option') !== 'com_gridbox'
+            || $app->getInput()->getCmd('format', 'html') !== 'html') {
+            return;
+        }
+        $body = (string) $app->getBody();
+        if (!str_contains($body, 'ba-store-statistic-select')) {
+            return;
+        }
+        $tail = '<script src="' . Uri::root(true) . '/media/plg_system_mertools/js/mertools-dashboard' . (JDEBUG ? '' : '.min') . '.js?' . MerTools::VERSION . '" defer></script>';
+        $pos  = strripos($body, '</body>');
+        $app->setBody($pos === false ? $body . $tail : substr($body, 0, $pos) . $tail . substr($body, $pos));
+    }
+
+    /**
      * The Gridbox panel in Joomla's dark mode: the dark twin of Gridbox's stylesheet (and of MerTools'
      * own boxes in it), applied only while Atum shows the administrator dark — chosen in its template
      * style, by the user, or by the system's setting. Made once per Gridbox stylesheet, kept in

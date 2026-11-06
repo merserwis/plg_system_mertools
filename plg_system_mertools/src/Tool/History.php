@@ -41,7 +41,7 @@ final class History
     public const PRODUCT_CONTENT = ['variations', 'extra_options', 'dimensions'];
 
     /** Gridbox tasks (controller.task, lower case) that change pages, the editor's save and the list actions */
-    public const TASKS = ['editor.gridboxajaxsave', 'editor.gridboxsave', 'editor.duplicate',
+    public const TASKS = ['editor.gridboxajaxsave', 'editor.gridboxsave', 'editor.savegridbox', 'editor.duplicate',
         'apps.publish', 'apps.unpublish', 'apps.addtrash', 'apps.contexttrash', 'apps.duplicate', 'apps.contextduplicate', 'apps.setfeatured',
         'apps.moveto', 'apps.pagemoveto',
         'pages.publish', 'pages.unpublish', 'pages.addtrash', 'pages.contexttrash', 'pages.duplicate', 'pages.contextduplicate', 'pages.setfeatured',

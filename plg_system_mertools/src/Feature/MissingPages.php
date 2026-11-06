@@ -207,7 +207,7 @@ final class MissingPages extends Feature
     }
 
     /** Tasks of Gridbox that may give a page or category another alias, or delete one: the aliases are compared after them. */
-    private const ALIAS_TASKS = ['editor.gridboxajaxsave', 'editor.gridboxsave', 'gridbox.updateparams', 'apps.updatecategory', 'apps.importcsv',
+    private const ALIAS_TASKS = ['editor.gridboxajaxsave', 'editor.gridboxsave', 'editor.savegridbox', 'gridbox.updateparams', 'apps.updatecategory', 'apps.importcsv',
         'apps.applysettings', 'pages.applysettings', 'pages.importcsv', 'trashed.restore', 'trashed.restoresingle',
         // deleted for good: the alias is kept as gone (410)
         'trashed.delete', 'trashed.contextdelete'];

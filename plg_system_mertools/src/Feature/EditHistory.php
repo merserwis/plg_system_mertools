@@ -48,9 +48,9 @@ final class EditHistory extends Feature
         if (!$user || $user->guest) {
             return;
         }
-        // the editor's save sends its page as JSON: the whole request body (editor.gridboxSave, what
-        // Gridbox uses) or the form field obj (editor.gridboxAjaxSave, its fallback)
-        $obj = str_starts_with($task, 'editor.gridbox') ? $this->plugin->editorSaveObj($task) : '';
+        // the editor's save sends its page as JSON (MerTools::EDITOR_SAVES: the request body or the form field obj)
+        $editor = MerTools::isEditorSave($task);
+        $obj    = $editor ? $this->plugin->editorSaveObj($task) : '';
         $ids = History::requestIds([
             'obj'          => $obj,
             'id'           => $input->getInt('id', 0),
@@ -74,7 +74,6 @@ final class EditHistory extends Feature
         } catch (\Throwable $e) {
             return;
         }
-        $editor   = str_starts_with($task, 'editor.gridbox');
         $client   = $app->isClient('administrator') ? 'admin' : 'site';
         $userId   = (int) $user->id;
         $userName = trim((string) $user->name) . ' (' . (string) $user->username . ')';

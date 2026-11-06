@@ -14,6 +14,8 @@ $check = function (string $label, $got, $exp) use (&$fail) {
 
 // tasks
 $check('editor save tracked', History::tracked('editor.gridboxAjaxSave'), true);
+$check('editor save of Gridbox 2.20.5 tracked (editor.saveGridbox)', History::tracked('editor.saveGridbox'), true);
+$check('a saved version (no change of the page) not tracked', [History::tracked('editor.saveGridboxVersion'), History::tracked('editor.gridboxSaveVersion')], [false, false]);
 $check('list unpublish tracked', History::tracked('pages.unpublish'), true);
 $check('read task not tracked', History::tracked('editor.getItems'), false);
 $check('trash delete tracked', History::tracked('trashed.delete'), true);

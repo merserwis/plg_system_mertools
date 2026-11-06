@@ -115,7 +115,7 @@ final class EditLocks extends Feature
         }
         $task = strtolower((string) $input->getString('task', ''));
         try {
-            if (\in_array($task, ['editor.gridboxsave', 'editor.gridboxajaxsave'], true) && strtoupper((string) $input->getMethod()) === 'POST') {
+            if (MerTools::isEditorSave($task) && strtoupper((string) $input->getMethod()) === 'POST') {
                 $this->lockSaveGuard($task);
             } elseif ($task === '' && $input->getCmd('view') === 'editor' && $input->getInt('id', 0) > 0 && strtoupper((string) $input->getMethod()) === 'GET') {
                 $this->lockEditorGate();

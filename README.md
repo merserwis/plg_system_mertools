@@ -37,7 +37,7 @@ The settings are still the parameters of the plugin, so nothing changes for the 
 | Omnibus | *Omnibus* |
 | Product badges (corner, colours, style, on the product page) | *Badges* |
 | Tidy up old carts | *Carts* |
-| Gridbox lists (columns, sorting, pinned pages, editing in the list, media), dark Gridbox panel | *Configuration → Lists in the administrator* |
+| Gridbox lists (columns, sorting, pinned pages, editing in the list, media), dashboard range of dates, dark Gridbox panel | *Configuration → Lists in the administrator* |
 | Edit lock | *Configuration → Edit lock* |
 | Warning before closing the editor unsaved, automatic save, SEO fields filled in | *Configuration → In the editor* |
 | Edit history | *Edit History* |
@@ -235,6 +235,8 @@ Gridbox never removes a cart, so its cart tables only grow. **Clean and optimise
 **Editing in the list:** a click on a product's **price, sale price, stock or SKU** turns the cell into a field (a click on its **badges** opens the list of the store's badges to tick) — Enter (or leaving it) saves, Esc cancels. Amounts may be typed as `1234,50`, `1 234,50` or `1234.5`; an empty sale price removes the sale. The change is checked on the server, noted in the edit history and the kept pages are emptied. A product open in the Gridbox editor cannot be changed in the list (the editor's next save would put the old value back), and a product with options shows ⓘ — the list changes its base price, the prices of the options stay in the editor. For users who may edit in Gridbox; both can be switched off on the tab *Gridbox lists*.
 
 **Author:** Gridbox's column *Author* of the blog lists shows only Gridbox's own authors, as avatars; MerTools adds the Joomla user who created the page (from the edit history; for pages older than the history the first person who changed it, in grey). The lists without that column (products, pages) can add it with **Columns**.
+
+**Gridbox's dashboard keeps its range of dates** (1.13.1): its sales statistics open in the range last chosen (*Week*, *Month*, *Year*, *Custom* with its dates) instead of always *Day*, kept in the browser. Setting *Dashboard keeps its range of dates* (on by default).
 
 **Drag and drop in the media manager:** files dragged from the computer and dropped on Gridbox's media manager — in the panel and in the editor — are uploaded to the folder open in it, as with its button *Upload* (the same allowed types, the progress count, the folder reloaded). Setting *Drag files into the media manager* (on by default).
 

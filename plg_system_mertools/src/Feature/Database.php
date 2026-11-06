@@ -92,7 +92,7 @@ final class Database extends Feature
             return;
         }
         $task = strtolower((string) $input->getString('task', ''));
-        if (\in_array($task, ['editor.gridboxsave', 'editor.gridboxajaxsave'], true)) {
+        if (MerTools::isEditorSave($task)) {
             $obj = json_decode($this->plugin->editorSaveObj($task));
             // a layout, header or system page has no introduction
             $ids = \is_object($obj) && empty($obj->edit_type) && !empty($obj->page->id) ? [(int) $obj->page->id] : [];

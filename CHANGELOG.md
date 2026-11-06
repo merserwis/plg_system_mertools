@@ -2,6 +2,23 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.13.1 — 2026-11-06
+
+### 🛠 Gridbox 2.20.5 — the editor's saves seen again
+
+Gridbox 2.20.5 saves a page from its editor under another name (`editor.saveGridbox`, the page as a form field). MerTools knew only the names of the earlier versions, so with Gridbox 2.20.5 the editor's saves passed it by:
+
+- **Edit history** noted none of them: the line under the title in the Gridbox lists stayed at the last change made in another way, the history of the page had no new entry.
+- **Edit lock** did not stop a save while somebody else edited the page — two people could save over each other's changes again.
+- **404 pages**: an alias changed in the editor got no redirect from the old address.
+- **Database**: an introduction with "<" saved in the editor was not set right.
+
+All four see the saves of Gridbox 2.20.5 now, and still those of the earlier versions. A saved version (*Save as version*) changes no page and is not noted, as before.
+
+### 📊 Gridbox dashboard — the range of dates kept
+
+The sales statistics of Gridbox's dashboard opened in *Day* every time. Now they open in the range last chosen — *Week*, *Month*, *Year*, or *Custom* with its dates —, kept in the browser. The arrows that move the day or the week are not a choice and are not kept. Setting *Dashboard keeps its range of dates* (*Configuration → Lists in the administrator*, on by default).
+
 ## 1.13.0 — 2026-11-05
 
 ### 📐 Images — Size on upload: a frame for the shop, the blog and the rest

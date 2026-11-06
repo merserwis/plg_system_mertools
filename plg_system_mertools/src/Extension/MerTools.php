@@ -87,7 +87,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.13.0';
+    public const VERSION = '1.13.1';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -207,6 +207,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if ($app->isClient('administrator')) {
             $this->lists()->listColumns();
             $this->lists()->mediaDropScript();
+            $this->lists()->dashboardScript();
             $this->history()->historyInLists();
             $this->apps()->appsScript();
 
@@ -721,12 +722,25 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         return trim((string) $user->name) . ' (' . (string) $user->username . ')';
     }
 
-    /** The JSON of the editor's save: the request body (editor.gridboxSave) or the form field obj (editor.gridboxAjaxSave). */
+    /**
+     * The tasks of the editor's save (lower case): Gridbox up to 2.20.4 editor.gridboxSave (the page as the
+     * request body) and its fallback editor.gridboxAjaxSave, from 2.20.5 editor.saveGridbox (both: the form
+     * field obj). Its saves of a version (…Version) change no page.
+     */
+    public const EDITOR_SAVES = ['editor.gridboxsave', 'editor.gridboxajaxsave', 'editor.savegridbox'];
+
+    /** Is the task (any case) a save of the editor? */
+    public static function isEditorSave(string $task): bool
+    {
+        return \in_array(strtolower($task), self::EDITOR_SAVES, true);
+    }
+
+    /** The JSON of the editor's save: the request body (editor.gridboxSave) or the form field obj (the others). */
     public function editorSaveObj(string $task): string
     {
         static $obj = null;
 
-        return $obj ??= $task === 'editor.gridboxsave' ? (string) @file_get_contents('php://input')
+        return $obj ??= strtolower($task) === 'editor.gridboxsave' ? (string) @file_get_contents('php://input')
             : (string) $this->getApplication()->getInput()->get('obj', '', 'raw');
     }
 
