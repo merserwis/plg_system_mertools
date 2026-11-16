@@ -6,7 +6,29 @@
         <element>pkg_mertools</element>
         <type>package</type>
         <client>site</client>
+        <version>1.15.1</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
+        <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
+        <downloads>
+            <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.15.1/pkg_mertools-1.15.1.zip</downloadurl>
+        </downloads>
+        <sha256>4e7653398172f6863b214424bca2dca702b53775025b721e641109fac747abc0</sha256>
+        <tags>
+            <tag>stable</tag>
+        </tags>
+        <maintainer>Merserwis</maintainer>
+        <maintainerurl>https://github.com/merserwis/</maintainerurl>
+        <targetplatform name="joomla" version="6\..*"/>
+        <php_minimum>8.2</php_minimum>
+    </update>
+    <update>
+        <name>MerTools for Gridbox</name>
+        <description>MerTools for Gridbox — fixes and optimisations for Balbooa Gridbox that its own settings cannot do.</description>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <client>site</client>
         <version>1.15.0</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.15.0/pkg_mertools-1.15.0.zip</downloadurl>
@@ -27,6 +49,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.14.0</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.14.0/pkg_mertools-1.14.0.zip</downloadurl>
@@ -47,6 +70,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.13.3</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.13.3/pkg_mertools-1.13.3.zip</downloadurl>
@@ -67,6 +91,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.13.2</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.13.2/pkg_mertools-1.13.2.zip</downloadurl>
@@ -87,6 +112,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.13.1</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.13.1/pkg_mertools-1.13.1.zip</downloadurl>
@@ -107,6 +133,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.13.0</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.13.0/pkg_mertools-1.13.0.zip</downloadurl>
@@ -127,6 +154,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.12.2</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.12.2/pkg_mertools-1.12.2.zip</downloadurl>
@@ -147,6 +175,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.12.1</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.12.1/pkg_mertools-1.12.1.zip</downloadurl>
@@ -167,6 +196,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.12.0</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.12.0/pkg_mertools-1.12.0.zip</downloadurl>
@@ -187,6 +217,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.11.0</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.11.0/pkg_mertools-1.11.0.zip</downloadurl>
@@ -207,6 +238,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.10.0</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.10.0/pkg_mertools-1.10.0.zip</downloadurl>
@@ -227,6 +259,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.9.0</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.9.0/pkg_mertools-1.9.0.zip</downloadurl>
@@ -247,6 +280,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.8.3</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.8.3/pkg_mertools-1.8.3.zip</downloadurl>
@@ -267,6 +301,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.8.2</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.8.2/pkg_mertools-1.8.2.zip</downloadurl>
@@ -287,6 +322,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.8.1</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.8.1/pkg_mertools-1.8.1.zip</downloadurl>
@@ -307,6 +343,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.8.0</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.8.0/pkg_mertools-1.8.0.zip</downloadurl>
@@ -327,6 +364,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.7.5</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.7.5/pkg_mertools-1.7.5.zip</downloadurl>
@@ -347,6 +385,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.7.4</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.7.4/pkg_mertools-1.7.4.zip</downloadurl>
@@ -367,6 +406,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.7.3</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.7.3/pkg_mertools-1.7.3.zip</downloadurl>
@@ -387,6 +427,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.7.2</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.7.2/pkg_mertools-1.7.2.zip</downloadurl>
@@ -407,6 +448,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.7.1</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.7.1/pkg_mertools-1.7.1.zip</downloadurl>
@@ -427,6 +469,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.7.0</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.7.0/pkg_mertools-1.7.0.zip</downloadurl>
@@ -447,6 +490,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.6.10</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.6.10/pkg_mertools-1.6.10.zip</downloadurl>
@@ -467,6 +511,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.6.9</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.6.9/pkg_mertools-1.6.9.zip</downloadurl>
@@ -487,6 +532,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.6.8</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.6.8/pkg_mertools-1.6.8.zip</downloadurl>
@@ -507,6 +553,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.6.7</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.6.7/pkg_mertools-1.6.7.zip</downloadurl>
@@ -527,6 +574,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.6.6</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.6.6/pkg_mertools-1.6.6.zip</downloadurl>
@@ -547,6 +595,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.6.5</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.6.5/pkg_mertools-1.6.5.zip</downloadurl>
@@ -567,6 +616,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.6.4</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.6.4/pkg_mertools-1.6.4.zip</downloadurl>
@@ -587,6 +637,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.6.3</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.6.3/pkg_mertools-1.6.3.zip</downloadurl>
@@ -607,6 +658,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.6.2</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.6.2/pkg_mertools-1.6.2.zip</downloadurl>
@@ -627,6 +679,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.6.1</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.6.1/pkg_mertools-1.6.1.zip</downloadurl>
@@ -647,6 +700,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.6.0</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.6.0/pkg_mertools-1.6.0.zip</downloadurl>
@@ -667,6 +721,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.5.0</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.5.0/pkg_mertools-1.5.0.zip</downloadurl>
@@ -687,6 +742,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.4.1</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.4.1/pkg_mertools-1.4.1.zip</downloadurl>
@@ -707,6 +763,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.4.0</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.4.0/pkg_mertools-1.4.0.zip</downloadurl>
@@ -727,6 +784,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.3.1</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.3.1/pkg_mertools-1.3.1.zip</downloadurl>
@@ -747,6 +805,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.3.0</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.3.0/pkg_mertools-1.3.0.zip</downloadurl>
@@ -767,6 +826,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.2.0</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.2.0/pkg_mertools-1.2.0.zip</downloadurl>
@@ -787,6 +847,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.1.1</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.1.1/pkg_mertools-1.1.1.zip</downloadurl>
@@ -807,6 +868,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.1.0</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.1.0/pkg_mertools-1.1.0.zip</downloadurl>
@@ -827,6 +889,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.0.14</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.0.14/pkg_mertools-1.0.14.zip</downloadurl>
@@ -847,6 +910,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.0.13</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.0.13/pkg_mertools-1.0.13.zip</downloadurl>
@@ -867,6 +931,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.0.12</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.0.12/pkg_mertools-1.0.12.zip</downloadurl>
@@ -887,6 +952,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.0.11</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.0.11/pkg_mertools-1.0.11.zip</downloadurl>
@@ -907,6 +973,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.0.10</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.0.10/pkg_mertools-1.0.10.zip</downloadurl>
@@ -927,6 +994,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.0.9</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.0.9/pkg_mertools-1.0.9.zip</downloadurl>
@@ -947,6 +1015,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.0.8</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.0.8/pkg_mertools-1.0.8.zip</downloadurl>
@@ -967,6 +1036,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.0.7</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.0.7/pkg_mertools-1.0.7.zip</downloadurl>
@@ -987,6 +1057,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.0.6</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.0.6/pkg_mertools-1.0.6.zip</downloadurl>
@@ -1007,6 +1078,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.0.5</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.0.5/pkg_mertools-1.0.5.zip</downloadurl>
@@ -1027,6 +1099,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.0.4</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.0.4/pkg_mertools-1.0.4.zip</downloadurl>
@@ -1047,6 +1120,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.0.3</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.0.3/pkg_mertools-1.0.3.zip</downloadurl>
@@ -1067,6 +1141,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.0.2</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.0.2/pkg_mertools-1.0.2.zip</downloadurl>
@@ -1087,6 +1162,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.0.1</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.0.1/pkg_mertools-1.0.1.zip</downloadurl>
@@ -1107,6 +1183,7 @@
         <type>package</type>
         <client>site</client>
         <version>1.0.0</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v1.0.0/pkg_mertools-1.0.0.zip</downloadurl>
@@ -1127,6 +1204,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.34</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.34/pkg_mertools-0.0.34.zip</downloadurl>
@@ -1147,6 +1225,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.33</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.33/pkg_mertools-0.0.33.zip</downloadurl>
@@ -1167,6 +1246,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.32</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.32/pkg_mertools-0.0.32.zip</downloadurl>
@@ -1187,6 +1267,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.31</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.31/pkg_mertools-0.0.31.zip</downloadurl>
@@ -1207,6 +1288,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.30</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.30/pkg_mertools-0.0.30.zip</downloadurl>
@@ -1227,6 +1309,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.29</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.29/pkg_mertools-0.0.29.zip</downloadurl>
@@ -1247,6 +1330,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.28</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.28/pkg_mertools-0.0.28.zip</downloadurl>
@@ -1267,6 +1351,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.27</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.27/pkg_mertools-0.0.27.zip</downloadurl>
@@ -1287,6 +1372,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.26</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.26/pkg_mertools-0.0.26.zip</downloadurl>
@@ -1307,6 +1393,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.25</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.25/pkg_mertools-0.0.25.zip</downloadurl>
@@ -1327,6 +1414,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.24</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.24/pkg_mertools-0.0.24.zip</downloadurl>
@@ -1347,6 +1435,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.23</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.23/pkg_mertools-0.0.23.zip</downloadurl>
@@ -1367,6 +1456,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.22</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.22/pkg_mertools-0.0.22.zip</downloadurl>
@@ -1387,6 +1477,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.21</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.21/pkg_mertools-0.0.21.zip</downloadurl>
@@ -1407,6 +1498,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.20</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.20/pkg_mertools-0.0.20.zip</downloadurl>
@@ -1427,6 +1519,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.19</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.19/pkg_mertools-0.0.19.zip</downloadurl>
@@ -1447,6 +1540,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.18</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.18/pkg_mertools-0.0.18.zip</downloadurl>
@@ -1467,6 +1561,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.17</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.17/pkg_mertools-0.0.17.zip</downloadurl>
@@ -1487,6 +1582,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.16</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.16/pkg_mertools-0.0.16.zip</downloadurl>
@@ -1507,6 +1603,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.15</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.15/pkg_mertools-0.0.15.zip</downloadurl>
@@ -1527,6 +1624,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.14</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.14/pkg_mertools-0.0.14.zip</downloadurl>
@@ -1547,6 +1645,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.13</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.13/pkg_mertools-0.0.13.zip</downloadurl>
@@ -1567,6 +1666,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.12</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.12/pkg_mertools-0.0.12.zip</downloadurl>
@@ -1587,6 +1687,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.11</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.11/pkg_mertools-0.0.11.zip</downloadurl>
@@ -1607,6 +1708,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.10</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.10/pkg_mertools-0.0.10.zip</downloadurl>
@@ -1627,6 +1729,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.9</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.9/pkg_mertools-0.0.9.zip</downloadurl>
@@ -1647,6 +1750,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.8</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.8/pkg_mertools-0.0.8.zip</downloadurl>
@@ -1667,6 +1771,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.7</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.7/pkg_mertools-0.0.7.zip</downloadurl>
@@ -1687,6 +1792,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.6</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.6/pkg_mertools-0.0.6.zip</downloadurl>
@@ -1707,6 +1813,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.5</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.5/pkg_mertools-0.0.5.zip</downloadurl>
@@ -1727,6 +1834,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.4</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.4/pkg_mertools-0.0.4.zip</downloadurl>
@@ -1747,6 +1855,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.3</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.3/pkg_mertools-0.0.3.zip</downloadurl>
@@ -1767,6 +1876,7 @@
         <type>package</type>
         <client>site</client>
         <version>0.0.2</version>
+        <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
         <infourl title="MerTools for Gridbox">https://github.com/merserwis/plg_system_mertools</infourl>
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/merserwis/plg_system_mertools/releases/download/v0.0.2/pkg_mertools-0.0.2.zip</downloadurl>

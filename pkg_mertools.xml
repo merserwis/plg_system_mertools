@@ -2,7 +2,7 @@
 <extension type="package" method="upgrade">
     <name>MerTools for Gridbox Package</name>
     <packagename>mertools</packagename>
-    <version>1.15.0</version>
+    <version>1.15.1</version>
     <creationDate>2026-10-28</creationDate>
     <author>Merserwis</author>
     <authorUrl>https://github.com/merserwis/</authorUrl>
@@ -13,6 +13,7 @@
         <file type="plugin" id="mertools" group="system">plg_system_mertools.zip</file>
         <file type="component" id="com_mertools">com_mertools.zip</file>
     </files>
+    <changelogurl>https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/changelog.xml</changelogurl>
     <updateservers>
         <server type="extension" priority="1" name="MerTools for Gridbox Updates">https://raw.githubusercontent.com/merserwis/plg_system_mertools/main/update.xml</server>
     </updateservers>

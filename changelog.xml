@@ -1,0 +1,779 @@
+<?xml version="1.0" encoding="utf-8"?>
+<changelogs>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.15.1</version>
+        <fix>
+            <item>Checkout page: the arrows of the drop-down fields inside the frame</item>
+        </fix>
+        <addition>
+            <item>The list of changes in Joomla's updates</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.15.0</version>
+        <fix>
+            <item>Checkout page: brutto at the total, room in the drop-down fields</item>
+            <item>Gridbox's corrected files seen at once</item>
+        </fix>
+        <addition>
+            <item>Orders: the status of many at once</item>
+            <item>Link Picker: the folders open as last time</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.14.0</version>
+        <addition>
+            <item>Images in AVIF and JPEG XL: lighter than WebP, with WebP still there</item>
+            <item>Dashboard: own dates kept without a race</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.13.3</version>
+        <fix>
+            <item>Sale badge: the store's discounts in its percentage</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.13.2</version>
+        <fix>
+            <item>Right after an update: the pages no longer break</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.13.1</version>
+        <fix>
+            <item>Gridbox 2.20.5: the editor's saves seen again</item>
+            <item>Gridbox dashboard: the range of dates kept</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.13.0</version>
+        <addition>
+            <item>Images: Size on upload: a frame for the shop, the blog and the rest</item>
+            <item>Shop: product badges in the corner, colours and style chosen, also on the product page</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.12.2</version>
+        <fix>
+            <item>Images: Restore all originals in a window with its progress</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.12.1</version>
+        <fix>
+            <item>Images: an upload no longer goes through the whole images folder</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.12.0</version>
+        <addition>
+            <item>Images: compressed originals, on the site's own server</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.11.0</version>
+        <addition>
+            <item>Saving in the editor: no warning when nothing changed</item>
+            <item>Folding the fields: kept on the account</item>
+            <item>Lighter images: a lighter list and the old copies removed</item>
+            <item>Omnibus: the line in another currency</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.10.0</version>
+        <addition>
+            <item>Settings in a file: export and import</item>
+            <item>Sitemap: other sitemaps in the index</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.9.0</version>
+        <addition>
+            <item>The Gridbox panel in Joomla's dark mode</item>
+            <item>Gridbox lists: tags, sorting by the added columns, pinned pages</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.8.3</version>
+        <fix>
+            <item>Main menu on screens a little too narrow for it</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.8.2</version>
+        <fix>
+            <item>Default texts of the SEO fields, separately for pages, blog posts and products</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.8.1</version>
+        <fix>
+            <item>Blog: the fields of the post from the Markdown document, no h1 in the post</item>
+            <item>SEO fields filled in by themselves</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.8.0</version>
+        <addition>
+            <item>Blog: importing a Markdown document into a post</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.7.5</version>
+        <fix>
+            <item>Blog: an even grid of the lists of posts</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.7.4</version>
+        <fix>
+            <item>Saving in the editor</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.7.3</version>
+        <fix>
+            <item>Fixes</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.7.2</version>
+        <fix>
+            <item>The quick setup on a fresh install</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.7.1</version>
+        <fix>
+            <item>Folding the fields in the product editor</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.7.0</version>
+        <addition>
+            <item>A control panel, a menu and a quick setup (like Admin Tools)</item>
+            <item>Check your site after every change</item>
+            <item>For any Joomla + Gridbox site</item>
+            <item>Code audit (Codex): security, bugs and speed</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.6.10</version>
+        <fix>
+            <item>The warm-up works where the server cannot reach its own address</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.6.9</version>
+        <fix>
+            <item>Background jobs run once at a time</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.6.8</version>
+        <fix>
+            <item>Finished items leave no empty places in the lists</item>
+            <item>Breadcrumbs</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.6.7</version>
+        <fix>
+            <item>Product photos for search engines (on by default)</item>
+            <item>Page cache warm-up (on with the page cache)</item>
+            <item>Structured data of the site (new tab, off by default)</item>
+            <item>Site hygiene (new tab)</item>
+            <item>Finished items out of the lists (off by default)</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.6.6</version>
+        <fix>
+            <item>Security: guard of Gridbox's sorting (on by default)</item>
+            <item>Pages of the lists (?page=N)</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.6.5</version>
+        <fix>
+            <item>Article data for search engines (JSON-LD)</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.6.4</version>
+        <fix>
+            <item>Product data: availability</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.6.3</version>
+        <fix>
+            <item>Product data for search engines (JSON-LD)</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.6.2</version>
+        <fix>
+            <item>404 pages: no more soft 404</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.6.1</version>
+        <fix>
+            <item>Sitemap: tidying up</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.6.0</version>
+        <addition>
+            <item>Sitemap</item>
+            <item>Fixes</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.5.0</version>
+        <addition>
+            <item>Media manager: drag and drop</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.4.1</version>
+        <fix>
+            <item>Gridbox lists: who created the page</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.4.0</version>
+        <addition>
+            <item>Category pages: now in Better Categories</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.3.1</version>
+        <fix>
+            <item>Inside the plugin</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.3.0</version>
+        <addition>
+            <item>404 pages: moved pages followed, missing addresses logged</item>
+            <item>Omnibus: Gridbox's own sales</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.2.0</version>
+        <addition>
+            <item>Apps protection</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.1.1</version>
+        <fix>
+            <item>Blog feeds</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.1.0</version>
+        <addition>
+            <item>Blog feeds: RSS and Atom</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.0.14</version>
+        <fix>
+            <item>Fixes</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.0.13</version>
+        <fix>
+            <item>Omnibus without a separate plugin</item>
+            <item>Category pages (from the Omnibus plugin)</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.0.12</version>
+        <fix>
+            <item>Price on request</item>
+            <item>Omnibus: lowest price of the last 30 days</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.0.11</version>
+        <fix>
+            <item>Fixes</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.0.10</version>
+        <fix>
+            <item>Products of other folders in the Gridbox lists</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.0.9</version>
+        <fix>
+            <item>Fixes</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.0.8</version>
+        <fix>
+            <item>Discount % in the product editor</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.0.7</version>
+        <fix>
+            <item>Gridbox lists</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.0.6</version>
+        <fix>
+            <item>Gridbox lists</item>
+            <item>Fixes</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.0.5</version>
+        <fix>
+            <item>Edit lock</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.0.4</version>
+        <fix>
+            <item>Fixes</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.0.3</version>
+        <fix>
+            <item>Edit history</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.0.2</version>
+        <fix>
+            <item>A link to a tab</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.0.1</version>
+        <fix>
+            <item>Pictures shown too small</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>1.0.0</version>
+        <addition>
+            <item>First stable release</item>
+            <item>Code audit: security, bugs and speed</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.34</version>
+        <fix>
+            <item>New: *Clear cache* button in the administrator's top bar</item>
+            <item>Dark mode: buttons and the search field in the accent colour</item>
+            <item>Tabs as sections: sliders show that there are more</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.33</version>
+        <fix>
+            <item>Recommended settings: Platform Specific Caching</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.32</version>
+        <fix>
+            <item>New: recommended settings (top of the *Page speed* tab)</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.31</version>
+        <fix>
+            <item>New: post sliders in several rows (tab *Page layout*, on by default)</item>
+            <item>Closing the settings opens the Gridbox panel</item>
+            <item>Fixes</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.30</version>
+        <fix>
+            <item>New: popups after the first interaction (tab *Page speed*, on by default)</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.29</version>
+        <fix>
+            <item>Faster pages on any Gridbox site (tab *Page speed*)</item>
+            <item>Help tooltips in the settings</item>
+            <item>Fixes</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.28</version>
+        <fix>
+            <item>Tabs as sections on phones: fixes</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.27</version>
+        <fix>
+            <item>New: tabs as expandable sections on phones (tab *Page layout*, on by default)</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.26</version>
+        <fix>
+            <item>New: indexes of Gridbox tables (tab *Database*, on by default)</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.25</version>
+        <fix>
+            <item>New: page shown at once (tab *Page speed*, on by default)</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.24</version>
+        <fix>
+            <item>Fixed: page cache with a relative cache folder</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.23</version>
+        <fix>
+            <item>New: page cache for guests (tab *Page speed*, off by default)</item>
+            <item>New: Gridbox data from the cache (on by default)</item>
+            <item>YouTube background on phones</item>
+            <item>Speed panel: real server time</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.22</version>
+        <fix>
+            <item>Fixed: stretched images with *Images without waiting or jumping*</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.21</version>
+        <fix>
+            <item>New tools: faster pages (tab *Page speed*)</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.20</version>
+        <fix>
+            <item>New tool: Page speed panel (tab *Page speed*)</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.19</version>
+        <fix>
+            <item>New tool: Tidy up old carts (tab *Shop*)</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.18</version>
+        <fix>
+            <item>New tool: Redirect missing pages (tab *404 pages*, on by default)</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.17</version>
+        <fix>
+            <item>Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.16</version>
+        <fix>
+            <item>Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.15</version>
+        <fix>
+            <item>New tool: Links to a product option (tab *Shop*, on by default)</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.14</version>
+        <fix>
+            <item>New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>Fixed</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.13</version>
+        <fix>
+            <item>New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.12</version>
+        <fix>
+            <item>Toggle position on phones</item>
+            <item>Speed audit: less work for the browser</item>
+            <item>Fixed</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.11</version>
+        <fix>
+            <item>Dark mode</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.10</version>
+        <fix>
+            <item>Palette dots: visitors choose the colours of dark mode</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.9</version>
+        <fix>
+            <item>Toggle button positions</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.8</version>
+        <fix>
+            <item>Sepia theme (new)</item>
+            <item>Intensity with a live preview (new)</item>
+            <item>Dark mode</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.7</version>
+        <fix>
+            <item>Dark mode</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.6</version>
+        <fix>
+            <item>Dark mode</item>
+            <item>Fixes</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.5</version>
+        <fix>
+            <item>Dark mode: readable on every Gridbox site</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.4</version>
+        <fix>
+            <item>Languages</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.3</version>
+        <fix>
+            <item>Beta</item>
+            <item>Languages</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.2</version>
+        <fix>
+            <item>Dark mode</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
+        <version>0.0.1</version>
+        <fix>
+            <item>Canonical URL (collapse duplicate slashes)</item>
+        </fix>
+    </changelog>
+</changelogs>

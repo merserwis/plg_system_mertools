@@ -2,7 +2,7 @@
  * Integration test of the checkout page fixes (1.15.0), on the docker Joomla + Gridbox (the copy's
  * store: currency "zł netto", tax added to the prices): a guest with a product in the cart opens the
  * checkout — the drop-down fields of its form have the text fields' inner space at the sides and their
- * height, and do not stick out past them; the total says "zł brutto", the tax "zł", the net rows keep
+ * height, their arrow as far from the frame as the text, and do not stick out past them; the total says "zł brutto", the tax "zł", the net rows keep
  * "zł netto", also after another shipping is chosen (Gridbox's script changes only the amounts) and
  * after the order form is loaded again (Gridbox's reloadCheckout); with the setting off, as Gridbox.
  *
@@ -30,7 +30,8 @@ run(async ({ login }) => {
       if (!el) return null;
       const s = getComputedStyle(el);
       const r = el.getBoundingClientRect();
-      return { pl: s.paddingLeft, pr: s.paddingRight, h: Math.round(r.height), right: Math.round(r.right), wrap: Math.round(el.parentElement.getBoundingClientRect().right) };
+      return { pl: s.paddingLeft, pr: s.paddingRight, h: Math.round(r.height), right: Math.round(r.right), wrap: Math.round(el.parentElement.getBoundingClientRect().right),
+        appearance: s.appearance, arrow: s.backgroundImage, arrowAt: s.backgroundPosition };
     };
     const cur = {};
     document.querySelectorAll('.ba-checkout-order-form-total-wrapper .ba-checkout-order-form-row').forEach((row) => {
@@ -49,12 +50,21 @@ run(async ({ login }) => {
     let s = await look();
     check('a checkout with the product', !!s.cur.total, JSON.stringify(s.cur));
     check('drop-down field: the text fields\' space at the left', !!s.select && s.select.pl === s.input.pl && s.select.pl !== '0px', JSON.stringify(s));
-    check('…and at the right', s.select && s.select.pr === s.input.pl, JSON.stringify(s.select));
+    const pad = parseFloat(s.input.pl);
+    check('…and at the right, with room for the arrow', s.select && parseFloat(s.select.pr) === pad + 20, JSON.stringify(s.select));
+    check('…the browser\'s arrow (at the frame) replaced by a chevron in the text\'s colour', s.select && s.select.appearance === 'none'
+      && /linear-gradient/.test(s.select.arrow), JSON.stringify(s.select));
+    check('…as far from the frame as the text from the left', s.select && s.select.arrowAt.includes('calc(100% - ' + pad + 'px)'), s.select && s.select.arrowAt);
     check('…as high as a text field', s.select && s.select.h === s.input.h, JSON.stringify(s));
     check('…not past its place', s.select && s.select.right <= s.select.wrap, JSON.stringify(s.select));
     check('total: brutto', s.cur.total === 'zł brutto', JSON.stringify(s.cur));
     check('tax: the currency alone', s.cur.tax === 'zł', JSON.stringify(s.cur));
     check('net rows: as they were', s.cur.subtotal === 'zł netto' && (!s.cur.shipping || s.cur.shipping === 'zł netto'), JSON.stringify(s.cur));
+    // high contrast shows no background images: the browser's own arrow there
+    await guest.emulateMedia({ forcedColors: 'active' });
+    const forced = await guest.evaluate(() => getComputedStyle(document.querySelector('.ba-item-checkout-form .ba-checkout-form-field-wrapper select')).appearance);
+    check('high contrast: the browser\'s own arrow', forced !== 'none', forced);
+    await guest.emulateMedia({ forcedColors: 'none' });
     // a shipping chosen (another one, or the only one again): Gridbox's script puts in the amounts only
     const written = await guest.evaluate(() => {
       const all = [...document.querySelectorAll('input[name="ba-checkout-shipping"]')];
@@ -81,7 +91,7 @@ run(async ({ login }) => {
     await guest.goto(URL_ + '/' + CHECKOUT, { waitUntil: 'load', timeout: 90000 });
     s = await look();
     check('setting off: total as Gridbox writes it', s.cur.total === 'zł netto', JSON.stringify(s.cur));
-    check('setting off: drop-down field without space', s.select && s.select.pl === '0px', JSON.stringify(s.select));
+    check('setting off: drop-down field without space, the browser\'s arrow', s.select && s.select.pl === '0px' && s.select.appearance !== 'none', JSON.stringify(s.select));
   } finally {
     sql(`UPDATE #__extensions SET params = CONVERT(UNHEX('${Buffer.from(params, 'utf8').toString('hex')}') USING utf8mb4) WHERE ${PLUGIN}`);
   }

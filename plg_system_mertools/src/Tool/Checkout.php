@@ -27,10 +27,23 @@ final class Checkout
     /** the rows of the order form whose amount is a tax */
     private const TAX = ['tax', 'shipping-tax', 'includes-tax', 'shipping-includes-tax'];
 
-    public const CSS = 'body .ba-item-checkout-form .ba-checkout-form-field-wrapper select{box-sizing:border-box;'
-        . 'padding-left:var(--field-padding-left)!important;padding-right:var(--field-padding-left)!important;'
+    /**
+     * The browser draws its own arrow of a drop-down field at the frame, whatever the inner space: it is
+     * replaced by a chevron of two lines in the colour of the field's text (also in dark mode), as far
+     * from the frame as the text is on the left (in high contrast, which shows no background images, the
+     * browser's own arrow).
+     */
+    public const CSS = 'body .ba-item-checkout-form .ba-checkout-form-field-wrapper select{box-sizing:border-box;-webkit-appearance:none;appearance:none;'
+        . 'padding-left:var(--field-padding-left)!important;padding-right:calc(var(--field-padding-left) + 20px)!important;'
         . 'height:calc(var(--field-line-height) + var(--field-padding-top) + var(--field-padding-bottom)'
-        . ' + (var(--border-top) * var(--border-width)) + (var(--border-bottom) * var(--border-width)))}';
+        . ' + (var(--border-top) * var(--border-width)) + (var(--border-bottom) * var(--border-width)));'
+        . 'background-image:linear-gradient(45deg,transparent calc(50% - 1px),currentColor calc(50% - 1px),currentColor calc(50% + .5px),transparent calc(50% + .5px)),'
+        . 'linear-gradient(-45deg,transparent calc(50% - 1px),currentColor calc(50% - 1px),currentColor calc(50% + .5px),transparent calc(50% + .5px))!important;'
+        . 'background-size:6px 6px!important;background-repeat:no-repeat!important;'
+        . 'background-position:right calc(var(--field-padding-left) + 5px) center,right var(--field-padding-left) center!important}'
+        . 'body .ba-item-checkout-form .ba-checkout-form-field-wrapper select::-ms-expand{display:none}'
+        // high contrast (forced colours) drops background images: the browser's own arrow there
+        . '@media (forced-colors:active){body .ba-item-checkout-form .ba-checkout-form-field-wrapper select{-webkit-appearance:auto;appearance:auto}}';
 
     public static function enabled($params): bool
     {

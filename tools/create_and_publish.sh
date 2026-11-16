@@ -10,6 +10,11 @@ Z=pkg_mertools-$V.zip
 [ -f "$Z" ] || ./build.sh
 S=$(sha256sum "$Z" | cut -d' ' -f1)
 grep -q "<sha256>$S</sha256>" update.xml || { echo "sha of $Z not in update.xml - aborting"; exit 1; }
+# Joomla's Changelog button (<changelogurl>): changelog.xml made from CHANGELOG.md, committed, with this version
+python3 tools/changelog_xml.py >/dev/null
+git diff --quiet HEAD -- changelog.xml && git ls-files --error-unmatch changelog.xml >/dev/null 2>&1 \
+  || { echo "changelog.xml not up to date in the commit - run tools/changelog_xml.py and commit it"; exit 1; }
+grep -q "<version>$V</version>" changelog.xml || { echo "no $V in changelog.xml - aborting"; exit 1; }
 T=$(cat /dev/shm/gh-token)
 AUTH="Authorization: Bearer $T"
 # 1. create the repo if it does not exist (user account, public)

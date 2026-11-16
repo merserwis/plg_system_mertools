@@ -2,6 +2,16 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.15.1 — 2026-11-16
+
+### 🛒 Checkout page — the arrows of the drop-down fields inside the frame
+
+The browser draws the arrow of a drop-down field at its right edge, whatever the inner space of the field, so on the checkout form with round frames it sat on the frame. MerTools now draws its own arrow, a chevron in the colour of the field's text (in dark mode too), as far from the frame as the text is on the left; the text never runs under it. In high contrast (which shows no background images) the browser's own arrow stays. Setting *Checkout page fixes*, as before.
+
+### 📋 The list of changes in Joomla's updates <!-- addition -->
+
+Joomla's *Extensions: Update* shows a **Changelog** button for MerTools with the short list of changes of the version offered, and *Extensions: Manage* one for the version installed (from 1.15.1 on). The list is the titles of this changelog, sorted into new features and fixes.
+
 ## 1.15.0 — 2026-11-16
 
 ### ✅ Orders — the status of many at once
@@ -21,13 +31,13 @@ The Link Picker of the Gridbox editor (*Link Picker*, the tree of apps, categori
 - Kept in the browser, for each user; a folder closed stays closed. Choosing a link works as before.
 - Setting *Link picker keeps its open folders* (Configuration → Editor), on by default.
 
-### 🛒 Checkout page — brutto at the total, room in the drop-down fields
+### 🛒 Checkout page — brutto at the total, room in the drop-down fields <!-- fix -->
 
 - **The total said "netto".** Gridbox writes every amount of the checkout with the store's currency, so a store whose currency is "zł netto" showed the total with tax as "5 897,85 zł netto" next to *Total (gross)*. The total, *Paying now* and *Left to pay* now say "zł brutto", the amounts of tax only "zł"; the net rows (products, subtotal, shipping) keep "zł netto". Only a currency with the word "netto" is changed; the amounts are not touched, also after another shipping is chosen.
 - **The drop-down fields of the checkout form** had their text on the frame: Gridbox takes away their inner space at the sides, which cannot be set in Gridbox. They now have the same space as the text fields of the form, their height, and end where the text fields end.
 - Setting *Checkout page fixes* (Configuration → Shop), on by default.
 
-### 🔄 Gridbox's corrected files seen at once
+### 🔄 Gridbox's corrected files seen at once <!-- fix -->
 
 Gridbox puts only its version in the addresses of its scripts and styles (`…/gridboxSave.js?2.20.5.0`), and the server lets them be kept for a year. Balbooa's corrected package of Gridbox 2.20.5 has the same version, so its files stayed unseen: Cloudflare kept serving the old ones, and after its cache was emptied a browser still used its own copies. With the old files the editor could not save a product with extra options — a click on *Save* did nothing.
 

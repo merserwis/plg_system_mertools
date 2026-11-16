@@ -53,6 +53,7 @@ $html = '<html><head><title>t</title></head><body><div class="ba-item-checkout-f
 $out  = Checkout::apply($html);
 $check('the style for the drop-down fields in the head', substr_count($out, '<style id="mertools-checkout">'), 1);
 $check('…before </head>', strpos($out, '</style></head>') !== false, true);
+$check('…the browser\'s arrow kept in high contrast', str_contains(Checkout::CSS, '@media (forced-colors:active)') && str_contains(Checkout::CSS, 'appearance:auto'), true);
 $check('…once (a page made again)', Checkout::apply($out), $out);
 $check('…with the nonce of the CSP', str_contains(Checkout::apply($html, 'abc"'), '<style id="mertools-checkout" nonce="abc&quot;">'), true);
 $check('a page without the checkout form: as it is', Checkout::apply('<html><head></head><body><p>x</p></body></html>'), '<html><head></head><body><p>x</p></body></html>');
