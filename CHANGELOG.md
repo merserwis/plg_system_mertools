@@ -2,6 +2,39 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.15.0 — 2026-11-16
+
+### ✅ Orders — the status of many at once
+
+Gridbox changes the status of one order at a time: open the order, its status, choose, apply — again for every order. The list of orders now has a **Change status** button in its toolbar: tick the orders, choose the status and a comment once in Gridbox's own window, and every order ticked gets them.
+
+- Each order changes exactly as when its status is changed on its own in Gridbox (its own change of a status, one order after another): a line in its status history with the user and the comment, the e-mail of that status to the customer, stock and promo codes on a refund and back.
+- The list shows the new status at once; an order whose change was not confirmed (an error page instead of Gridbox's answer) is named in the notice and stays ticked, to be checked after the list is reloaded.
+- While the orders are being changed, leaving the page asks first: the orders not reached yet would keep their status.
+- The button is there for users who may edit in Gridbox (where Gridbox shows its own *Apply*). An order's own window is Gridbox's as before, with its history.
+- Setting *Change the status of many orders* (Configuration → Lists in the administrator), on by default.
+
+### 🔗 Link Picker — the folders open as last time
+
+The Link Picker of the Gridbox editor (*Link Picker*, the tree of apps, categories, pages and menus) opened all closed every time, so the same app and category had to be opened again for every link. It now opens with the folders that were open the last time, at the same place of the list.
+
+- Kept in the browser, for each user; a folder closed stays closed. Choosing a link works as before.
+- Setting *Link picker keeps its open folders* (Configuration → Editor), on by default.
+
+### 🛒 Checkout page — brutto at the total, room in the drop-down fields
+
+- **The total said "netto".** Gridbox writes every amount of the checkout with the store's currency, so a store whose currency is "zł netto" showed the total with tax as "5 897,85 zł netto" next to *Total (gross)*. The total, *Paying now* and *Left to pay* now say "zł brutto", the amounts of tax only "zł"; the net rows (products, subtotal, shipping) keep "zł netto". Only a currency with the word "netto" is changed; the amounts are not touched, also after another shipping is chosen.
+- **The drop-down fields of the checkout form** had their text on the frame: Gridbox takes away their inner space at the sides, which cannot be set in Gridbox. They now have the same space as the text fields of the form, their height, and end where the text fields end.
+- Setting *Checkout page fixes* (Configuration → Shop), on by default.
+
+### 🔄 Gridbox's corrected files seen at once
+
+Gridbox puts only its version in the addresses of its scripts and styles (`…/gridboxSave.js?2.20.5.0`), and the server lets them be kept for a year. Balbooa's corrected package of Gridbox 2.20.5 has the same version, so its files stayed unseen: Cloudflare kept serving the old ones, and after its cache was emptied a browser still used its own copies. With the old files the editor could not save a product with extra options — a click on *Save* did nothing.
+
+- MerTools adds the time Gridbox was installed to the addresses of its files (`?2.20.5.0.<stamp>`): the scripts and styles in the page and the modules its scripts load later (`gridboxVersion`), on the site and in the editor, in the administrator too. After every installation of a Gridbox package the addresses are new, and Cloudflare and the browsers fetch the files again.
+- Setting *Gridbox's new files after its update* (page *Page Cache*), on by default. Modules Gridbox loads without its version (its ES modules, the modules of its administrator lists) are not covered.
+- The pages kept by MerTools are emptied by the installation itself, as before, so none of them keeps the old addresses.
+
 ## 1.14.0 — 2026-11-06
 
 ### 🖼 Images in AVIF and JPEG XL — lighter than WebP, with WebP still there

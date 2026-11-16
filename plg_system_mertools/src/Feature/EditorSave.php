@@ -5,7 +5,8 @@
  * @subpackage  System.mertools
  *
  * Saving in the Gridbox editor: a warning before the editor is closed with changes not saved, and a
- * save of its own every few minutes while there are any (media/js/mertools-save.js).
+ * save of its own every few minutes while there are any (media/js/mertools-save.js). Also the editor's
+ * Link Picker, which opens with the folders open the last time (media/js/mertools-linktree.js).
  */
 
 namespace Merserwis\Plugin\System\MerTools\Feature;
@@ -51,6 +52,24 @@ final class EditorSave extends Feature
             'lang'     => $app->getLanguage()->getTag(),
             'texts'    => ['unsaved' => Text::_('PLG_SYSTEM_MERTOOLS_EDITOR_UNSAVED'), 'autosaved' => Text::_('PLG_SYSTEM_MERTOOLS_EDITOR_AUTOSAVED')],
         ]);
+    }
+
+    /**
+     * The Link Picker of the Gridbox editor (its tree of apps, categories, pages and menus is made anew
+     * at every opening, all closed): opened with the folders the user had open, kept in the browser.
+     */
+    public function linkTreeScript(): void
+    {
+        $app   = $this->plugin->app();
+        $input = $app->getInput();
+        if (!(int) $this->plugin->params->get('editor_link_tree', 1) || $input->getCmd('option') !== 'com_gridbox' || $input->getCmd('view') !== 'editor') {
+            return;
+        }
+        $user = $app->getIdentity();
+        if (!$user || $user->guest || !str_contains((string) $app->getBody(), 'id="link-select-modal"')) {
+            return;
+        }
+        $this->plugin->editorScript('linktree', ['user' => (int) $user->id]);
     }
 
     /**

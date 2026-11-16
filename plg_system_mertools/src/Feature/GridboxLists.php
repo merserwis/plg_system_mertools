@@ -550,6 +550,35 @@ final class GridboxLists extends Feature
     }
 
     /**
+     * Gridbox's list of orders: a button in its toolbar gives the orders ticked one status (and one
+     * comment) at once, each through Gridbox's own change of a status (orders.updateStatus: its history,
+     * its e-mail, stock and promo codes), one after another (mertools-orders.js). Only where Gridbox
+     * shows its own button to apply a status (the right to edit in Gridbox).
+     */
+    public function ordersBulkScript(): void
+    {
+        $app   = $this->plugin->app();
+        $input = $app->getInput();
+        if (!(int) $this->plugin->params->get('orders_bulk_status', 1) || $input->getCmd('option') !== 'com_gridbox'
+            || $input->getCmd('view') !== 'orders' || $input->getCmd('format', 'html') !== 'html') {
+            return;
+        }
+        $body = (string) $app->getBody();
+        if (!str_contains($body, 'id="orders-status-modal"') || !str_contains($body, 'apply-order-status')) {
+            return;
+        }
+        $this->plugin->loadLanguage();
+        $texts = [];
+        foreach (['BUTTON', 'TITLE', 'WORKING', 'DONE', 'FAILED'] as $key) {
+            $texts[$key] = Text::_('PLG_SYSTEM_MERTOOLS_ORDERS_BULK_' . $key);
+        }
+        $tail = '<script type="application/json" id="mertools-orders-config">' . json_encode(['texts' => $texts], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP)
+            . '</script><script src="' . Uri::root(true) . '/media/plg_system_mertools/js/mertools-orders' . (JDEBUG ? '' : '.min') . '.js?' . MerTools::VERSION . '" defer></script>';
+        $pos  = strripos($body, '</body>');
+        $app->setBody($pos === false ? $body . $tail : substr($body, 0, $pos) . $tail . substr($body, $pos));
+    }
+
+    /**
      * Gridbox's dashboard: its sales statistics open in the range of dates last chosen (day, week,
      * month, year, or own dates with them) instead of always the day — kept in the browser
      * (mertools-dashboard.js).

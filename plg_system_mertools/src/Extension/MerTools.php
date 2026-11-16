@@ -69,8 +69,10 @@ use Merserwis\Plugin\System\MerTools\Feature\SiteSchema;
 use Merserwis\Plugin\System\MerTools\Tool\ArticleSchema;
 use Merserwis\Plugin\System\MerTools\Tool\Badges;
 use Merserwis\Plugin\System\MerTools\Tool\BlogGrid;
+use Merserwis\Plugin\System\MerTools\Tool\Checkout;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\Feed;
+use Merserwis\Plugin\System\MerTools\Tool\GridboxStamp;
 use Merserwis\Plugin\System\MerTools\Tool\IntroText;
 use Merserwis\Plugin\System\MerTools\Tool\Layout;
 use Merserwis\Plugin\System\MerTools\Tool\MainMenu;
@@ -89,7 +91,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.14.0';
+    public const VERSION = '1.15.0';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -309,8 +311,10 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $this->soft(fn () => $this->lists()->listColumns(), true);
             $this->soft(fn () => $this->lists()->mediaDropScript(), true);
             $this->soft(fn () => $this->lists()->dashboardScript(), true);
+            $this->soft(fn () => $this->lists()->ordersBulkScript(), true);
             $this->soft(fn () => $this->history()->historyInLists(), true);
             $this->soft(fn () => $this->apps()->appsScript(), true);
+            $this->soft(fn () => $this->stampGridbox(), true);
 
             return;
         }
@@ -326,9 +330,12 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $this->soft(fn () => $this->shop()->discountScript(), true);
             $this->soft(fn () => $this->shop()->foldScript(), true);
             $this->soft(fn () => $this->editorSave()->saveScript(), true);
+            $this->soft(fn () => $this->editorSave()->linkTreeScript(), true);
             $this->soft(fn () => $this->editorImport()->importScript(), true);
             $this->soft(fn () => $this->editorFields()->fillScript(), true);
             $this->soft(fn () => $this->lists()->mediaDropScript(), true);
+            // also in the editor: its modules are what a package of the same version corrects
+            $this->soft(fn () => $this->stampGridbox(), true);
         }
         $page = $document && $document->getType() === 'html' && !$this->inBuilder();
         // the last listener: the headers other plugins have set are all there
@@ -379,6 +386,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
         if (Omnibus::enabled($this->params)) {
             $new = $this->shop()->omnibusLines($new);
+        }
+        if (Checkout::enabled($this->params) && str_contains($new, 'ba-item-checkout')) {
+            $new = Checkout::apply($new, (string) $app->get('csp_nonce', ''));
         }
         if ($new !== $body) {
             $app->setBody($new);
@@ -721,6 +731,25 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
      * The Gridbox page builder (its editor frame shows the page on the site side): nothing is added
      * there, or links and colour marks could be saved into the page content.
      */
+    /** Gridbox's files with the time of its installation in the page (Tool/GridboxStamp), setting gridbox_stamp. */
+    private function stampGridbox(): void
+    {
+        $app      = $this->getApplication();
+        $document = $app->getDocument();
+        if (!(int) $this->params->get('gridbox_stamp', 1) || !$document || $document->getType() !== 'html') {
+            return;
+        }
+        $gridbox = GridboxStamp::installed(JPATH_ADMINISTRATOR);
+        if (!$gridbox) {
+            return;
+        }
+        $body = (string) $app->getBody();
+        $new  = GridboxStamp::apply($body, $gridbox['version'], $gridbox['stamp']);
+        if ($new !== $body) {
+            $app->setBody($new);
+        }
+    }
+
     public function inBuilder(): bool
     {
         $input = $this->getApplication()->getInput();

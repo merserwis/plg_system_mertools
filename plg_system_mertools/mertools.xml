@@ -6,7 +6,7 @@
     <creationDate>2026-10-28</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.14.0</version>
+    <version>1.15.0</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -66,6 +66,11 @@
                     label="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_MAX_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_CACHE_MAX_DESC" />
                 <field name="admin_cache_button" type="radio" layout="joomla.form.field.radio.switcher" default="1"
                     label="PLG_SYSTEM_MERTOOLS_ADMIN_CACHE_BUTTON_LABEL" description="PLG_SYSTEM_MERTOOLS_ADMIN_CACHE_BUTTON_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="gridbox_stamp" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_GRIDBOX_STAMP_LABEL" description="PLG_SYSTEM_MERTOOLS_GRIDBOX_STAMP_DESC">
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
@@ -784,6 +789,11 @@
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
+                <field name="shop_checkout_fix" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_SHOP_CHECKOUT_FIX_LABEL" description="PLG_SYSTEM_MERTOOLS_SHOP_CHECKOUT_FIX_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
                 <field name="price_spacer" type="spacer" hr="true" />
                 <field name="price_request" type="radio" layout="joomla.form.field.radio.switcher" default="0"
                     label="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_LABEL" description="PLG_SYSTEM_MERTOOLS_PRICE_REQUEST_DESC">
@@ -1173,6 +1183,11 @@
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
+                <field name="orders_bulk_status" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_ORDERS_BULK_LABEL" description="PLG_SYSTEM_MERTOOLS_ORDERS_BULK_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
                 <field name="list_dark" type="radio" layout="joomla.form.field.radio.switcher" default="1"
                     label="PLG_SYSTEM_MERTOOLS_LIST_DARK_LABEL" description="PLG_SYSTEM_MERTOOLS_LIST_DARK_DESC">
                     <option value="0">JNO</option>
@@ -1205,6 +1220,11 @@
                 </field>
                 <field name="editor_autosave" type="number" default="0" min="0" max="120" filter="integer"
                     label="PLG_SYSTEM_MERTOOLS_EDITOR_AUTOSAVE_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_AUTOSAVE_DESC" />
+                <field name="editor_link_tree" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_EDITOR_LINK_TREE_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_LINK_TREE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
                 <field name="editor_fill_spacer" type="spacer" hr="true" />
                 <field name="editor_fill" type="radio" layout="joomla.form.field.radio.switcher" default="0"
                     label="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_LABEL" description="PLG_SYSTEM_MERTOOLS_EDITOR_FILL_DESC">
