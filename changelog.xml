@@ -3,6 +3,14 @@
     <changelog>
         <element>pkg_mertools</element>
         <type>package</type>
+        <version>1.16.0</version>
+        <addition>
+            <item>Checkout form: conditional logic of its fields</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
         <version>1.15.1</version>
         <fix>
             <item>Checkout page: the arrows of the drop-down fields inside the frame</item>

@@ -54,7 +54,7 @@ final class Catalog
         'hygiene' => ['icon' => 'filter',         'on' => ['hygiene_og_url', 'hygiene_cookies', 'hygiene_xss', 'hygiene_lang', 'hygiene_csp_mode']],
         'schema'  => ['icon' => 'code',           'on' => ['schema_on']],
         'blog'    => ['icon' => 'rss',            'on' => ['feed_enabled', 'blog_jsonld', 'blog_grid', 'blog_md_import']],
-        'shop'    => ['icon' => 'cart',           'on' => ['shop_option_links', 'shop_discount_field', 'shop_field_fold', 'price_request', 'shop_jsonld'], 'store' => true],
+        'shop'    => ['icon' => 'cart',           'on' => ['shop_option_links', 'shop_discount_field', 'shop_field_fold', 'shop_checkout_logic', 'price_request', 'shop_jsonld'], 'store' => true],
         'speed'   => ['icon' => 'tachometer-alt', 'on' => ['speed_show', 'speed_icons', 'speed_mainphoto', 'speed_slideimg', 'speed_video', 'speed_popups', 'speed_scripts']],
         'layout'  => ['icon' => 'th-large',       'on' => ['layout_post_rows', 'layout_clip_x', 'layout_menu_hold', 'layout_menu_fit', 'list_hide_words']],
         'tabs'    => ['icon' => 'folder-open',    'on' => ['tabs_links', 'tabs_accordion']],

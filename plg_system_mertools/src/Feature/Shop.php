@@ -22,6 +22,7 @@ use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
 use Merserwis\Plugin\System\MerTools\Extension\MerTools;
 use Merserwis\Plugin\System\MerTools\Tool\Badges;
+use Merserwis\Plugin\System\MerTools\Tool\CheckoutLogic;
 use Merserwis\Plugin\System\MerTools\Tool\Feed;
 use Merserwis\Plugin\System\MerTools\Tool\History;
 use Merserwis\Plugin\System\MerTools\Tool\Omnibus;
@@ -302,6 +303,57 @@ final class Shop extends Feature
         $this->plugin->editorScript('fold', ['hide' => Text::_('PLG_SYSTEM_MERTOOLS_FOLD_HIDE'), 'show' => Text::_('PLG_SYSTEM_MERTOOLS_FOLD_SHOW'),
             // the folds of the user's account; null: none kept there yet (the browser's are taken over)
             'folded' => $folded, 'user' => (int) $user->id, 'url' => Uri::root(true) . '/index.php', 'token' => Session::getFormToken()]);
+    }
+
+    /**
+     * Conditional logic of the checkout form, on the checkout page: the rules saved with the page in the
+     * settings of its checkout form, and the script that follows them (CheckoutLogic).
+     */
+    public function checkoutLogic(string $html): string
+    {
+        $input = $this->plugin->app()->getInput();
+        $id    = $input->getInt('id', 0);
+        if ($id <= 0 || $input->getCmd('option') !== 'com_gridbox' || $input->getCmd('view') !== 'system' || !CheckoutLogic::forms($html)) {
+            return $html;
+        }
+        try {
+            $db    = Factory::getContainer()->get(DatabaseInterface::class);
+            $items = json_decode((string) $db->setQuery('SELECT items FROM ' . $db->quoteName('#__gridbox_system_pages') . ' WHERE id = ' . $id
+                . ' AND type = ' . $db->quote('checkout'), 0, 1)->loadResult(), true);
+        } catch (\Exception $e) {
+            return $html;
+        }
+        if (!\is_array($items)) {
+            return $html;
+        }
+        $src = Uri::root(true) . '/media/plg_system_mertools/js/mertools-conditions' . (JDEBUG ? '' : '.min') . '.js?' . MerTools::VERSION;
+
+        return CheckoutLogic::apply($html, $items, $src, (string) $this->plugin->app()->get('csp_nonce', ''));
+    }
+
+    /**
+     * The window of the rules in the Gridbox editor (mertools-logic.js): opened from the settings of the
+     * checkout form, next to the list of its fields.
+     */
+    public function logicScript(): void
+    {
+        $app   = $this->plugin->app();
+        $input = $app->getInput();
+        if (!CheckoutLogic::enabled($this->plugin->params) || $input->getCmd('option') !== 'com_gridbox' || $input->getCmd('view') !== 'editor') {
+            return;
+        }
+        $user = $app->getIdentity();
+        if (!$user || $user->guest || !str_contains((string) $app->getBody(), 'id="customer-info-settings-dialog"')) {
+            return;
+        }
+        $this->plugin->loadLanguage();
+        $texts = [];
+        foreach (['title', 'help', 'rules', 'empty', 'new', 'add', 'name', 'when', 'then', 'field', 'value', 'choose', 'add_when', 'add_then', 'remove',
+            'copy', 'delete', 'off', 'on', 'close', 'unsaved', 'missing', 'acceptance', 'show', 'hide', 'filled', 'not_filled', 'equal', 'not_equal',
+            'greater', 'less', 'contains', 'not_contains', 'count'] as $key) {
+            $texts[$key] = Text::_('PLG_SYSTEM_MERTOOLS_LOGIC_' . strtoupper($key));
+        }
+        $this->plugin->editorScript('logic', ['texts' => $texts]);
     }
 
     /** the most fields whose fold an account keeps */

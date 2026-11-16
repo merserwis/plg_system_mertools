@@ -225,6 +225,10 @@ Gridbox has no feeds. MerTools gives every Gridbox blog an **RSS 2.0** and an **
 
 Two things of Gridbox's checkout page its settings cannot change. A store whose currency is "zł netto" (prices without tax) showed every amount with it, the total with tax too ("5 897,85 zł netto" next to *Total (gross)*): the total, *Paying now* and *Left to pay* now say "zł brutto", the amounts of tax "zł", the net rows keep "zł netto" (only a currency with the word "netto" is changed). The drop-down fields of the checkout form, whose text Gridbox puts right on the frame, get the same inner space as its text fields, their height and their width. Setting *Checkout page fixes* (tab *Shop*, on by default).
 
+### 🧭 Shop — conditional logic of the checkout fields (1.16.0)
+
+The fields of the checkout form show or hide depending on other fields, as in Balbooa Forms (e.g. *Address* and *Delivery* only for the topic *Order*). The rules are made in the Gridbox editor of the checkout page: the settings of the checkout form element, group **Conditional logic** under its fields. A rule has conditions (a field: filled, not filled, equal, not equal, greater than, less than, contains, does not contain a value) and actions (show or hide a field), and works when all its conditions are met. A field with *Show* is hidden until one of its rules works; a field with *Hide* hides while one works. A hidden field is not required, counts as not filled for other rules and goes into the order empty. The rules are saved with the page. Setting *Conditional logic of the checkout fields* (tab *Shop*, on by default).
+
 ### 🧹 Shop — tidy up old carts
 
 Gridbox never removes a cart, so its cart tables only grow. **Clean and optimise** (tab *Shop*) removes the carts nobody can open any more — empty carts at once, carts with products unused for N days (default 30, at least 8, since Gridbox's cart cookie lives 7 days) — and rebuilds the tables so the database shrinks; **Check** shows what would go. Orders and their data, carts with attached files and carts in use are never touched. Can also run automatically once a day or above a cart limit (default: by hand only).

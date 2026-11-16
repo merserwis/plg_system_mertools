@@ -70,6 +70,7 @@ use Merserwis\Plugin\System\MerTools\Tool\ArticleSchema;
 use Merserwis\Plugin\System\MerTools\Tool\Badges;
 use Merserwis\Plugin\System\MerTools\Tool\BlogGrid;
 use Merserwis\Plugin\System\MerTools\Tool\Checkout;
+use Merserwis\Plugin\System\MerTools\Tool\CheckoutLogic;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\Feed;
 use Merserwis\Plugin\System\MerTools\Tool\GridboxStamp;
@@ -91,7 +92,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.15.1';
+    public const VERSION = '1.16.0';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -329,6 +330,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if ($document && $document->getType() === 'html') {
             $this->soft(fn () => $this->shop()->discountScript(), true);
             $this->soft(fn () => $this->shop()->foldScript(), true);
+            $this->soft(fn () => $this->shop()->logicScript(), true);
             $this->soft(fn () => $this->editorSave()->saveScript(), true);
             $this->soft(fn () => $this->editorSave()->linkTreeScript(), true);
             $this->soft(fn () => $this->editorImport()->importScript(), true);
@@ -389,6 +391,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
         if (Checkout::enabled($this->params) && str_contains($new, 'ba-item-checkout')) {
             $new = Checkout::apply($new, (string) $app->get('csp_nonce', ''));
+        }
+        if (CheckoutLogic::enabled($this->params) && str_contains($new, 'ba-item-checkout-form')) {
+            $this->soft(function () use (&$new): void {
+                $new = $this->shop()->checkoutLogic($new);
+            }, true);
         }
         if ($new !== $body) {
             $app->setBody($new);

@@ -2,6 +2,20 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.16.0 — 2026-11-16
+
+### 🧭 Checkout form — conditional logic of its fields
+
+The fields of Gridbox's checkout form can now show or hide depending on other fields, as in Balbooa Forms: for example *Delivery*, *Payment* and *Address* only once the topic *Order* is chosen, or the name hidden once a tax number is filled in.
+
+- The rules are made in the Gridbox editor of the checkout page: the settings of the checkout form element, group **Conditional logic** under the list of its fields. Its window has the rules on the left (switched off with the eye, copied, deleted) and on the right the conditions and actions of the rule chosen.
+- A condition: a field, how it is compared (*Filled*, *Not filled*, *Equal*, *Not equal*, *Greater than*, *Less than*, *Contains*, *Does not contain*) and a value. A field with options (drop-down, radio buttons, check boxes) offers its options as values. Comparison ignores upper and lower case; *Greater* and *Less* compare numbers (also "1 234,5").
+- An action: show or hide a field (a headline too). A rule works when all its conditions are met. A field with *Show* is hidden until one of its rules works; a field with *Hide* hides while one works (hiding wins). The e-mail and the country of the order are not hidden: Gridbox needs them.
+- A hidden field counts as not filled in the conditions of other rules, so the fields it showed hide as well. It is not required: Gridbox's check of the form passes it over and its warning goes. It goes into the order empty, so the order, its e-mails and the invoice have nothing of it. What was typed into it stays for when it shows again.
+- The rules are saved with the page by Gridbox's *Save* (every change is a step of the undo history). Fields added since the last save of the page come into the lists after the next one.
+- On the checkout page the fields a rule shows are hidden from the start, before the script has looked at them. A customer logged in, whose values Gridbox fills in, sees the form as the rules make it at once.
+- Setting *Conditional logic of the checkout fields* (tab *Shop*, on by default). Switched off, the form is as Gridbox shows it, and the rules stay saved.
+
 ## 1.15.1 — 2026-11-16
 
 ### 🛒 Checkout page — the arrows of the drop-down fields inside the frame
