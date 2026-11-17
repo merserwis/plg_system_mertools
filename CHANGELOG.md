@@ -2,6 +2,30 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.18.0 — 2026-11-17
+
+### 🍪 Cookie consent — MerTools' own window, with Google Consent Mode v2
+
+A cookie consent window without an outside service (until now sites used TermsFeed's), in the middle of the screen and large, so it is not missed: the page behind it is dimmed until the visitor chooses **Accept all**, **Reject** or, in **Settings**, the categories one by one (*Necessary* always on, *Functional*, *Analytics*, *Marketing*). It takes the colours of the site (the button in the theme's main colour, its text dark or light, whichever reads better), dark mode too; on a phone it fits the screen. Instead of the centre it can be a bar at the bottom or a box in the corner, and the page need not be dimmed. Tab *Cookie consent* of the configuration, off by default.
+
+- **Google Consent Mode v2**: before any Google tag runs (Tag Manager, Analytics, Ads) every consent is *denied*; the visitor's choice is passed on at once (`analytics_storage` for analytics; `ad_storage`, `ad_user_data`, `ad_personalization` for marketing) and, on later visits, from the first line of the page, so Google's tags know it before they start. Microsoft Clarity gets the choice through its own consent API. Google Tag Manager gets the event `mertools_consent` on every page, with the choice in it (`mertools_consent.tracking`, `mertools_consent.targeting`…), for tags of other companies: fired on it, they check their category, since the event comes after a refusal too.
+- **Scripts of other companies wait** for consent to their category: Facebook's pixel (with its image for browsers without scripts), LinkedIn, TikTok, Hotjar, Yandex by default; the list can be changed in the settings, and a script can be marked by hand in the page's code (`type="text/plain" data-mertools-consent="tracking"`; TermsFeed's marks work too). Allowed, they run at once, without reloading the page.
+- **Withdrawing** consent is as easy as giving it: a small round button with a cookie in a corner of the page (it moves above Joomla's accessibility icon or the dark-mode button when they share the corner), or a link to `#mertools-consent` in the footer. A category taken back reloads the page, and the cookies its known tools left (Google Analytics and Ads, Facebook, Clarity, Hotjar…) are deleted.
+- **TermsFeed's window is replaced**: its code is taken out of the pages, and visitors who already chose in it are not asked again — their choice is carried over.
+- The choice is kept for a year (the setting allows up to 13 months) in the site's cookie `mertools_consent`; everything is decided in the browser, so pages kept by MerTools' page cache work as before.
+
+### 🌗 Light mode for sites designed dark
+
+Dark mode so far made a light site dark. A site designed dark in Gridbox (dark sections, light text) can now offer the opposite: new setting *The site is designed* — **Dark**, and the button switches to **light mode**.
+
+- Four light palettes, none pure white: **Paper**, **Cream** (warm, goes with gold), **Mist** (cool blue-grey), **Stone** (soft grey); the visitor can choose among them with the dots by the button, and the intensity slider makes them brighter or softer.
+- The dark backgrounds of the sections become light and their texts dark enough to read (4.5:1), keeping their hue: gold headings stay golden, a little deeper. Photos and videos with a dark veil over them stay as they are, with their light text, and so do deep brand colours (a navy, a burgundy). Gridbox's colours for text on dark sections (*Title inverse*, *Text inverse*) become dark.
+- The logo for the other mode (setting *Logo in dark mode*) is shown in light mode on such a site. With the default *Dark* everyone first sees the site as it was designed; the choice of a visitor is kept, as in dark mode.
+
+### 📝 Markdown import — the texts after a heading come in whole <!-- fix -->
+
+Importing a document into a new post stopped at its first heading: the text after it stayed Gridbox's *Click here and start typing*, and so did every later one. In the editor of a post Gridbox starts its text editor on each new text a moment later, and it then wrote back what the text held when it was added. MerTools now fills a text only once its editor is ready, so every text, heading and list of the document comes in.
+
 ## 1.17.1 — 2026-11-17
 
 ### 📏 Orders — the new buttons of the toolbar spaced as Joomla's own

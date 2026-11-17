@@ -71,6 +71,7 @@ use Merserwis\Plugin\System\MerTools\Tool\Badges;
 use Merserwis\Plugin\System\MerTools\Tool\BlogGrid;
 use Merserwis\Plugin\System\MerTools\Tool\Checkout;
 use Merserwis\Plugin\System\MerTools\Tool\CheckoutLogic;
+use Merserwis\Plugin\System\MerTools\Tool\Consent;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\Feed;
 use Merserwis\Plugin\System\MerTools\Tool\GridboxStamp;
@@ -92,7 +93,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.17.1';
+    public const VERSION = '1.18.0';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -108,6 +109,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         'onAfterRoute'        => ['onAfterRoute', Priority::HIGH],
         // after Gridbox has finished the page (its lazy loading and deferred loading)
         'onAfterRender'       => ['onAfterRender', Priority::MIN],
+        // Gridbox's own work on the page, before it joins the site's scripts into one file: the trackers
+        // waiting for consent have to be held before that (Consent::hold)
+        'onBeforeRenderGridbox' => ['onBeforeRenderGridbox', Priority::NORMAL],
         // after System - Redirect, so a redirect set for a single address in Joomla still wins
         'onError'             => ['onError', Priority::LOW],
         // after the response has gone to the visitor: the work that does not have to keep them waiting
@@ -371,6 +375,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if (SiteSchemaTool::enabled($this->params)) {
             $new = $this->siteSchema()->html($new);
         }
+        if (Consent::enabled($this->params)) {
+            // before the speed-up, which would otherwise delay a held tracker as a plain script
+            $new = $this->consentPage($new);
+            $new = Consent::injectHead($new, Consent::headScript($this->params), (string) $app->get('csp_nonce', ''));
+        }
         $new = $this->pages()->listPage($new);
         // after the page of the list is judged: a page with every card taken out would look empty
         $new = $this->pages()->hideEnded($new);
@@ -421,6 +430,42 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
      * click-to-call phone numbers, and dark mode — the dark palette CSS, the no-flash inline script
      * and the toggle script.
      */
+    /** Scripts waiting for consent held before Gridbox joins the site's scripts (again after, for other pages). */
+    public function onBeforeRenderGridbox(): void
+    {
+        $app = $this->getApplication();
+        if (!$app->isClient('site') || !Consent::enabled($this->params) || $this->inBuilder()) {
+            return;
+        }
+        $document = $app->getDocument();
+        if (!$document || $document->getType() !== 'html') {
+            return;
+        }
+        $body = (string) $app->getBody();
+        $new  = $this->consentPage($body);
+        if ($new !== $body) {
+            $app->setBody($new);
+        }
+    }
+
+    /** TermsFeed taken out, the trackers held (both safe to run twice on a page). */
+    private function consentPage(string $html): string
+    {
+        if ((int) $this->params->get('consent_termsfeed', 1)) {
+            $html = Consent::dropTermsFeed($html);
+        }
+
+        return Consent::hold($html, Consent::rules($this->params));
+    }
+
+    /** the texts of the consent window: key in the script => suffix of the language string */
+    private const CONSENT_TEXTS = [
+        'title' => 'TITLE_DEFAULT', 'text' => 'TEXT_DEFAULT', 'accept' => 'ACCEPT', 'reject' => 'REJECT', 'settings' => 'SETTINGS',
+        'save' => 'SAVE', 'policy' => 'POLICY', 'reopen' => 'REOPEN', 'necessary' => 'NECESSARY', 'necessaryDesc' => 'NECESSARY_DESC',
+        'functionality' => 'FUNCTIONALITY', 'functionalityDesc' => 'FUNCTIONALITY_DESC', 'tracking' => 'TRACKING',
+        'trackingDesc' => 'TRACKING_DESC', 'targeting' => 'TARGETING', 'targetingDesc' => 'TARGETING_DESC',
+    ];
+
     public function onBeforeCompileHead(): void
     {
         $app = $this->getApplication();
@@ -490,6 +535,16 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $document->addStyleDeclaration(Omnibus::css());
             $wa->registerAndUseScript('plg_system_mertools.omnibus', 'plg_system_mertools/mertools-omnibus.js', [], ['defer' => true]);
         }
+        if (Consent::enabled($this->params)) {
+            $this->loadLanguage();
+            $texts = [];
+            foreach (self::CONSENT_TEXTS as $key => $suffix) {
+                $texts[$key] = $this->translate('PLG_SYSTEM_MERTOOLS_CONSENT_' . $suffix);
+            }
+            $document->addStyleDeclaration(Consent::css());
+            $document->addScriptOptions('plg_system_mertools', ['consent' => Consent::jsConfig($this->params, $texts)]);
+            $wa->registerAndUseScript('plg_system_mertools.consent', 'plg_system_mertools/mertools-consent.js', [], ['defer' => true]);
+        }
         if (!(int) $this->params->get('dark_enabled', 0)) {
             return;
         }
@@ -505,8 +560,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                 'toDark'  => $this->translate('PLG_SYSTEM_MERTOOLS_DARK_TO_DARK'),
                 'toLight' => $this->translate('PLG_SYSTEM_MERTOOLS_DARK_TO_LIGHT'),
                 'choose'  => $this->translate('PLG_SYSTEM_MERTOOLS_DARK_CHOOSE'),
-                'names'   => array_combine(DarkMode::PALETTES, array_map(
-                    fn ($k) => $this->translate('PLG_SYSTEM_MERTOOLS_DARK_PALNAME_' . strtoupper($k)), DarkMode::PALETTES)),
+                'names'   => array_combine($all = array_merge(DarkMode::PALETTES, DarkMode::LIGHT_PALETTES), array_map(
+                    fn ($k) => $this->translate('PLG_SYSTEM_MERTOOLS_DARK_PALNAME_' . strtoupper($k)), $all)),
             ],
         ]);
         $wa->registerAndUseScript('plg_system_mertools.dark', 'plg_system_mertools/mertools-dark.js', [], ['defer' => true]);

@@ -670,7 +670,18 @@
     return col || null;
   };
 
-  const fill = (w, key, block) => {
+  // In the editor of a post Gridbox puts CKEditor on every new text (CKEDITOR.inline), which starts later
+  // and then writes back what the text held when it was added — Gridbox's "click here and start typing".
+  // A text is filled only once its editor is ready, or what was put into it is lost.
+  const ready = (w, content) => new Promise((resolve) => {
+    let ed = null;
+    try { ed = w.CKEDITOR && w.CKEDITOR.dom.element.get(content).getEditor(); } catch (e) { ed = null; }
+    if (!ed || ed.status === 'ready') { resolve(); return; }
+    const t = setTimeout(resolve, 10000);
+    ed.once('instanceReady', () => { clearTimeout(t); setTimeout(resolve, 0); });
+  });
+
+  const fill = async (w, key, block) => {
     const el = w.document.getElementById(key);
     if (!el) return;
     if (block.type === 'headline') {
@@ -681,7 +692,9 @@
       if (w.app.items[key]) w.app.items[key].tag = 'h' + block.level;
     } else {
       const content = el.querySelector('.content-text');
-      if (content) content.innerHTML = block.html;
+      if (!content) return;
+      await ready(w, content);
+      content.innerHTML = block.html;
     }
   };
 
@@ -731,7 +744,7 @@
         } else {
           key = await w.app.pluginLoader.load(w.$g(column), plugin, 0);
         }
-        fill(w, key, block);
+        await fill(w, key, block);
         done++;
       }
     } catch (e) {

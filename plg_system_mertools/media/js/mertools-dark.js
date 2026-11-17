@@ -23,11 +23,19 @@
   var root = document.documentElement;
 
   var THEMES = cfg.themes && cfg.themes.length ? cfg.themes : ['light', 'dark'];
+  // the site as it was designed (base) and the theme MerTools paints over it (ALT): dark mode on a
+  // light site, light mode on a dark one
+  var BASE = cfg.base === 'dark' ? 'dark' : 'light', ALT = BASE === 'dark' ? 'light' : 'dark';
 
   /** The theme shown now: "dark" or "light". */
   function current() {
     var t = root.getAttribute('data-mertools-theme');
-    return t !== 'light' && THEMES.indexOf(t) > -1 ? t : 'light';
+    return THEMES.indexOf(t) > -1 ? t : BASE;
+  }
+
+  /** Is MerTools' palette shown (the theme that is not the site's own)? */
+  function on() {
+    return current() === ALT;
   }
 
   function store(theme) {
@@ -135,6 +143,7 @@
     // the colours the theme itself gives to text (the theme variables), and its background colours
     pal.own = [p.title, p.text, p.muted, p.bg, p.surface, p.bg_dark].map(cssColor).filter(Boolean);
     pal.bgs = [p.bg, p.surface, p.bg_dark].map(cssColor).filter(Boolean);
+    pal.inks = [p.title, p.text, p.muted].map(cssColor).filter(Boolean);
     pals[theme] = pal;
     return pal;
   }
@@ -269,7 +278,10 @@
    *  keeping its tone; null when it should stay. */
   function darker(c, wide) {
     var l = lum(c);
-    if (c[3] < 0.35 || l < 0.5 || (sat(c) > 0.55 && l < 0.8)) return null;
+    if (c[3] < 0.35) return null;
+    // light mode on a dark site: the dark, greyish backgrounds become light ones; deep brand colours
+    // (a navy, a burgundy) stay, as bright ones stay in dark mode
+    if (ALT === 'light' ? l > 0.2 || (sat(c) > 0.55 && l > 0.03) : l < 0.5 || (sat(c) > 0.55 && l < 0.8)) return null;
     var p = palette(), nb = mix(c, wide ? p.bg : p.surface, wide ? 0.96 : 0.9);
     nb[3] = c[3];
     return nb;
@@ -374,7 +386,7 @@
     if (bi !== 'none' && (/url\(/.test(bi) || !/gradient/.test(bi))) return;
     var c = parse(cs.backgroundColor), rect = null, p;
     // bright brand-coloured buttons: kept, softened, or drawn like the other adapted buttons
-    if (bi === 'none' && c && c[3] >= 0.6 && (cfg.vivid || 'outline') !== 'keep') {
+    if (ALT === 'dark' && bi === 'none' && c && c[3] >= 0.6 && (cfg.vivid || 'outline') !== 'keep') {
       var l = lum(c);
       if (sat(c) > 0.45 && l > 0.06 && l < 0.8) {
         rect = el.getBoundingClientRect();
@@ -394,6 +406,10 @@
     var light = c && darker(c, false);
     var grad = bi !== 'none';
     if (!light && !grad) return;
+    // light mode: a see-through dark layer over a photo or video (Gridbox's overlay) stays, so the
+    // light text on the photo stays readable
+    var up = el.parentElement;
+    if (ALT === 'light' && (grad || c[3] < 0.95) && (mediaLayer(el) || (up && (mediaLayer(up) || /url\(/.test(css(up).backgroundImage))))) return;
     rect = rect || el.getBoundingClientRect();
     var wide = rect.width >= window.innerWidth * 0.9;
     if (light) out.push([el, { '--mt-bg': rgb(darker(c, wide)) }, ['data-mt-bg']]);
@@ -450,6 +466,9 @@
       // the photo in the light theme) becomes the dark background colour; it gets the light text colour
       var pm = palette();
       if (lum(pm.bg) < 0.2 && pm.bgs.some(function (o) { return near(o, fg); })) out.push([el, { '--mt-fg': rgb(pm.title) }, attrs]);
+      // light mode: a light text on a photo that the light palette's variables made dark (Gridbox's
+      // --title-inverse, --text-inverse) gets the palette's lightest colour again
+      else if (lum(pm.bg) > 0.5 && pm.inks.some(function (o) { return near(o, fg); })) out.push([el, { '--mt-fg': rgb(pm.hi) }, attrs]);
       return;
     }
     var size = parseFloat(cs.fontSize) || 16;
@@ -481,7 +500,8 @@
   }
 
   function skip(el) {
-    return SKIP[el.tagName.toUpperCase()] || (box && box.contains(el));
+    // the toggle and the consent window draw themselves in the theme's colours
+    return SKIP[el.tagName.toUpperCase()] || (box && box.contains(el)) || !!(el.closest && el.closest('.mtc,.mtc-re'));
   }
 
   /** One slice of elements: all background and border reads, their writes, then all text reads
@@ -534,7 +554,7 @@
   /** Adapt elements: small sets at once; a whole page by the visible part first, then the rest in
    *  idle slices (a newer pass — theme or palette switched — stops the older one). */
   function adapt(scope, done) {
-    if (cfg.adaptive === false || current() === 'light' || !document.body) { calc(false); return; }
+    if (cfg.adaptive === false || !on() || !document.body) { calc(false); return; }
     var list = scope === document.body ? document.body.getElementsByTagName('*')
       : [scope].concat([].slice.call(scope.getElementsByTagName('*')));
     list = [].slice.call(list);
@@ -569,7 +589,7 @@
       n = list.length;
     }
     function more(deadline) {
-      if (my !== job || current() === 'light') return;
+      if (my !== job || !on()) return;
       calc(true);
       var t0 = Date.now();
       while (i < n && Date.now() - t0 < 8 && (deadline.didTimeout || deadline.timeRemaining() > 1)) {
@@ -600,7 +620,7 @@
    *  mode or to another palette recomputes them. */
   function adaptAll() {
     job++;
-    if (current() === 'light') {
+    if (!on()) {
       root.removeAttribute('data-mt-on');
       return;
     }
@@ -621,7 +641,7 @@
   /** Everything again from the site's own colours: styles that arrived later (a stylesheet loaded after
    *  this script, lazy sections) may have changed them. */
   function refresh() {
-    if (!done || current() === 'light') return;
+    if (!done || !on()) return;
     sheets = document.styleSheets.length;
     calc(true, true);
     [].forEach.call(document.querySelectorAll(MARKED), unmark);
@@ -654,7 +674,7 @@
     if (watching || cfg.adaptive === false || !window.MutationObserver) return;
     watching = true;
     new MutationObserver(function (records) {
-      if (!done || current() === 'light') return;
+      if (!done || !on()) return;
       records.forEach(function (r) {
         r.addedNodes.forEach(function (n) { if (n.nodeType === 1 && !(box && box.contains(n))) pending.push(n); });
       });
@@ -676,7 +696,7 @@
       }).forEach(readapt);
     }
     new MutationObserver(function (records) {
-      if (!done || current() === 'light' || document.hidden) return;
+      if (!done || !on() || document.hidden) return;
       var was = changed.length;
       records.forEach(function (r) {
         var t = r.target;
@@ -708,7 +728,7 @@
    *  from data-gridbox-lazyload-src later, so that attribute is swapped too. */
   function logos() {
     if (!cfg.logo || !cfg.logoSel) return;
-    var dark = current() === 'dark', list;
+    var dark = on(), list;
     try { list = document.querySelectorAll(cfg.logoSel); } catch (e) { return; }
     [].forEach.call(list, function (el) {
       var imgs = el.tagName === 'IMG' ? [el] : [].slice.call(el.querySelectorAll('img'));
@@ -740,7 +760,7 @@
    *  (hidden by the fade), so the click responds without waiting for the page to be measured. */
   function apply(theme) {
     if (!root.classList.contains('mt-switching')) calc(true, true);
-    root.setAttribute('data-mertools-theme', THEMES.indexOf(theme) > -1 ? theme : 'light');
+    root.setAttribute('data-mertools-theme', THEMES.indexOf(theme) > -1 ? theme : BASE);
     logos();
     update(true);
     job++;
@@ -779,14 +799,14 @@
     var nx = next();
     btn.innerHTML = nx === 'dark' ? MOON : SUN;
     btn.setAttribute('data-next', nx);
-    btn.setAttribute('aria-pressed', current() === 'light' ? 'false' : 'true');
+    btn.setAttribute('aria-pressed', !on() ? 'false' : 'true');
     var label = nx === 'dark' ? (cfg.toDark || 'Switch to dark mode') : (cfg.toLight || 'Switch to light mode');
     btn.setAttribute('aria-label', label);
     btn.setAttribute('title', label);
     if (dots) {
-      var key = paletteKey(), on = current() === 'dark';
+      var key = paletteKey(), shown = on();
       [].forEach.call(dots.querySelectorAll('.mertools-dt-dot'), function (d) {
-        d.setAttribute('aria-pressed', on && d.getAttribute('data-palette') === key ? 'true' : 'false');
+        d.setAttribute('aria-pressed', shown && d.getAttribute('data-palette') === key ? 'true' : 'false');
       });
     }
   }
@@ -809,9 +829,9 @@
     if (key === (cfg.palette || 'slate')) root.removeAttribute('data-mertools-palette');
     else root.setAttribute('data-mertools-palette', key);
     try { localStorage.setItem(cfg.pkey || 'mertools-palette', key); } catch (e) { /* private mode */ }
-    if (current() !== 'dark') {
-      apply('dark');
-      store('dark');
+    if (!on()) {
+      apply(ALT);
+      store(ALT);
     } else {
       adaptAll();
       if (quiet) calc(false);

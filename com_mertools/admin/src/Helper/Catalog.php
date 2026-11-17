@@ -59,6 +59,7 @@ final class Catalog
         'layout'  => ['icon' => 'th-large',       'on' => ['layout_post_rows', 'layout_clip_x', 'layout_menu_hold', 'layout_menu_fit', 'list_hide_words']],
         'tabs'    => ['icon' => 'folder-open',    'on' => ['tabs_links', 'tabs_accordion']],
         'tel'     => ['icon' => 'phone',          'on' => ['tel_enabled']],
+        'consent' => ['icon' => 'shield-alt',     'on' => ['consent_enabled']],
         'dark'    => ['icon' => 'paint-brush',    'on' => ['dark_enabled']],
         'lists'   => ['icon' => 'list',           'on' => ['list_columns', 'list_pins', 'list_ghosts', 'media_drop', 'dash_range', 'list_dark']],
         'lock'    => ['icon' => 'lock',           'on' => ['lock_enabled']],

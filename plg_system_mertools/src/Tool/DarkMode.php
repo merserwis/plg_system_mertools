@@ -28,6 +28,9 @@ final class DarkMode
 {
     public const PALETTES = ['slate', 'charcoal', 'midnight', 'warm', 'sepia', 'dim', 'custom'];
 
+    /** Light palettes: the light mode of a site designed dark (dark_base = dark). */
+    public const LIGHT_PALETTES = ['paper', 'cream', 'mist', 'stone'];
+
     /** Palettes offered to visitors (the dots by the toggle) when the setting was never saved. */
     public const OFFERED_DEFAULT = ['slate', 'midnight', 'warm', 'sepia', 'charcoal'];
 
@@ -77,6 +80,37 @@ final class DarkMode
         ],
     ];
 
+    /**
+     * Light palettes, the same keys: "bg_dark" is the deepest light shade, for the sections the site
+     * paints dark; the text colours are dark. None is pure white.
+     */
+    private const LIGHT_PRESETS = [
+        // clean, nearly white
+        'paper' => [
+            'bg' => '#fbfbfa', 'surface' => '#f1f2f4', 'bg_dark' => '#e6e8ec',
+            'title' => '#16181d', 'text' => '#3a3f47', 'muted' => 'rgba(22,24,29,.55)',
+            'border' => '#d9dce1', 'hover' => '#e9ebef', 'shadow' => 'rgba(0,0,0,.12)',
+        ],
+        // warm cream (goes with gold and brown accents)
+        'cream' => [
+            'bg' => '#f7f3ea', 'surface' => '#efe8da', 'bg_dark' => '#e4dccb',
+            'title' => '#221d16', 'text' => '#4a4237', 'muted' => 'rgba(34,29,22,.55)',
+            'border' => '#d8cdb8', 'hover' => '#ebe2d0', 'shadow' => 'rgba(60,40,10,.12)',
+        ],
+        // cool blue-grey mist
+        'mist' => [
+            'bg' => '#f3f6f9', 'surface' => '#e7edf3', 'bg_dark' => '#d9e1ea',
+            'title' => '#142030', 'text' => '#3a4757', 'muted' => 'rgba(20,32,48,.55)',
+            'border' => '#cdd6e0', 'hover' => '#dfe6ee', 'shadow' => 'rgba(10,30,60,.12)',
+        ],
+        // soft stone grey, low glare
+        'stone' => [
+            'bg' => '#eceae6', 'surface' => '#e2dfda', 'bg_dark' => '#d6d2cc',
+            'title' => '#23211e', 'text' => '#46423d', 'muted' => 'rgba(35,33,30,.55)',
+            'border' => '#cbc6be', 'hover' => '#dcd8d2', 'shadow' => 'rgba(0,0,0,.12)',
+        ],
+    ];
+
     private const CUSTOM_DEFAULT = [
         'bg' => '#1b2230', 'surface' => '#232c3d', 'bg_dark' => '#10151f',
         'title' => '#e8ecf3', 'text' => '#c3cbd9', 'muted' => 'rgba(232,236,243,.45)',
@@ -116,18 +150,24 @@ final class DarkMode
      * (never pure black), below 50 towards a soft slate grey. The settings preview uses the same
      * formula (media/js/mertools-preview.js).
      */
-    public static function shade(string $colour, int $intensity): string
+    public static function shade(string $colour, int $intensity, bool $light = false): string
     {
         $rgb = self::hex($colour);
         if ($rgb === null || $intensity === 50) {
             return $colour;
         }
-        $t      = ($intensity - 50) / 50;
-        $target = $t > 0 ? [6, 8, 11] : [74, 82, 96];
-        $amount = $t > 0 ? $t * 0.55 : -$t * 0.32;
+        $t = ($intensity - 50) / 50;
+        // a light palette: above 50 whiter (never pure white), below 50 a softer grey
+        if ($light) {
+            $target = $t > 0 ? [255, 255, 255] : [168, 173, 181];
+            $amount = $t > 0 ? $t * 0.6 : -$t * 0.3;
+        } else {
+            $target = $t > 0 ? [6, 8, 11] : [74, 82, 96];
+            $amount = $t > 0 ? $t * 0.55 : -$t * 0.32;
+        }
         $out    = '#';
         foreach ([0, 1, 2] as $i) {
-            $out .= sprintf('%02x', (int) round($rgb[$i] + ($target[$i] - $rgb[$i]) * $amount));
+            $out .= sprintf('%02x', min(254, (int) round($rgb[$i] + ($target[$i] - $rgb[$i]) * $amount)));
         }
 
         return $out;
@@ -139,9 +179,26 @@ final class DarkMode
         return ['light', 'dark'];
     }
 
-    /** The default dark palette (the one set in the settings). */
+    /** How the site was designed: "light" (the toggle shows dark mode) or "dark" (it shows light mode). */
+    public static function base(Registry $params): string
+    {
+        return (string) $params->get('dark_base', 'light') === 'dark' ? 'dark' : 'light';
+    }
+
+    /** The theme MerTools paints: dark on a light site, light on a dark one. */
+    public static function alt(Registry $params): string
+    {
+        return self::base($params) === 'dark' ? 'light' : 'dark';
+    }
+
+    /** The default palette (the one set in the settings): a dark one, or a light one on a dark site. */
     public static function paletteKey(Registry $params): string
     {
+        if (self::base($params) === 'dark') {
+            $key = (string) $params->get('light_palette', 'paper');
+
+            return in_array($key, self::LIGHT_PALETTES, true) ? $key : 'paper';
+        }
         $key = (string) $params->get('dark_palette', 'slate');
 
         return in_array($key, self::PALETTES, true) ? $key : 'slate';
@@ -150,9 +207,10 @@ final class DarkMode
     /** @return string[] the palettes visitors can choose with the dots (always with the default one first) */
     public static function offered(Registry $params): array
     {
-        $raw  = $params->get('dark_palettes', null);
-        $list = $raw === null ? self::OFFERED_DEFAULT : (is_array($raw) ? $raw : array_filter(explode(',', (string) $raw)));
-        $list = array_values(array_intersect(self::PALETTES, array_map('strval', $list)));
+        $light = self::base($params) === 'dark';
+        $raw   = $params->get($light ? 'light_palettes' : 'dark_palettes', null);
+        $list  = $raw === null ? ($light ? self::LIGHT_PALETTES : self::OFFERED_DEFAULT) : (is_array($raw) ? $raw : array_filter(explode(',', (string) $raw)));
+        $list  = array_values(array_intersect($light ? self::LIGHT_PALETTES : self::PALETTES, array_map('strval', $list)));
         $def  = self::paletteKey($params);
 
         return array_values(array_unique(array_merge([$def], $list)));
@@ -189,11 +247,12 @@ final class DarkMode
                 $out[$k] = self::color((string) $params->get('dark_c_' . $k, ''), self::CUSTOM_DEFAULT[$k]);
             }
         } else {
-            $out = self::PRESETS[$key] ?? self::PRESETS['slate'];
+            $out = self::PRESETS[$key] ?? self::LIGHT_PRESETS[$key] ?? self::PRESETS['slate'];
         }
-        $i = self::intensity($params);
+        $i     = self::intensity($params);
+        $light = isset(self::LIGHT_PRESETS[$key]);
         foreach (self::SHADES as $k) {
-            $out[$k] = self::shade($out[$k], $i);
+            $out[$k] = self::shade($out[$k], $i, $light);
         }
 
         return $out;
@@ -273,15 +332,19 @@ final class DarkMode
             $vars .= '--primary:' . $accent . ';';
         }
 
-        $css = 'html[data-mertools-theme="dark"] body{' . $vars . '}';
+        $alt   = self::alt($params);
+        $theme = 'html[data-mertools-theme="' . $alt . '"]';
+        $light = $alt === 'light';
+        $css   = $theme . ' body{' . $vars . ($light ? self::inverse($p) : '') . '}';
         // the other palettes a visitor can choose with the dots (the attribute is set before the first paint)
         foreach (self::offered($params) as $key) {
             if ($key !== self::paletteKey($params)) {
-                $css .= 'html[data-mertools-theme="dark"][data-mertools-palette="' . $key . '"] body{' . self::vars(self::paletteOf($params, $key)) . '}';
+                $o    = self::paletteOf($params, $key);
+                $css .= $theme . '[data-mertools-palette="' . $key . '"] body{' . self::vars($o) . ($light ? self::inverse($o) : '') . '}';
             }
         }
         // native controls, scrollbars and form fields follow
-        $css .= 'html[data-mertools-theme="dark"]{color-scheme:dark;}';
+        $css .= $theme . '{color-scheme:' . $alt . ';}';
         // a gentle cross-fade when switching (only the colours, not layout)
         // (only while the visitor switches: the script sets html.mt-switching for a moment, so no
         // transition is attached to the page the rest of the time)
@@ -315,11 +378,11 @@ final class DarkMode
         // for browsers that do not draw "content" on images and for Gridbox's lazy loading)
         $logo = self::logoUrl($params);
         if ($logo !== null) {
-            $rules = array_map(fn ($s) => 'html[data-mertools-theme="dark"] ' . trim($s), array_filter(explode(',', self::logoSelector($params)), 'trim'));
+            $rules = array_map(fn ($s) => $theme . ' ' . trim($s), array_filter(explode(',', self::logoSelector($params)), 'trim'));
             $css  .= implode(',', $rules) . '{content:url("' . str_replace(['"', '\\', ')', "\n", "\r"], ['%22', '%5C', '%29', '', ''], $logo) . '")}';
         }
         // slightly calm very bright images in dark mode (optional)
-        if ((int) $params->get('dark_dim_media', 0)) {
+        if (!$light && (int) $params->get('dark_dim_media', 0)) {
             $css .= 'html[data-mertools-theme="dark"] img:not([src*=".svg"]),html[data-mertools-theme="dark"] video{filter:brightness(.9);}';
         }
 
@@ -333,6 +396,15 @@ final class DarkMode
             . ';--bg-dark-accent:' . $p['bg_dark'] . ';--title:' . $p['title'] . ';--text:' . $p['text']
             . ';--icon:' . $p['text'] . ';--subtitle:' . $p['muted'] . ';--border:' . $p['border']
             . ';--hover:' . $p['hover'] . ';--shadow:' . $p['shadow'] . ';';
+    }
+
+    /**
+     * Light mode of a dark site: Gridbox's colours for text on dark sections (--title-inverse,
+     * --text-inverse) are light there; on the light palette they are its dark text colours.
+     */
+    private static function inverse(array $p): string
+    {
+        return '--title-inverse:' . $p['title'] . ';--text-inverse:' . $p['text'] . ';';
     }
 
     /** Sizes of the list used up to 0.0.5, still read from saved settings. */
@@ -423,6 +495,7 @@ final class DarkMode
     {
         return [
             'key'      => self::STORAGE,
+            'base'     => self::base($params),
             'def'      => self::defaultMode($params),
             'toggle'   => (bool) (int) $params->get('dark_toggle', 1),
             'selector' => trim((string) $params->get('dark_header_selector', 'header.header')) ?: 'header.header',
