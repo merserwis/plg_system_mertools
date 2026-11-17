@@ -3,6 +3,29 @@
     <changelog>
         <element>pkg_mertools</element>
         <type>package</type>
+        <version>1.17.1</version>
+        <fix>
+            <item>Orders: the new buttons of the toolbar spaced as Joomla's own</item>
+            <item>1.17.0: Dark mode: buttons that cannot be used yet look so</item>
+        </fix>
+        <addition>
+            <item>1.17.0: Orders: the ones changed at once also marked as read</item>
+            <item>1.17.0: Orders: the status of many without e-mails</item>
+            <item>1.17.0: Orders: select the unread, mark as unread, all as read</item>
+            <item>1.17.0: Orders: the PDF of many at once</item>
+            <item>1.17.0: Editor: the settings kept per device marked</item>
+        </addition>
+        <change>
+            <item>The list of changes in Joomla's updates: the whole x.y line and the full list</item>
+        </change>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.17.1" target="_blank" rel="noopener noreferrer">The full list of changes of 1.17.1 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
         <version>1.17.0</version>
         <fix>
             <item>Dark mode: buttons that cannot be used yet look so</item>
@@ -14,6 +37,10 @@
             <item>Orders: the PDF of many at once</item>
             <item>Editor: the settings kept per device marked</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.17.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.17.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -22,6 +49,10 @@
         <addition>
             <item>Checkout form: conditional logic of its fields</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.16.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.16.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -29,10 +60,18 @@
         <version>1.15.1</version>
         <fix>
             <item>Checkout page: the arrows of the drop-down fields inside the frame</item>
+            <item>1.15.0: Checkout page: brutto at the total, room in the drop-down fields</item>
+            <item>1.15.0: Gridbox's corrected files seen at once</item>
         </fix>
         <addition>
             <item>The list of changes in Joomla's updates</item>
+            <item>1.15.0: Orders: the status of many at once</item>
+            <item>1.15.0: Link Picker: the folders open as last time</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.15.1" target="_blank" rel="noopener noreferrer">The full list of changes of 1.15.1 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -46,6 +85,10 @@
             <item>Orders: the status of many at once</item>
             <item>Link Picker: the folders open as last time</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.15.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.15.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -55,6 +98,10 @@
             <item>Images in AVIF and JPEG XL: lighter than WebP, with WebP still there</item>
             <item>Dashboard: own dates kept without a race</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.14.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.14.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -62,7 +109,18 @@
         <version>1.13.3</version>
         <fix>
             <item>Sale badge: the store's discounts in its percentage</item>
+            <item>1.13.2: Right after an update: the pages no longer break</item>
+            <item>1.13.1: Gridbox 2.20.5: the editor's saves seen again</item>
+            <item>1.13.1: Gridbox dashboard: the range of dates kept</item>
         </fix>
+        <addition>
+            <item>1.13.0: Images: Size on upload: a frame for the shop, the blog and the rest</item>
+            <item>1.13.0: Shop: product badges in the corner, colours and style chosen, also on the product page</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.13.3" target="_blank" rel="noopener noreferrer">The full list of changes of 1.13.3 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -70,7 +128,17 @@
         <version>1.13.2</version>
         <fix>
             <item>Right after an update: the pages no longer break</item>
+            <item>1.13.1: Gridbox 2.20.5: the editor's saves seen again</item>
+            <item>1.13.1: Gridbox dashboard: the range of dates kept</item>
         </fix>
+        <addition>
+            <item>1.13.0: Images: Size on upload: a frame for the shop, the blog and the rest</item>
+            <item>1.13.0: Shop: product badges in the corner, colours and style chosen, also on the product page</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.13.2" target="_blank" rel="noopener noreferrer">The full list of changes of 1.13.2 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -80,6 +148,14 @@
             <item>Gridbox 2.20.5: the editor's saves seen again</item>
             <item>Gridbox dashboard: the range of dates kept</item>
         </fix>
+        <addition>
+            <item>1.13.0: Images: Size on upload: a frame for the shop, the blog and the rest</item>
+            <item>1.13.0: Shop: product badges in the corner, colours and style chosen, also on the product page</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.13.1" target="_blank" rel="noopener noreferrer">The full list of changes of 1.13.1 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -89,6 +165,10 @@
             <item>Images: Size on upload: a frame for the shop, the blog and the rest</item>
             <item>Shop: product badges in the corner, colours and style chosen, also on the product page</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.13.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.13.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -96,7 +176,15 @@
         <version>1.12.2</version>
         <fix>
             <item>Images: Restore all originals in a window with its progress</item>
+            <item>1.12.1: Images: an upload no longer goes through the whole images folder</item>
         </fix>
+        <addition>
+            <item>1.12.0: Images: compressed originals, on the site's own server</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.12.2" target="_blank" rel="noopener noreferrer">The full list of changes of 1.12.2 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -105,6 +193,13 @@
         <fix>
             <item>Images: an upload no longer goes through the whole images folder</item>
         </fix>
+        <addition>
+            <item>1.12.0: Images: compressed originals, on the site's own server</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.12.1" target="_blank" rel="noopener noreferrer">The full list of changes of 1.12.1 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -113,6 +208,10 @@
         <addition>
             <item>Images: compressed originals, on the site's own server</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.12.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.12.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -124,6 +223,10 @@
             <item>Lighter images: a lighter list and the old copies removed</item>
             <item>Omnibus: the line in another currency</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.11.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.11.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -133,6 +236,10 @@
             <item>Settings in a file: export and import</item>
             <item>Sitemap: other sitemaps in the index</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.10.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.10.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -142,6 +249,10 @@
             <item>The Gridbox panel in Joomla's dark mode</item>
             <item>Gridbox lists: tags, sorting by the added columns, pinned pages</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.9.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.9.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -149,7 +260,17 @@
         <version>1.8.3</version>
         <fix>
             <item>Main menu on screens a little too narrow for it</item>
+            <item>1.8.2: Default texts of the SEO fields, separately for pages, blog posts and products</item>
+            <item>1.8.1: Blog: the fields of the post from the Markdown document, no h1 in the post</item>
+            <item>1.8.1: SEO fields filled in by themselves</item>
         </fix>
+        <addition>
+            <item>1.8.0: Blog: importing a Markdown document into a post</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.8.3" target="_blank" rel="noopener noreferrer">The full list of changes of 1.8.3 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -157,7 +278,16 @@
         <version>1.8.2</version>
         <fix>
             <item>Default texts of the SEO fields, separately for pages, blog posts and products</item>
+            <item>1.8.1: Blog: the fields of the post from the Markdown document, no h1 in the post</item>
+            <item>1.8.1: SEO fields filled in by themselves</item>
         </fix>
+        <addition>
+            <item>1.8.0: Blog: importing a Markdown document into a post</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.8.2" target="_blank" rel="noopener noreferrer">The full list of changes of 1.8.2 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -167,6 +297,13 @@
             <item>Blog: the fields of the post from the Markdown document, no h1 in the post</item>
             <item>SEO fields filled in by themselves</item>
         </fix>
+        <addition>
+            <item>1.8.0: Blog: importing a Markdown document into a post</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.8.1" target="_blank" rel="noopener noreferrer">The full list of changes of 1.8.1 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -175,6 +312,10 @@
         <addition>
             <item>Blog: importing a Markdown document into a post</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.8.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.8.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -182,7 +323,21 @@
         <version>1.7.5</version>
         <fix>
             <item>Blog: an even grid of the lists of posts</item>
+            <item>1.7.4: Saving in the editor</item>
+            <item>1.7.3: Fixes</item>
+            <item>1.7.2: The quick setup on a fresh install</item>
+            <item>1.7.1: Folding the fields in the product editor</item>
         </fix>
+        <addition>
+            <item>1.7.0: A control panel, a menu and a quick setup (like Admin Tools)</item>
+            <item>1.7.0: Check your site after every change</item>
+            <item>1.7.0: For any Joomla + Gridbox site</item>
+            <item>1.7.0: Code audit (Codex): security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.7.5" target="_blank" rel="noopener noreferrer">The full list of changes of 1.7.5 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -190,7 +345,20 @@
         <version>1.7.4</version>
         <fix>
             <item>Saving in the editor</item>
+            <item>1.7.3: Fixes</item>
+            <item>1.7.2: The quick setup on a fresh install</item>
+            <item>1.7.1: Folding the fields in the product editor</item>
         </fix>
+        <addition>
+            <item>1.7.0: A control panel, a menu and a quick setup (like Admin Tools)</item>
+            <item>1.7.0: Check your site after every change</item>
+            <item>1.7.0: For any Joomla + Gridbox site</item>
+            <item>1.7.0: Code audit (Codex): security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.7.4" target="_blank" rel="noopener noreferrer">The full list of changes of 1.7.4 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -198,7 +366,19 @@
         <version>1.7.3</version>
         <fix>
             <item>Fixes</item>
+            <item>1.7.2: The quick setup on a fresh install</item>
+            <item>1.7.1: Folding the fields in the product editor</item>
         </fix>
+        <addition>
+            <item>1.7.0: A control panel, a menu and a quick setup (like Admin Tools)</item>
+            <item>1.7.0: Check your site after every change</item>
+            <item>1.7.0: For any Joomla + Gridbox site</item>
+            <item>1.7.0: Code audit (Codex): security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.7.3" target="_blank" rel="noopener noreferrer">The full list of changes of 1.7.3 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -206,7 +386,18 @@
         <version>1.7.2</version>
         <fix>
             <item>The quick setup on a fresh install</item>
+            <item>1.7.1: Folding the fields in the product editor</item>
         </fix>
+        <addition>
+            <item>1.7.0: A control panel, a menu and a quick setup (like Admin Tools)</item>
+            <item>1.7.0: Check your site after every change</item>
+            <item>1.7.0: For any Joomla + Gridbox site</item>
+            <item>1.7.0: Code audit (Codex): security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.7.2" target="_blank" rel="noopener noreferrer">The full list of changes of 1.7.2 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -215,6 +406,16 @@
         <fix>
             <item>Folding the fields in the product editor</item>
         </fix>
+        <addition>
+            <item>1.7.0: A control panel, a menu and a quick setup (like Admin Tools)</item>
+            <item>1.7.0: Check your site after every change</item>
+            <item>1.7.0: For any Joomla + Gridbox site</item>
+            <item>1.7.0: Code audit (Codex): security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.7.1" target="_blank" rel="noopener noreferrer">The full list of changes of 1.7.1 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -226,6 +427,10 @@
             <item>For any Joomla + Gridbox site</item>
             <item>Code audit (Codex): security, bugs and speed</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.7.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.7.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -233,7 +438,30 @@
         <version>1.6.10</version>
         <fix>
             <item>The warm-up works where the server cannot reach its own address</item>
+            <item>1.6.9: Background jobs run once at a time</item>
+            <item>1.6.8: Finished items leave no empty places in the lists</item>
+            <item>1.6.8: Breadcrumbs</item>
+            <item>1.6.7: Product photos for search engines (on by default)</item>
+            <item>1.6.7: Page cache warm-up (on with the page cache)</item>
+            <item>1.6.7: Structured data of the site (new tab, off by default)</item>
+            <item>1.6.7: Site hygiene (new tab)</item>
+            <item>1.6.7: Finished items out of the lists (off by default)</item>
+            <item>1.6.6: Security: guard of Gridbox's sorting (on by default)</item>
+            <item>1.6.6: Pages of the lists (?page=N)</item>
+            <item>1.6.5: Article data for search engines (JSON-LD)</item>
+            <item>1.6.4: Product data: availability</item>
+            <item>1.6.3: Product data for search engines (JSON-LD)</item>
+            <item>1.6.2: 404 pages: no more soft 404</item>
+            <item>1.6.1: Sitemap: tidying up</item>
         </fix>
+        <addition>
+            <item>1.6.0: Sitemap</item>
+            <item>1.6.0: Fixes</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.6.10" target="_blank" rel="noopener noreferrer">The full list of changes of 1.6.10 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -241,7 +469,29 @@
         <version>1.6.9</version>
         <fix>
             <item>Background jobs run once at a time</item>
+            <item>1.6.8: Finished items leave no empty places in the lists</item>
+            <item>1.6.8: Breadcrumbs</item>
+            <item>1.6.7: Product photos for search engines (on by default)</item>
+            <item>1.6.7: Page cache warm-up (on with the page cache)</item>
+            <item>1.6.7: Structured data of the site (new tab, off by default)</item>
+            <item>1.6.7: Site hygiene (new tab)</item>
+            <item>1.6.7: Finished items out of the lists (off by default)</item>
+            <item>1.6.6: Security: guard of Gridbox's sorting (on by default)</item>
+            <item>1.6.6: Pages of the lists (?page=N)</item>
+            <item>1.6.5: Article data for search engines (JSON-LD)</item>
+            <item>1.6.4: Product data: availability</item>
+            <item>1.6.3: Product data for search engines (JSON-LD)</item>
+            <item>1.6.2: 404 pages: no more soft 404</item>
+            <item>1.6.1: Sitemap: tidying up</item>
         </fix>
+        <addition>
+            <item>1.6.0: Sitemap</item>
+            <item>1.6.0: Fixes</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.6.9" target="_blank" rel="noopener noreferrer">The full list of changes of 1.6.9 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -250,7 +500,27 @@
         <fix>
             <item>Finished items leave no empty places in the lists</item>
             <item>Breadcrumbs</item>
+            <item>1.6.7: Product photos for search engines (on by default)</item>
+            <item>1.6.7: Page cache warm-up (on with the page cache)</item>
+            <item>1.6.7: Structured data of the site (new tab, off by default)</item>
+            <item>1.6.7: Site hygiene (new tab)</item>
+            <item>1.6.7: Finished items out of the lists (off by default)</item>
+            <item>1.6.6: Security: guard of Gridbox's sorting (on by default)</item>
+            <item>1.6.6: Pages of the lists (?page=N)</item>
+            <item>1.6.5: Article data for search engines (JSON-LD)</item>
+            <item>1.6.4: Product data: availability</item>
+            <item>1.6.3: Product data for search engines (JSON-LD)</item>
+            <item>1.6.2: 404 pages: no more soft 404</item>
+            <item>1.6.1: Sitemap: tidying up</item>
         </fix>
+        <addition>
+            <item>1.6.0: Sitemap</item>
+            <item>1.6.0: Fixes</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.6.8" target="_blank" rel="noopener noreferrer">The full list of changes of 1.6.8 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -262,7 +532,22 @@
             <item>Structured data of the site (new tab, off by default)</item>
             <item>Site hygiene (new tab)</item>
             <item>Finished items out of the lists (off by default)</item>
+            <item>1.6.6: Security: guard of Gridbox's sorting (on by default)</item>
+            <item>1.6.6: Pages of the lists (?page=N)</item>
+            <item>1.6.5: Article data for search engines (JSON-LD)</item>
+            <item>1.6.4: Product data: availability</item>
+            <item>1.6.3: Product data for search engines (JSON-LD)</item>
+            <item>1.6.2: 404 pages: no more soft 404</item>
+            <item>1.6.1: Sitemap: tidying up</item>
         </fix>
+        <addition>
+            <item>1.6.0: Sitemap</item>
+            <item>1.6.0: Fixes</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.6.7" target="_blank" rel="noopener noreferrer">The full list of changes of 1.6.7 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -271,7 +556,20 @@
         <fix>
             <item>Security: guard of Gridbox's sorting (on by default)</item>
             <item>Pages of the lists (?page=N)</item>
+            <item>1.6.5: Article data for search engines (JSON-LD)</item>
+            <item>1.6.4: Product data: availability</item>
+            <item>1.6.3: Product data for search engines (JSON-LD)</item>
+            <item>1.6.2: 404 pages: no more soft 404</item>
+            <item>1.6.1: Sitemap: tidying up</item>
         </fix>
+        <addition>
+            <item>1.6.0: Sitemap</item>
+            <item>1.6.0: Fixes</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.6.6" target="_blank" rel="noopener noreferrer">The full list of changes of 1.6.6 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -279,7 +577,19 @@
         <version>1.6.5</version>
         <fix>
             <item>Article data for search engines (JSON-LD)</item>
+            <item>1.6.4: Product data: availability</item>
+            <item>1.6.3: Product data for search engines (JSON-LD)</item>
+            <item>1.6.2: 404 pages: no more soft 404</item>
+            <item>1.6.1: Sitemap: tidying up</item>
         </fix>
+        <addition>
+            <item>1.6.0: Sitemap</item>
+            <item>1.6.0: Fixes</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.6.5" target="_blank" rel="noopener noreferrer">The full list of changes of 1.6.5 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -287,7 +597,18 @@
         <version>1.6.4</version>
         <fix>
             <item>Product data: availability</item>
+            <item>1.6.3: Product data for search engines (JSON-LD)</item>
+            <item>1.6.2: 404 pages: no more soft 404</item>
+            <item>1.6.1: Sitemap: tidying up</item>
         </fix>
+        <addition>
+            <item>1.6.0: Sitemap</item>
+            <item>1.6.0: Fixes</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.6.4" target="_blank" rel="noopener noreferrer">The full list of changes of 1.6.4 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -295,7 +616,17 @@
         <version>1.6.3</version>
         <fix>
             <item>Product data for search engines (JSON-LD)</item>
+            <item>1.6.2: 404 pages: no more soft 404</item>
+            <item>1.6.1: Sitemap: tidying up</item>
         </fix>
+        <addition>
+            <item>1.6.0: Sitemap</item>
+            <item>1.6.0: Fixes</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.6.3" target="_blank" rel="noopener noreferrer">The full list of changes of 1.6.3 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -303,7 +634,16 @@
         <version>1.6.2</version>
         <fix>
             <item>404 pages: no more soft 404</item>
+            <item>1.6.1: Sitemap: tidying up</item>
         </fix>
+        <addition>
+            <item>1.6.0: Sitemap</item>
+            <item>1.6.0: Fixes</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.6.2" target="_blank" rel="noopener noreferrer">The full list of changes of 1.6.2 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -312,6 +652,14 @@
         <fix>
             <item>Sitemap: tidying up</item>
         </fix>
+        <addition>
+            <item>1.6.0: Sitemap</item>
+            <item>1.6.0: Fixes</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.6.1" target="_blank" rel="noopener noreferrer">The full list of changes of 1.6.1 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -321,6 +669,10 @@
             <item>Sitemap</item>
             <item>Fixes</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.6.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.6.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -329,6 +681,10 @@
         <addition>
             <item>Media manager: drag and drop</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.5.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.5.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -337,6 +693,13 @@
         <fix>
             <item>Gridbox lists: who created the page</item>
         </fix>
+        <addition>
+            <item>1.4.0: Category pages: now in Better Categories</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.4.1" target="_blank" rel="noopener noreferrer">The full list of changes of 1.4.1 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -345,6 +708,10 @@
         <addition>
             <item>Category pages: now in Better Categories</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.4.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.4.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -353,6 +720,14 @@
         <fix>
             <item>Inside the plugin</item>
         </fix>
+        <addition>
+            <item>1.3.0: 404 pages: moved pages followed, missing addresses logged</item>
+            <item>1.3.0: Omnibus: Gridbox's own sales</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.3.1" target="_blank" rel="noopener noreferrer">The full list of changes of 1.3.1 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -362,6 +737,10 @@
             <item>404 pages: moved pages followed, missing addresses logged</item>
             <item>Omnibus: Gridbox's own sales</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.3.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.3.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -370,6 +749,10 @@
         <addition>
             <item>Apps protection</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.2.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.2.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -378,6 +761,13 @@
         <fix>
             <item>Blog feeds</item>
         </fix>
+        <addition>
+            <item>1.1.0: Blog feeds: RSS and Atom</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.1.1" target="_blank" rel="noopener noreferrer">The full list of changes of 1.1.1 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -386,6 +776,10 @@
         <addition>
             <item>Blog feeds: RSS and Atom</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.1.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.1.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -393,7 +787,31 @@
         <version>1.0.14</version>
         <fix>
             <item>Fixes</item>
+            <item>1.0.13: Omnibus without a separate plugin</item>
+            <item>1.0.13: Category pages (from the Omnibus plugin)</item>
+            <item>1.0.12: Price on request</item>
+            <item>1.0.12: Omnibus: lowest price of the last 30 days</item>
+            <item>1.0.11: Fixes</item>
+            <item>1.0.10: Products of other folders in the Gridbox lists</item>
+            <item>1.0.9: Fixes</item>
+            <item>1.0.8: Discount % in the product editor</item>
+            <item>1.0.7: Gridbox lists</item>
+            <item>1.0.6: Gridbox lists</item>
+            <item>1.0.6: Fixes</item>
+            <item>1.0.5: Edit lock</item>
+            <item>1.0.4: Fixes</item>
+            <item>1.0.3: Edit history</item>
+            <item>1.0.2: A link to a tab</item>
+            <item>1.0.1: Pictures shown too small</item>
         </fix>
+        <addition>
+            <item>1.0.0: First stable release</item>
+            <item>1.0.0: Code audit: security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.0.14" target="_blank" rel="noopener noreferrer">The full list of changes of 1.0.14 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -402,7 +820,29 @@
         <fix>
             <item>Omnibus without a separate plugin</item>
             <item>Category pages (from the Omnibus plugin)</item>
+            <item>1.0.12: Price on request</item>
+            <item>1.0.12: Omnibus: lowest price of the last 30 days</item>
+            <item>1.0.11: Fixes</item>
+            <item>1.0.10: Products of other folders in the Gridbox lists</item>
+            <item>1.0.9: Fixes</item>
+            <item>1.0.8: Discount % in the product editor</item>
+            <item>1.0.7: Gridbox lists</item>
+            <item>1.0.6: Gridbox lists</item>
+            <item>1.0.6: Fixes</item>
+            <item>1.0.5: Edit lock</item>
+            <item>1.0.4: Fixes</item>
+            <item>1.0.3: Edit history</item>
+            <item>1.0.2: A link to a tab</item>
+            <item>1.0.1: Pictures shown too small</item>
         </fix>
+        <addition>
+            <item>1.0.0: First stable release</item>
+            <item>1.0.0: Code audit: security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.0.13" target="_blank" rel="noopener noreferrer">The full list of changes of 1.0.13 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -411,7 +851,27 @@
         <fix>
             <item>Price on request</item>
             <item>Omnibus: lowest price of the last 30 days</item>
+            <item>1.0.11: Fixes</item>
+            <item>1.0.10: Products of other folders in the Gridbox lists</item>
+            <item>1.0.9: Fixes</item>
+            <item>1.0.8: Discount % in the product editor</item>
+            <item>1.0.7: Gridbox lists</item>
+            <item>1.0.6: Gridbox lists</item>
+            <item>1.0.6: Fixes</item>
+            <item>1.0.5: Edit lock</item>
+            <item>1.0.4: Fixes</item>
+            <item>1.0.3: Edit history</item>
+            <item>1.0.2: A link to a tab</item>
+            <item>1.0.1: Pictures shown too small</item>
         </fix>
+        <addition>
+            <item>1.0.0: First stable release</item>
+            <item>1.0.0: Code audit: security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.0.12" target="_blank" rel="noopener noreferrer">The full list of changes of 1.0.12 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -419,7 +879,26 @@
         <version>1.0.11</version>
         <fix>
             <item>Fixes</item>
+            <item>1.0.10: Products of other folders in the Gridbox lists</item>
+            <item>1.0.9: Fixes</item>
+            <item>1.0.8: Discount % in the product editor</item>
+            <item>1.0.7: Gridbox lists</item>
+            <item>1.0.6: Gridbox lists</item>
+            <item>1.0.6: Fixes</item>
+            <item>1.0.5: Edit lock</item>
+            <item>1.0.4: Fixes</item>
+            <item>1.0.3: Edit history</item>
+            <item>1.0.2: A link to a tab</item>
+            <item>1.0.1: Pictures shown too small</item>
         </fix>
+        <addition>
+            <item>1.0.0: First stable release</item>
+            <item>1.0.0: Code audit: security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.0.11" target="_blank" rel="noopener noreferrer">The full list of changes of 1.0.11 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -427,7 +906,25 @@
         <version>1.0.10</version>
         <fix>
             <item>Products of other folders in the Gridbox lists</item>
+            <item>1.0.9: Fixes</item>
+            <item>1.0.8: Discount % in the product editor</item>
+            <item>1.0.7: Gridbox lists</item>
+            <item>1.0.6: Gridbox lists</item>
+            <item>1.0.6: Fixes</item>
+            <item>1.0.5: Edit lock</item>
+            <item>1.0.4: Fixes</item>
+            <item>1.0.3: Edit history</item>
+            <item>1.0.2: A link to a tab</item>
+            <item>1.0.1: Pictures shown too small</item>
         </fix>
+        <addition>
+            <item>1.0.0: First stable release</item>
+            <item>1.0.0: Code audit: security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.0.10" target="_blank" rel="noopener noreferrer">The full list of changes of 1.0.10 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -435,7 +932,24 @@
         <version>1.0.9</version>
         <fix>
             <item>Fixes</item>
+            <item>1.0.8: Discount % in the product editor</item>
+            <item>1.0.7: Gridbox lists</item>
+            <item>1.0.6: Gridbox lists</item>
+            <item>1.0.6: Fixes</item>
+            <item>1.0.5: Edit lock</item>
+            <item>1.0.4: Fixes</item>
+            <item>1.0.3: Edit history</item>
+            <item>1.0.2: A link to a tab</item>
+            <item>1.0.1: Pictures shown too small</item>
         </fix>
+        <addition>
+            <item>1.0.0: First stable release</item>
+            <item>1.0.0: Code audit: security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.0.9" target="_blank" rel="noopener noreferrer">The full list of changes of 1.0.9 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -443,7 +957,23 @@
         <version>1.0.8</version>
         <fix>
             <item>Discount % in the product editor</item>
+            <item>1.0.7: Gridbox lists</item>
+            <item>1.0.6: Gridbox lists</item>
+            <item>1.0.6: Fixes</item>
+            <item>1.0.5: Edit lock</item>
+            <item>1.0.4: Fixes</item>
+            <item>1.0.3: Edit history</item>
+            <item>1.0.2: A link to a tab</item>
+            <item>1.0.1: Pictures shown too small</item>
         </fix>
+        <addition>
+            <item>1.0.0: First stable release</item>
+            <item>1.0.0: Code audit: security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.0.8" target="_blank" rel="noopener noreferrer">The full list of changes of 1.0.8 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -451,7 +981,22 @@
         <version>1.0.7</version>
         <fix>
             <item>Gridbox lists</item>
+            <item>1.0.6: Gridbox lists</item>
+            <item>1.0.6: Fixes</item>
+            <item>1.0.5: Edit lock</item>
+            <item>1.0.4: Fixes</item>
+            <item>1.0.3: Edit history</item>
+            <item>1.0.2: A link to a tab</item>
+            <item>1.0.1: Pictures shown too small</item>
         </fix>
+        <addition>
+            <item>1.0.0: First stable release</item>
+            <item>1.0.0: Code audit: security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.0.7" target="_blank" rel="noopener noreferrer">The full list of changes of 1.0.7 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -460,7 +1005,20 @@
         <fix>
             <item>Gridbox lists</item>
             <item>Fixes</item>
+            <item>1.0.5: Edit lock</item>
+            <item>1.0.4: Fixes</item>
+            <item>1.0.3: Edit history</item>
+            <item>1.0.2: A link to a tab</item>
+            <item>1.0.1: Pictures shown too small</item>
         </fix>
+        <addition>
+            <item>1.0.0: First stable release</item>
+            <item>1.0.0: Code audit: security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.0.6" target="_blank" rel="noopener noreferrer">The full list of changes of 1.0.6 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -468,7 +1026,19 @@
         <version>1.0.5</version>
         <fix>
             <item>Edit lock</item>
+            <item>1.0.4: Fixes</item>
+            <item>1.0.3: Edit history</item>
+            <item>1.0.2: A link to a tab</item>
+            <item>1.0.1: Pictures shown too small</item>
         </fix>
+        <addition>
+            <item>1.0.0: First stable release</item>
+            <item>1.0.0: Code audit: security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.0.5" target="_blank" rel="noopener noreferrer">The full list of changes of 1.0.5 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -476,7 +1046,18 @@
         <version>1.0.4</version>
         <fix>
             <item>Fixes</item>
+            <item>1.0.3: Edit history</item>
+            <item>1.0.2: A link to a tab</item>
+            <item>1.0.1: Pictures shown too small</item>
         </fix>
+        <addition>
+            <item>1.0.0: First stable release</item>
+            <item>1.0.0: Code audit: security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.0.4" target="_blank" rel="noopener noreferrer">The full list of changes of 1.0.4 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -484,7 +1065,17 @@
         <version>1.0.3</version>
         <fix>
             <item>Edit history</item>
+            <item>1.0.2: A link to a tab</item>
+            <item>1.0.1: Pictures shown too small</item>
         </fix>
+        <addition>
+            <item>1.0.0: First stable release</item>
+            <item>1.0.0: Code audit: security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.0.3" target="_blank" rel="noopener noreferrer">The full list of changes of 1.0.3 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -492,7 +1083,16 @@
         <version>1.0.2</version>
         <fix>
             <item>A link to a tab</item>
+            <item>1.0.1: Pictures shown too small</item>
         </fix>
+        <addition>
+            <item>1.0.0: First stable release</item>
+            <item>1.0.0: Code audit: security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.0.2" target="_blank" rel="noopener noreferrer">The full list of changes of 1.0.2 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -501,6 +1101,14 @@
         <fix>
             <item>Pictures shown too small</item>
         </fix>
+        <addition>
+            <item>1.0.0: First stable release</item>
+            <item>1.0.0: Code audit: security, bugs and speed</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.0.1" target="_blank" rel="noopener noreferrer">The full list of changes of 1.0.1 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -510,6 +1118,10 @@
             <item>First stable release</item>
             <item>Code audit: security, bugs and speed</item>
         </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.0.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.0.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -519,7 +1131,58 @@
             <item>New: *Clear cache* button in the administrator's top bar</item>
             <item>Dark mode: buttons and the search field in the accent colour</item>
             <item>Tabs as sections: sliders show that there are more</item>
+            <item>0.0.33: Recommended settings: Platform Specific Caching</item>
+            <item>0.0.32: New: recommended settings (top of the *Page speed* tab)</item>
+            <item>0.0.31: New: post sliders in several rows (tab *Page layout*, on by default)</item>
+            <item>0.0.31: Closing the settings opens the Gridbox panel</item>
+            <item>0.0.31: Fixes</item>
+            <item>0.0.30: New: popups after the first interaction (tab *Page speed*, on by default)</item>
+            <item>0.0.29: Faster pages on any Gridbox site (tab *Page speed*)</item>
+            <item>0.0.29: Help tooltips in the settings</item>
+            <item>0.0.29: Fixes</item>
+            <item>0.0.28: Tabs as sections on phones: fixes</item>
+            <item>0.0.27: New: tabs as expandable sections on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.26: New: indexes of Gridbox tables (tab *Database*, on by default)</item>
+            <item>0.0.25: New: page shown at once (tab *Page speed*, on by default)</item>
+            <item>0.0.24: Fixed: page cache with a relative cache folder</item>
+            <item>0.0.23: New: page cache for guests (tab *Page speed*, off by default)</item>
+            <item>0.0.23: New: Gridbox data from the cache (on by default)</item>
+            <item>0.0.23: YouTube background on phones</item>
+            <item>0.0.23: Speed panel: real server time</item>
+            <item>0.0.22: Fixed: stretched images with *Images without waiting or jumping*</item>
+            <item>0.0.21: New tools: faster pages (tab *Page speed*)</item>
+            <item>0.0.20: New tool: Page speed panel (tab *Page speed*)</item>
+            <item>0.0.19: New tool: Tidy up old carts (tab *Shop*)</item>
+            <item>0.0.18: New tool: Redirect missing pages (tab *404 pages*, on by default)</item>
+            <item>0.0.17: Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+            <item>0.0.16: Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.34" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.34 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -527,7 +1190,57 @@
         <version>0.0.33</version>
         <fix>
             <item>Recommended settings: Platform Specific Caching</item>
+            <item>0.0.32: New: recommended settings (top of the *Page speed* tab)</item>
+            <item>0.0.31: New: post sliders in several rows (tab *Page layout*, on by default)</item>
+            <item>0.0.31: Closing the settings opens the Gridbox panel</item>
+            <item>0.0.31: Fixes</item>
+            <item>0.0.30: New: popups after the first interaction (tab *Page speed*, on by default)</item>
+            <item>0.0.29: Faster pages on any Gridbox site (tab *Page speed*)</item>
+            <item>0.0.29: Help tooltips in the settings</item>
+            <item>0.0.29: Fixes</item>
+            <item>0.0.28: Tabs as sections on phones: fixes</item>
+            <item>0.0.27: New: tabs as expandable sections on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.26: New: indexes of Gridbox tables (tab *Database*, on by default)</item>
+            <item>0.0.25: New: page shown at once (tab *Page speed*, on by default)</item>
+            <item>0.0.24: Fixed: page cache with a relative cache folder</item>
+            <item>0.0.23: New: page cache for guests (tab *Page speed*, off by default)</item>
+            <item>0.0.23: New: Gridbox data from the cache (on by default)</item>
+            <item>0.0.23: YouTube background on phones</item>
+            <item>0.0.23: Speed panel: real server time</item>
+            <item>0.0.22: Fixed: stretched images with *Images without waiting or jumping*</item>
+            <item>0.0.21: New tools: faster pages (tab *Page speed*)</item>
+            <item>0.0.20: New tool: Page speed panel (tab *Page speed*)</item>
+            <item>0.0.19: New tool: Tidy up old carts (tab *Shop*)</item>
+            <item>0.0.18: New tool: Redirect missing pages (tab *404 pages*, on by default)</item>
+            <item>0.0.17: Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+            <item>0.0.16: Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.33" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.33 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -535,7 +1248,56 @@
         <version>0.0.32</version>
         <fix>
             <item>New: recommended settings (top of the *Page speed* tab)</item>
+            <item>0.0.31: New: post sliders in several rows (tab *Page layout*, on by default)</item>
+            <item>0.0.31: Closing the settings opens the Gridbox panel</item>
+            <item>0.0.31: Fixes</item>
+            <item>0.0.30: New: popups after the first interaction (tab *Page speed*, on by default)</item>
+            <item>0.0.29: Faster pages on any Gridbox site (tab *Page speed*)</item>
+            <item>0.0.29: Help tooltips in the settings</item>
+            <item>0.0.29: Fixes</item>
+            <item>0.0.28: Tabs as sections on phones: fixes</item>
+            <item>0.0.27: New: tabs as expandable sections on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.26: New: indexes of Gridbox tables (tab *Database*, on by default)</item>
+            <item>0.0.25: New: page shown at once (tab *Page speed*, on by default)</item>
+            <item>0.0.24: Fixed: page cache with a relative cache folder</item>
+            <item>0.0.23: New: page cache for guests (tab *Page speed*, off by default)</item>
+            <item>0.0.23: New: Gridbox data from the cache (on by default)</item>
+            <item>0.0.23: YouTube background on phones</item>
+            <item>0.0.23: Speed panel: real server time</item>
+            <item>0.0.22: Fixed: stretched images with *Images without waiting or jumping*</item>
+            <item>0.0.21: New tools: faster pages (tab *Page speed*)</item>
+            <item>0.0.20: New tool: Page speed panel (tab *Page speed*)</item>
+            <item>0.0.19: New tool: Tidy up old carts (tab *Shop*)</item>
+            <item>0.0.18: New tool: Redirect missing pages (tab *404 pages*, on by default)</item>
+            <item>0.0.17: Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+            <item>0.0.16: Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.32" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.32 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -545,7 +1307,53 @@
             <item>New: post sliders in several rows (tab *Page layout*, on by default)</item>
             <item>Closing the settings opens the Gridbox panel</item>
             <item>Fixes</item>
+            <item>0.0.30: New: popups after the first interaction (tab *Page speed*, on by default)</item>
+            <item>0.0.29: Faster pages on any Gridbox site (tab *Page speed*)</item>
+            <item>0.0.29: Help tooltips in the settings</item>
+            <item>0.0.29: Fixes</item>
+            <item>0.0.28: Tabs as sections on phones: fixes</item>
+            <item>0.0.27: New: tabs as expandable sections on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.26: New: indexes of Gridbox tables (tab *Database*, on by default)</item>
+            <item>0.0.25: New: page shown at once (tab *Page speed*, on by default)</item>
+            <item>0.0.24: Fixed: page cache with a relative cache folder</item>
+            <item>0.0.23: New: page cache for guests (tab *Page speed*, off by default)</item>
+            <item>0.0.23: New: Gridbox data from the cache (on by default)</item>
+            <item>0.0.23: YouTube background on phones</item>
+            <item>0.0.23: Speed panel: real server time</item>
+            <item>0.0.22: Fixed: stretched images with *Images without waiting or jumping*</item>
+            <item>0.0.21: New tools: faster pages (tab *Page speed*)</item>
+            <item>0.0.20: New tool: Page speed panel (tab *Page speed*)</item>
+            <item>0.0.19: New tool: Tidy up old carts (tab *Shop*)</item>
+            <item>0.0.18: New tool: Redirect missing pages (tab *404 pages*, on by default)</item>
+            <item>0.0.17: Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+            <item>0.0.16: Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.31" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.31 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -553,7 +1361,52 @@
         <version>0.0.30</version>
         <fix>
             <item>New: popups after the first interaction (tab *Page speed*, on by default)</item>
+            <item>0.0.29: Faster pages on any Gridbox site (tab *Page speed*)</item>
+            <item>0.0.29: Help tooltips in the settings</item>
+            <item>0.0.29: Fixes</item>
+            <item>0.0.28: Tabs as sections on phones: fixes</item>
+            <item>0.0.27: New: tabs as expandable sections on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.26: New: indexes of Gridbox tables (tab *Database*, on by default)</item>
+            <item>0.0.25: New: page shown at once (tab *Page speed*, on by default)</item>
+            <item>0.0.24: Fixed: page cache with a relative cache folder</item>
+            <item>0.0.23: New: page cache for guests (tab *Page speed*, off by default)</item>
+            <item>0.0.23: New: Gridbox data from the cache (on by default)</item>
+            <item>0.0.23: YouTube background on phones</item>
+            <item>0.0.23: Speed panel: real server time</item>
+            <item>0.0.22: Fixed: stretched images with *Images without waiting or jumping*</item>
+            <item>0.0.21: New tools: faster pages (tab *Page speed*)</item>
+            <item>0.0.20: New tool: Page speed panel (tab *Page speed*)</item>
+            <item>0.0.19: New tool: Tidy up old carts (tab *Shop*)</item>
+            <item>0.0.18: New tool: Redirect missing pages (tab *404 pages*, on by default)</item>
+            <item>0.0.17: Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+            <item>0.0.16: Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.30" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.30 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -563,7 +1416,49 @@
             <item>Faster pages on any Gridbox site (tab *Page speed*)</item>
             <item>Help tooltips in the settings</item>
             <item>Fixes</item>
+            <item>0.0.28: Tabs as sections on phones: fixes</item>
+            <item>0.0.27: New: tabs as expandable sections on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.26: New: indexes of Gridbox tables (tab *Database*, on by default)</item>
+            <item>0.0.25: New: page shown at once (tab *Page speed*, on by default)</item>
+            <item>0.0.24: Fixed: page cache with a relative cache folder</item>
+            <item>0.0.23: New: page cache for guests (tab *Page speed*, off by default)</item>
+            <item>0.0.23: New: Gridbox data from the cache (on by default)</item>
+            <item>0.0.23: YouTube background on phones</item>
+            <item>0.0.23: Speed panel: real server time</item>
+            <item>0.0.22: Fixed: stretched images with *Images without waiting or jumping*</item>
+            <item>0.0.21: New tools: faster pages (tab *Page speed*)</item>
+            <item>0.0.20: New tool: Page speed panel (tab *Page speed*)</item>
+            <item>0.0.19: New tool: Tidy up old carts (tab *Shop*)</item>
+            <item>0.0.18: New tool: Redirect missing pages (tab *404 pages*, on by default)</item>
+            <item>0.0.17: Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+            <item>0.0.16: Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.29" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.29 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -571,7 +1466,48 @@
         <version>0.0.28</version>
         <fix>
             <item>Tabs as sections on phones: fixes</item>
+            <item>0.0.27: New: tabs as expandable sections on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.26: New: indexes of Gridbox tables (tab *Database*, on by default)</item>
+            <item>0.0.25: New: page shown at once (tab *Page speed*, on by default)</item>
+            <item>0.0.24: Fixed: page cache with a relative cache folder</item>
+            <item>0.0.23: New: page cache for guests (tab *Page speed*, off by default)</item>
+            <item>0.0.23: New: Gridbox data from the cache (on by default)</item>
+            <item>0.0.23: YouTube background on phones</item>
+            <item>0.0.23: Speed panel: real server time</item>
+            <item>0.0.22: Fixed: stretched images with *Images without waiting or jumping*</item>
+            <item>0.0.21: New tools: faster pages (tab *Page speed*)</item>
+            <item>0.0.20: New tool: Page speed panel (tab *Page speed*)</item>
+            <item>0.0.19: New tool: Tidy up old carts (tab *Shop*)</item>
+            <item>0.0.18: New tool: Redirect missing pages (tab *404 pages*, on by default)</item>
+            <item>0.0.17: Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+            <item>0.0.16: Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.28" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.28 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -579,7 +1515,47 @@
         <version>0.0.27</version>
         <fix>
             <item>New: tabs as expandable sections on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.26: New: indexes of Gridbox tables (tab *Database*, on by default)</item>
+            <item>0.0.25: New: page shown at once (tab *Page speed*, on by default)</item>
+            <item>0.0.24: Fixed: page cache with a relative cache folder</item>
+            <item>0.0.23: New: page cache for guests (tab *Page speed*, off by default)</item>
+            <item>0.0.23: New: Gridbox data from the cache (on by default)</item>
+            <item>0.0.23: YouTube background on phones</item>
+            <item>0.0.23: Speed panel: real server time</item>
+            <item>0.0.22: Fixed: stretched images with *Images without waiting or jumping*</item>
+            <item>0.0.21: New tools: faster pages (tab *Page speed*)</item>
+            <item>0.0.20: New tool: Page speed panel (tab *Page speed*)</item>
+            <item>0.0.19: New tool: Tidy up old carts (tab *Shop*)</item>
+            <item>0.0.18: New tool: Redirect missing pages (tab *404 pages*, on by default)</item>
+            <item>0.0.17: Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+            <item>0.0.16: Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.27" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.27 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -587,7 +1563,46 @@
         <version>0.0.26</version>
         <fix>
             <item>New: indexes of Gridbox tables (tab *Database*, on by default)</item>
+            <item>0.0.25: New: page shown at once (tab *Page speed*, on by default)</item>
+            <item>0.0.24: Fixed: page cache with a relative cache folder</item>
+            <item>0.0.23: New: page cache for guests (tab *Page speed*, off by default)</item>
+            <item>0.0.23: New: Gridbox data from the cache (on by default)</item>
+            <item>0.0.23: YouTube background on phones</item>
+            <item>0.0.23: Speed panel: real server time</item>
+            <item>0.0.22: Fixed: stretched images with *Images without waiting or jumping*</item>
+            <item>0.0.21: New tools: faster pages (tab *Page speed*)</item>
+            <item>0.0.20: New tool: Page speed panel (tab *Page speed*)</item>
+            <item>0.0.19: New tool: Tidy up old carts (tab *Shop*)</item>
+            <item>0.0.18: New tool: Redirect missing pages (tab *404 pages*, on by default)</item>
+            <item>0.0.17: Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+            <item>0.0.16: Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.26" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.26 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -595,7 +1610,45 @@
         <version>0.0.25</version>
         <fix>
             <item>New: page shown at once (tab *Page speed*, on by default)</item>
+            <item>0.0.24: Fixed: page cache with a relative cache folder</item>
+            <item>0.0.23: New: page cache for guests (tab *Page speed*, off by default)</item>
+            <item>0.0.23: New: Gridbox data from the cache (on by default)</item>
+            <item>0.0.23: YouTube background on phones</item>
+            <item>0.0.23: Speed panel: real server time</item>
+            <item>0.0.22: Fixed: stretched images with *Images without waiting or jumping*</item>
+            <item>0.0.21: New tools: faster pages (tab *Page speed*)</item>
+            <item>0.0.20: New tool: Page speed panel (tab *Page speed*)</item>
+            <item>0.0.19: New tool: Tidy up old carts (tab *Shop*)</item>
+            <item>0.0.18: New tool: Redirect missing pages (tab *404 pages*, on by default)</item>
+            <item>0.0.17: Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+            <item>0.0.16: Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.25" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.25 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -603,7 +1656,44 @@
         <version>0.0.24</version>
         <fix>
             <item>Fixed: page cache with a relative cache folder</item>
+            <item>0.0.23: New: page cache for guests (tab *Page speed*, off by default)</item>
+            <item>0.0.23: New: Gridbox data from the cache (on by default)</item>
+            <item>0.0.23: YouTube background on phones</item>
+            <item>0.0.23: Speed panel: real server time</item>
+            <item>0.0.22: Fixed: stretched images with *Images without waiting or jumping*</item>
+            <item>0.0.21: New tools: faster pages (tab *Page speed*)</item>
+            <item>0.0.20: New tool: Page speed panel (tab *Page speed*)</item>
+            <item>0.0.19: New tool: Tidy up old carts (tab *Shop*)</item>
+            <item>0.0.18: New tool: Redirect missing pages (tab *404 pages*, on by default)</item>
+            <item>0.0.17: Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+            <item>0.0.16: Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.24" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.24 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -614,7 +1704,40 @@
             <item>New: Gridbox data from the cache (on by default)</item>
             <item>YouTube background on phones</item>
             <item>Speed panel: real server time</item>
+            <item>0.0.22: Fixed: stretched images with *Images without waiting or jumping*</item>
+            <item>0.0.21: New tools: faster pages (tab *Page speed*)</item>
+            <item>0.0.20: New tool: Page speed panel (tab *Page speed*)</item>
+            <item>0.0.19: New tool: Tidy up old carts (tab *Shop*)</item>
+            <item>0.0.18: New tool: Redirect missing pages (tab *404 pages*, on by default)</item>
+            <item>0.0.17: Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+            <item>0.0.16: Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.23" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.23 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -622,7 +1745,39 @@
         <version>0.0.22</version>
         <fix>
             <item>Fixed: stretched images with *Images without waiting or jumping*</item>
+            <item>0.0.21: New tools: faster pages (tab *Page speed*)</item>
+            <item>0.0.20: New tool: Page speed panel (tab *Page speed*)</item>
+            <item>0.0.19: New tool: Tidy up old carts (tab *Shop*)</item>
+            <item>0.0.18: New tool: Redirect missing pages (tab *404 pages*, on by default)</item>
+            <item>0.0.17: Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+            <item>0.0.16: Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.22" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.22 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -630,7 +1785,38 @@
         <version>0.0.21</version>
         <fix>
             <item>New tools: faster pages (tab *Page speed*)</item>
+            <item>0.0.20: New tool: Page speed panel (tab *Page speed*)</item>
+            <item>0.0.19: New tool: Tidy up old carts (tab *Shop*)</item>
+            <item>0.0.18: New tool: Redirect missing pages (tab *404 pages*, on by default)</item>
+            <item>0.0.17: Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+            <item>0.0.16: Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.21" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.21 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -638,7 +1824,37 @@
         <version>0.0.20</version>
         <fix>
             <item>New tool: Page speed panel (tab *Page speed*)</item>
+            <item>0.0.19: New tool: Tidy up old carts (tab *Shop*)</item>
+            <item>0.0.18: New tool: Redirect missing pages (tab *404 pages*, on by default)</item>
+            <item>0.0.17: Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+            <item>0.0.16: Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.20" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.20 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -646,7 +1862,36 @@
         <version>0.0.19</version>
         <fix>
             <item>New tool: Tidy up old carts (tab *Shop*)</item>
+            <item>0.0.18: New tool: Redirect missing pages (tab *404 pages*, on by default)</item>
+            <item>0.0.17: Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+            <item>0.0.16: Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.19" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.19 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -654,7 +1899,35 @@
         <version>0.0.18</version>
         <fix>
             <item>New tool: Redirect missing pages (tab *404 pages*, on by default)</item>
+            <item>0.0.17: Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+            <item>0.0.16: Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.18" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.18 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -662,7 +1935,34 @@
         <version>0.0.17</version>
         <fix>
             <item>Fixed: links to a product option shown as radio buttons (tab *Shop*)</item>
+            <item>0.0.16: Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.17" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.17 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -670,7 +1970,33 @@
         <version>0.0.16</version>
         <fix>
             <item>Fixed: links to a product option whose name has a symbol (tab *Shop*)</item>
+            <item>0.0.15: New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.16" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.16 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -678,7 +2004,32 @@
         <version>0.0.15</version>
         <fix>
             <item>New tool: Links to a product option (tab *Shop*, on by default)</item>
+            <item>0.0.14: New tool: Click to call (tab *Phone numbers*, on by default)</item>
+            <item>0.0.14: Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.15" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.15 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -687,7 +2038,30 @@
         <fix>
             <item>New tool: Click to call (tab *Phone numbers*, on by default)</item>
             <item>Fixed</item>
+            <item>0.0.13: New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.14" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.14 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -695,7 +2069,29 @@
         <version>0.0.13</version>
         <fix>
             <item>New tool: No sideways shift on phones (tab *Page layout*, on by default)</item>
+            <item>0.0.12: Toggle position on phones</item>
+            <item>0.0.12: Speed audit: less work for the browser</item>
+            <item>0.0.12: Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.13" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.13 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -705,7 +2101,26 @@
             <item>Toggle position on phones</item>
             <item>Speed audit: less work for the browser</item>
             <item>Fixed</item>
+            <item>0.0.11: Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.12" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.12 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -713,7 +2128,25 @@
         <version>0.0.11</version>
         <fix>
             <item>Dark mode</item>
+            <item>0.0.10: Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.11" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.11 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -721,7 +2154,24 @@
         <version>0.0.10</version>
         <fix>
             <item>Palette dots: visitors choose the colours of dark mode</item>
+            <item>0.0.9: Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.10" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.10 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -729,7 +2179,23 @@
         <version>0.0.9</version>
         <fix>
             <item>Toggle button positions</item>
+            <item>0.0.8: Sepia theme (new)</item>
+            <item>0.0.8: Intensity with a live preview (new)</item>
+            <item>0.0.8: Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.9" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.9 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -739,7 +2205,20 @@
             <item>Sepia theme (new)</item>
             <item>Intensity with a live preview (new)</item>
             <item>Dark mode</item>
+            <item>0.0.7: Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.8" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.8 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -747,7 +2226,19 @@
         <version>0.0.7</version>
         <fix>
             <item>Dark mode</item>
+            <item>0.0.6: Dark mode</item>
+            <item>0.0.6: Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.7" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.7 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -756,7 +2247,17 @@
         <fix>
             <item>Dark mode</item>
             <item>Fixes</item>
+            <item>0.0.5: Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.6" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.6 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -764,7 +2265,16 @@
         <version>0.0.5</version>
         <fix>
             <item>Dark mode: readable on every Gridbox site</item>
+            <item>0.0.4: Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.5" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.5 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -772,7 +2282,15 @@
         <version>0.0.4</version>
         <fix>
             <item>Languages</item>
+            <item>0.0.3: Beta</item>
+            <item>0.0.3: Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.4" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.4 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -781,7 +2299,13 @@
         <fix>
             <item>Beta</item>
             <item>Languages</item>
+            <item>0.0.2: Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.3" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.3 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -789,7 +2313,12 @@
         <version>0.0.2</version>
         <fix>
             <item>Dark mode</item>
+            <item>0.0.1: Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.2" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.2 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
     <changelog>
         <element>pkg_mertools</element>
@@ -798,5 +2327,9 @@
         <fix>
             <item>Canonical URL (collapse duplicate slashes)</item>
         </fix>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v0.0.1" target="_blank" rel="noopener noreferrer">The full list of changes of 0.0.1 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
     </changelog>
 </changelogs>

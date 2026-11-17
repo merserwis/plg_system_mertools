@@ -42,7 +42,7 @@ $check('the checkout forms of a page', CheckoutLogic::forms($page), ['item-15289
 $check('…with a class of its own (the element\'s settings)', CheckoutLogic::forms('<div class="ba-item-checkout-form ba-item moja-klasa" id="item-7">'), ['item-7']);
 $check('a page without one', CheckoutLogic::forms('<div class="ba-item-checkout-order-form ba-item" id="item-1"></div>'), []);
 
-$out = CheckoutLogic::apply($page, ['item-15289771305' => $item], '/media/plg_system_mertools/js/mertools-conditions.min.js?1.17.0', 'n"1');
+$out = CheckoutLogic::apply($page, ['item-15289771305' => $item], '/media/plg_system_mertools/js/mertools-conditions.min.js?1.17.1', 'n"1');
 $check('the style before </head>, with the nonce', str_contains($out, '<style id="mertools-conditions" nonce="n&quot;1">') && str_contains($out, '</style></head>'), true);
 $check('…a field a rule shows hidden until the script has looked at the form',
     str_contains($out, '#item-15289771305:not(.mt-logic) .ba-checkout-form-fields[data-name="30"]') && str_contains($out, '[data-name="24"]'), true);
@@ -51,7 +51,7 @@ $check('…a hidden field hidden', str_contains($out, '.ba-checkout-form-fields.
 preg_match('#<script type="application/json" id="mertools-conditions-config">(.*?)</script>#', $out, $m);
 $check('the rules of the form for the script', json_decode($m[1] ?? 'null', true), ['item-15289771305' => $rules]);
 $check('the script before </body>, with the nonce (a CSP with nonces would block it)',
-    str_contains($out, '<script src="/media/plg_system_mertools/js/mertools-conditions.min.js?1.17.0" nonce="n&quot;1" defer></script></body>'), true);
+    str_contains($out, '<script src="/media/plg_system_mertools/js/mertools-conditions.min.js?1.17.1" nonce="n&quot;1" defer></script></body>'), true);
 $check('once (a page made again)', CheckoutLogic::apply($out, ['item-15289771305' => $item], '/x.js'), $out);
 $check('a form without rules: the page as it is', CheckoutLogic::apply($page, ['item-15289771305' => ['type' => 'checkout-form']], '/x.js'), $page);
 $check('rules of another element: as it is', CheckoutLogic::apply($page, ['item-1' => $item], '/x.js'), $page);

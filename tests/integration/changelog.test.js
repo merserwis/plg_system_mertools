@@ -3,8 +3,10 @@
  * the package installed has the address of changelog.xml (from its manifest), every entry of update.xml
  * has it too, and Joomla's own changelog (com_installer, as its Changelog button loads it) shows the
  * titles of the version from changelog.xml — the version installed (Extensions: Manage) and a version
- * offered (Extensions: Update, an update of the test in #__updates). changelog.xml is served from the
- * copy itself for the test (the one on GitHub is the one published), removed afterwards.
+ * offered (Extensions: Update, an update of the test in #__updates); a fix version also the titles of the
+ * versions of its line before it, marked by version (1.17.1); every version two links, each one point:
+ * its GitHub release and all of them. changelog.xml is served from the copy itself for the test (the one
+ * on GitHub is the one published), removed afterwards.
  *
  *   node tests/integration/changelog.test.js [--install]
  */
@@ -53,6 +55,16 @@ run(async ({ login }) => {
     const parts = text.split('changelog__item');
     const part = (t) => parts.findIndex((p) => one(p, t));
     check('…a fix and a new feature under their own headings', part(mine[0]) > 0 && part(mine[mine.length - 1]) > part(mine[0]), text.slice(0, 600));
+    const [maj, min, fix] = version.split('.');
+    if (Number(fix) > 0) {
+      const first = titles(maj + '.' + min + '.0');
+      check('…a fix version: the titles of ' + maj + '.' + min + '.0 too, marked by it', first.length > 0 && first.every((t) => one(text, maj + '.' + min + '.0: ' + t)), text.slice(0, 900));
+    }
+    const link = (href, t) => '<li><a href="' + href + '" target="_blank" rel="noopener noreferrer">' + t + '</a></li>';
+    const REL = 'https://github.com/merserwis/plg_system_mertools/releases';
+    check('…its GitHub release and all of them, links of one point each',
+      text.includes(link(REL + '/tag/v' + version, 'The full list of changes of ' + version + ' (GitHub)'))
+      && text.includes(link(REL, 'All versions and their changes (GitHub releases)')), text.slice(-900));
     // an update offered: the version of update.xml's entry, as Joomla keeps it in #__updates
     sql(`INSERT INTO #__updates (update_site_id, extension_id, name, description, element, type, folder, client_id, version, data, detailsurl, infourl, changelogurl, extra_query)
       VALUES (0, ${eid}, 'MerTools test', '', 'pkg_mertools', 'package', '', 0, '1.15.0', '', '', '', 'http://127.0.0.1/${FILE}', '')`);
@@ -60,6 +72,7 @@ run(async ({ login }) => {
     text = await shown('update');
     const offered = titles('1.15.0');
     check('Extensions: Update: each title of the version offered one point, not those of another', offered.length > 0 && offered.every((t) => one(text, t)) && !text.includes(mine[0]), text.slice(0, 600));
+    check('…its own release linked', text.includes('/releases/tag/v1.15.0"') && !text.includes('/releases/tag/v' + version + '"'), text.slice(-900));
   } finally {
     if (updateId) sql(`DELETE FROM #__updates WHERE update_id = ${updateId}`);
     sql(`UPDATE #__extensions SET changelogurl = '${url}', manifest_cache = CONVERT(UNHEX('${Buffer.from(cache, 'utf8').toString('hex')}') USING utf8mb4)

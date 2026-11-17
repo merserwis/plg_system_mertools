@@ -2,6 +2,16 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.17.1 — 2026-11-17
+
+### 📏 Orders — the new buttons of the toolbar spaced as Joomla's own
+
+The buttons MerTools adds to the toolbar of Gridbox's list of orders (*Change status*, *Select unread*, *Mark as unread*, *Mark all as read*, *Download PDF*) stood one against the other, while *Delete* and *Import / Export CSV* have a space between them. They now have the same space, and a second row of buttons, on a narrower screen, starts under *Delete*. On a phone they stand one under another, as before.
+
+### 📋 The list of changes in Joomla's updates — the whole x.y line and the full list <!-- change -->
+
+The *Changelog* button of Extensions: Update and Extensions: Manage shows the short list of one version. A fix version (1.17.1, say) now also lists the changes of the versions of its line before it (1.17.0), each with its version, so an update from 1.16 shows all that 1.17 brings. Every version also ends with two links: its GitHub release, with the full list of its changes, and all the releases.
+
 ## 1.17.0 — 2026-11-17
 
 ### ✅ Orders — the ones changed at once also marked as read

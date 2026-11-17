@@ -581,7 +581,12 @@ final class GridboxLists extends Feature
         // the new orders Gridbox counts in its menu
         $new  = (int) $db->setQuery('SELECT COUNT(*) FROM ' . $db->quoteName('#__gridbox_store_orders') . ' WHERE unread = 1 AND published = 1')->loadResult();
         $cfg  = ['texts' => $texts, 'url' => Uri::base(true) . '/index.php', 'token' => Session::getFormToken(), 'unread' => $new];
-        $tail = '<script type="application/json" id="mertools-orders-config">' . json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP)
+        // the buttons (divs) spaced as Joomla's own (Atum: .75rem before each joomla-toolbar-button but the
+        // first), as a gap: none before the first button of a wrapped row, which starts under Delete
+        $nonce = (string) $app->get('csp_nonce', '');
+        $tail = '<style' . ($nonce === '' ? '' : ' nonce="' . htmlspecialchars($nonce, ENT_QUOTES) . '"') . '>'
+            . '.subhead #toolbar{column-gap:.75rem}.subhead #toolbar>*{margin-inline-start:0}</style>'
+            . '<script type="application/json" id="mertools-orders-config">' . json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP)
             . '</script><script src="' . Uri::root(true) . '/media/plg_system_mertools/js/mertools-orders' . (JDEBUG ? '' : '.min') . '.js?' . MerTools::VERSION . '" defer></script>';
         $pos  = strripos($body, '</body>');
         $app->setBody($pos === false ? $body . $tail : substr($body, 0, $pos) . $tail . substr($body, $pos));
