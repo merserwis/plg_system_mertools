@@ -319,6 +319,21 @@ final class AdminDark
     }
 
     /** Each selector of a rule under the dark mark (one that names html or :root gets it there). */
+    /**
+     * Gridbox's buttons that cannot be used yet (Apply before a status is chosen…) are light grey, as
+     * light as the text of the dark window around them: Gridbox's own rule of them again, dimmer, after
+     * its dark twin. Nothing when Gridbox has no such rule.
+     */
+    public static function inactive(string $gridboxCss): string
+    {
+        $css = preg_replace('#/\*.*?\*/#s', '', $gridboxCss) ?? '';
+        if (!preg_match('/([^{}]+)\{\s*background:\s*transparent;\s*color:\s*#cacaca;\s*\}/i', $css, $m)) {
+            return '';
+        }
+
+        return self::scope($m[1]) . '{color:#5d6670}';
+    }
+
     public static function scope(string $selectors, string $scope = self::SCOPE): string
     {
         $mark = substr($scope, 4);

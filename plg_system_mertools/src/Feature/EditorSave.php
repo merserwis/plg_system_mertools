@@ -73,6 +73,25 @@ final class EditorSave extends Feature
     }
 
     /**
+     * The settings Gridbox keeps per device marked so in its editor (mertools-devices.js): a mark beside
+     * their names, blue with the devices that have a value of their own.
+     */
+    public function devicesScript(): void
+    {
+        $app   = $this->plugin->app();
+        $input = $app->getInput();
+        if (!(int) $this->plugin->params->get('editor_devices', 1) || $input->getCmd('option') !== 'com_gridbox' || $input->getCmd('view') !== 'editor') {
+            return;
+        }
+        $user = $app->getIdentity();
+        if (!$user || $user->guest || !str_contains((string) $app->getBody(), 'responsive-context-menu')) {
+            return;
+        }
+        $this->plugin->loadLanguage();
+        $this->plugin->editorScript('devices', ['texts' => ['PER' => Text::_('PLG_SYSTEM_MERTOOLS_EDITOR_DEVICES_PER'), 'OWN' => Text::_('PLG_SYSTEM_MERTOOLS_EDITOR_DEVICES_OWN')]]);
+    }
+
+    /**
      * Gridbox's answer to a save that went through: in the language of the editor page, which its save
      * request should have too, and in the site's default language and English in case it has not.
      */

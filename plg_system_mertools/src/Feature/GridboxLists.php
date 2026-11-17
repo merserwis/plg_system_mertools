@@ -22,6 +22,7 @@ use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\Session\Session;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Database\DatabaseInterface;
+use Joomla\Database\Monitor\ChainedMonitor;
 use Joomla\Event\EventInterface;
 use Merserwis\Plugin\System\MerTools\Extension\MerTools;
 use Merserwis\Plugin\System\MerTools\Gridbox\ListFactory;
@@ -31,6 +32,8 @@ use Merserwis\Plugin\System\MerTools\Tool\History;
 use Merserwis\Plugin\System\MerTools\Tool\ListColumns;
 use Merserwis\Plugin\System\MerTools\Tool\ListSort;
 use Merserwis\Plugin\System\MerTools\Tool\Omnibus;
+use Merserwis\Plugin\System\MerTools\Tool\QuietMail;
+use Merserwis\Plugin\System\MerTools\Tool\QuietQueue;
 
 final class GridboxLists extends Feature
 {
@@ -552,7 +555,8 @@ final class GridboxLists extends Feature
     /**
      * Gridbox's list of orders: a button in its toolbar gives the orders ticked one status (and one
      * comment) at once, each through Gridbox's own change of a status (orders.updateStatus: its history,
-     * its e-mail, stock and promo codes), one after another (mertools-orders.js). Only where Gridbox
+     * its e-mail, stock and promo codes), one after another, and marks them read as Gridbox's opening of
+     * an order does (orders.getOrder), also without a status (mertools-orders.js). Only where Gridbox
      * shows its own button to apply a status (the right to edit in Gridbox).
      */
     public function ordersBulkScript(): void
@@ -569,13 +573,96 @@ final class GridboxLists extends Feature
         }
         $this->plugin->loadLanguage();
         $texts = [];
-        foreach (['BUTTON', 'TITLE', 'WORKING', 'DONE', 'FAILED'] as $key) {
+        foreach (['BUTTON', 'TITLE', 'WORKING', 'DONE', 'FAILED', 'READ', 'READING', 'READ_DONE', 'READ_FAILED', 'MAIL',
+            'SELECT_UNREAD', 'UNREAD', 'UNREAD_DONE', 'UNREAD_FAILED', 'READ_ALL', 'READ_ALL_ASK', 'READ_ALL_FAILED', 'PDF', 'PDF_WORKING', 'PDF_FAILED'] as $key) {
             $texts[$key] = Text::_('PLG_SYSTEM_MERTOOLS_ORDERS_BULK_' . $key);
         }
-        $tail = '<script type="application/json" id="mertools-orders-config">' . json_encode(['texts' => $texts], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP)
+        $db   = Factory::getContainer()->get(DatabaseInterface::class);
+        // the new orders Gridbox counts in its menu
+        $new  = (int) $db->setQuery('SELECT COUNT(*) FROM ' . $db->quoteName('#__gridbox_store_orders') . ' WHERE unread = 1 AND published = 1')->loadResult();
+        $cfg  = ['texts' => $texts, 'url' => Uri::base(true) . '/index.php', 'token' => Session::getFormToken(), 'unread' => $new];
+        $tail = '<script type="application/json" id="mertools-orders-config">' . json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP)
             . '</script><script src="' . Uri::root(true) . '/media/plg_system_mertools/js/mertools-orders' . (JDEBUG ? '' : '.min') . '.js?' . MerTools::VERSION . '" defer></script>';
         $pos  = strripos($body, '</body>');
         $app->setBody($pos === false ? $body . $tail : substr($body, 0, $pos) . $tail . substr($body, $pos));
+    }
+
+    /**
+     * The status of many orders without their e-mails (the box Send the customer an e-mail unticked):
+     * Gridbox's own change of a status (orders.updateStatus, its history, stock, promo codes) asked with
+     * mertools_quiet, whose e-mails then go nowhere — Joomla's mailer of this request is one that sends
+     * nothing (QuietMail), so every Factory::getMailer() of Gridbox's gets a copy of it. Gridbox has no
+     * event of its own before its e-mails. Its notifications with a delay are put in a queue instead
+     * (#__gridbox_email_delay), sent later by another request: the rows this request inserted there
+     * (noted by QuietQueue) go when it ends (Gridbox's task ends with exit), not one another request
+     * queued meanwhile for the same order. POST, the form token and the right to edit.
+     */
+    public function ordersQuietMail(): void
+    {
+        $app   = $this->plugin->app();
+        $input = $app->getInput();
+        if ($input->getCmd('option') !== 'com_gridbox' || $input->getCmd('task') !== 'orders.updateStatus' || $input->post->getInt('mertools_quiet', 0) !== 1
+            || !(int) $this->plugin->params->get('orders_bulk_status', 1) || $input->getMethod() !== 'POST') {
+            return;
+        }
+        $user = $app->getIdentity();
+        if (!$user || !$user->authorise('core.edit', 'com_gridbox') || !Session::checkToken('post')) {
+            // asked without e-mails and not allowed so: nothing changed rather than e-mails sent
+            $this->plugin->sendJson(['success' => false, 'message' => Text::_('JERROR_ALERTNOAUTHOR')], 403);
+        }
+        Factory::$mailer = new QuietMail(true);
+        $id    = $input->post->getInt('id', 0);
+        $db    = Factory::getContainer()->get(DatabaseInterface::class);
+        $noted = new QuietQueue($db, $db->replacePrefix('#__gridbox_email_delay'));
+        $chain = new ChainedMonitor();
+        if ($db->getMonitor()) {
+            $chain->addMonitor($db->getMonitor()); // Joomla's debug, if on, as before
+        }
+        $chain->addMonitor($noted);
+        $db->setMonitor($chain);
+        register_shutdown_function(static function () use ($db, $noted, $id): void {
+            if (!$noted->ids) {
+                return;
+            }
+            try {
+                $db->setQuery('DELETE FROM ' . $db->quoteName('#__gridbox_email_delay') . ' WHERE order_id = ' . $id
+                    . ' AND id IN (' . implode(',', $noted->ids) . ')')->execute();
+            } catch (\Throwable $e) {
+            }
+        });
+    }
+
+    /**
+     * All the new orders marked read at once (the button Mark all as read of the list of orders), as
+     * Gridbox's opening of an order does each: the ones Gridbox counts in its menu. Answers how many.
+     */
+    public function ordersReadAll(): array
+    {
+        $db    = Factory::getContainer()->get(DatabaseInterface::class);
+        $table = $db->quoteName('#__gridbox_store_orders');
+        $db->setQuery('UPDATE ' . $table . ' SET unread = 0 WHERE unread = 1 AND published = 1')->execute();
+
+        return ['success' => true, 'count' => (int) $db->getAffectedRows()];
+    }
+
+    /**
+     * Orders marked unread again (the button Mark as unread of the list of orders), as new ones are: their
+     * rows grey, counted on the shop's icon in Gridbox's menu. Answers with the orders that were read.
+     */
+    public function ordersUnread(): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', explode(',', (string) $this->plugin->app()->getInput()->post->getString('ids', ''))), fn ($v) => $v > 0)));
+        if (!$ids) {
+            return ['success' => false, 'message' => Text::_('PLG_SYSTEM_MERTOOLS_LIST_UI_ERROR')];
+        }
+        $db   = Factory::getContainer()->get(DatabaseInterface::class);
+        $list = implode(',', $ids);
+        $read = array_map('intval', $db->setQuery('SELECT id FROM ' . $db->quoteName('#__gridbox_store_orders') . ' WHERE id IN (' . $list . ') AND unread = 0')->loadColumn());
+        if ($read) {
+            $db->setQuery('UPDATE ' . $db->quoteName('#__gridbox_store_orders') . ' SET unread = 1 WHERE id IN (' . implode(',', $read) . ')')->execute();
+        }
+
+        return ['success' => true, 'ids' => $read];
     }
 
     /**
@@ -629,7 +716,8 @@ final class GridboxLists extends Feature
                 . AdminDark::scope('dialog.mt-hist-dlg') . '{background:#1d2229}' . AdminDark::scope('.mt-hist-head button') . '{color:inherit}'
                 . AdminDark::scope('.mt-drop') . '{background:rgba(23,31,46,.95)}' . AdminDark::scope('.mt-drop div,.mt-drop small') . '{color:#bfdbfe}'
                 . AdminDark::scope('.mt-pin[aria-pressed="true"],.mt-pin:hover,th.mt-sortable:hover,th.mt-sorted .mt-sort-mark') . '{color:#7cb4f5}'
-                . AdminDark::scope('tr:has(.mt-pin[aria-pressed="true"]) > td') . '{background-color:#1f2a3a}';
+                . AdminDark::scope('tr:has(.mt-pin[aria-pressed="true"]) > td') . '{background-color:#1f2a3a}'
+                . AdminDark::inactive((string) file_get_contents($source));
             if (!is_dir($dir)) {
                 @mkdir($dir, 0755, true);
             }

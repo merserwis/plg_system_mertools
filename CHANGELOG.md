@@ -2,6 +2,44 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.17.0 — 2026-11-17
+
+### ✅ Orders — the ones changed at once also marked as read
+
+Gridbox marks an order as read only when it is opened, so orders whose status was changed many at once kept their grey rows and the count of new orders on the shop's icon in Gridbox's menu. The window of **Change status** now has a box **Mark as read** under the comment, ticked by default.
+
+- The unread orders among those ticked are marked read exactly as when Gridbox opens them (its own opening of an order); their rows lose the grey background and the count in the menu goes down, or away, at once. An order that could not be marked is named in the notice and keeps its grey row; its status, if changed, is not sent again.
+- With the box ticked the window applies also without a status: the orders are only marked read, their status and its history stay as they were, no e-mail goes to the customer. The notice counts the orders marked. Apply is active once there is something to do: a status chosen, or an unread order with the box ticked.
+- Untick the box to change the status only, as before. An order's own window is Gridbox's, without the boxes.
+
+### ✉️ Orders — the status of many without e-mails
+
+Every change of a status sends Gridbox's e-mail of that status, so tidying up old orders (closing fifty of them as *Completed*, say) wrote to fifty customers. The window of **Change status** now has a box **Send the customer an e-mail**, ticked by default.
+
+- Unticked, the orders get their status, comment, history line, stock and promo codes as before, through Gridbox's own change of a status, but none of the e-mails Gridbox sends with it (to the customer or to the shop) goes out; the e-mails Gridbox would send later (a notification with a delay) are not queued either.
+- Asked so by somebody without the right to edit in Gridbox, or without the form of the page, the change is refused rather than made with its e-mails.
+
+### 👁️ Orders — select the unread, mark as unread, all as read
+
+Two more buttons in the toolbar of the list of orders:
+
+- **Select unread** ticks the grey rows of the page, and only them, ready for *Change status* or for marking them read.
+- **Mark as unread** makes the orders ticked unread again, as new ones are: their rows grey, counted on the shop's icon in the menu. Gridbox can do this for comments and reviews, not for orders; useful to keep an order opened by mistake, or one still to be dealt with, in sight.
+- **Mark all as read** marks every new order read at once, of every page of the list: the count on the shop's icon goes. It asks first, saying how many. Gridbox has this for comments and reviews, not for orders.
+- Setting *Orders: actions on many at once* (until now *Change the status of many orders*), Configuration → Lists, on by default.
+
+### 📄 Orders — the PDF of many at once
+
+Gridbox gives the PDF of one order at a time, from the order's own window. The list of orders now has a **Download PDF** button: the orders ticked come as Gridbox's own PDF of each (the same file as its button gives, by the same name, `order-<number>.pdf`), in one ZIP file; a single order comes as its PDF. An order whose PDF could not be fetched is named in the notice, the others still come. Gridbox's PDF opens the order, so a new order is read once its PDF is fetched: its row and the count in the menu show it at once. Made in the browser from Gridbox's own PDFs, nothing kept on the server.
+
+### 📱 Editor — the settings kept per device marked
+
+Many settings of an element (the number of columns of a gallery, a height, margins…) Gridbox keeps for each device on its own: set in the view of a phone they stay on the phone, the computer keeps its own value. Nothing in its windows says which, so it was easy to miss that a gallery could have one column on a phone. A small mark of devices now stands beside the name of each such setting, blue when a device has a value of its own; its tip names the devices and their values. Only shown, nothing is changed or saved. Setting *Settings kept per device marked* (Configuration → In the editor), on by default.
+
+### 🌙 Dark mode — buttons that cannot be used yet look so <!-- fix -->
+
+In the dark mode of the Gridbox panel, an *Apply* that cannot be used yet (before a status is chosen, for example) was light grey, as light as the active text around it, so it looked usable. It is now dimmed, in every window of Gridbox where it is so.
+
 ## 1.16.0 — 2026-11-16
 
 ### 🧭 Checkout form — conditional logic of its fields

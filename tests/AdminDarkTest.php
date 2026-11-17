@@ -53,5 +53,17 @@ $check('unchanged colour repeated (keeps the cascade)', str_contains($out, 'html
 $check('border none repeated', str_contains($out, '.no{border:none}'), true);
 $check('charset skipped', str_contains($out, 'charset'), false);
 
+// Gridbox's buttons that cannot be used yet: its rule again, dimmer
+$gb = '.x{color:#000} /* c */ #orders-status-modal .modal-footer a:not(.active-button),
+a.ba-btn-primary.disabled-button {
+    background: transparent;
+    color: #cacaca;
+}';
+$in = AdminDark::inactive($gb);
+$check('inactive buttons: Gridbox\'s selectors scoped', str_contains($in, 'html[data-color-scheme="dark"] #orders-status-modal .modal-footer a:not(.active-button)')
+    && str_contains($in, 'html[data-color-scheme="dark"] a.ba-btn-primary.disabled-button'), true);
+$check('…dimmer', str_ends_with($in, '{color:#5d6670}') && !str_contains($in, '.x'), true);
+$check('…nothing without such a rule', AdminDark::inactive('.x{color:#cacaca}'), '');
+
 echo $fail ? "FAILED: $fail\n" : "ALL PASS\n";
 exit($fail ? 1 : 0);

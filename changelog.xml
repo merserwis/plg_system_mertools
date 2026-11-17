@@ -3,6 +3,21 @@
     <changelog>
         <element>pkg_mertools</element>
         <type>package</type>
+        <version>1.17.0</version>
+        <fix>
+            <item>Dark mode: buttons that cannot be used yet look so</item>
+        </fix>
+        <addition>
+            <item>Orders: the ones changed at once also marked as read</item>
+            <item>Orders: the status of many without e-mails</item>
+            <item>Orders: select the unread, mark as unread, all as read</item>
+            <item>Orders: the PDF of many at once</item>
+            <item>Editor: the settings kept per device marked</item>
+        </addition>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
         <version>1.16.0</version>
         <addition>
             <item>Checkout form: conditional logic of its fields</item>

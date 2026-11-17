@@ -92,7 +92,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.16.0';
+    public const VERSION = '1.17.0';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -286,6 +286,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
         if ($app->isClient('administrator')) {
             $this->locks()->adminLockGuard();
+            // not soft: failing, it must stop Gridbox's change rather than let its e-mails go
+            $this->lists()->ordersQuietMail();
             $this->handleAdministratorAction();
             $this->soft(fn () => $this->settingsPage());
 
@@ -333,6 +335,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $this->soft(fn () => $this->shop()->logicScript(), true);
             $this->soft(fn () => $this->editorSave()->saveScript(), true);
             $this->soft(fn () => $this->editorSave()->linkTreeScript(), true);
+            $this->soft(fn () => $this->editorSave()->devicesScript(), true);
             $this->soft(fn () => $this->editorImport()->importScript(), true);
             $this->soft(fn () => $this->editorFields()->fillScript(), true);
             $this->soft(fn () => $this->lists()->mediaDropScript(), true);
@@ -612,7 +615,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if (!\in_array($action, ['cart_stats', 'cart_check', 'cart_clean', 'speed_list', 'speed_save', 'speed_baseline', 'speed_delete',
             'pcache_stats', 'pcache_clear', 'dbidx_status', 'dbidx_fix', 'img_stats', 'img_run', 'img_clear', 'cache_clear_all', 'history_list',
             'cmp_stats', 'cmp_test', 'cmp_start', 'cmp_run', 'cmp_cancel', 'cmp_list', 'cmp_restore', 'cmp_restore_all',
-            'list_columns', 'list_edit', 'list_badges', 'list_pin', 'list_sort', 'apps_list', 'apps_backup', 'apps_restore', 'apps_delete', 'apps_download',
+            'list_columns', 'list_edit', 'list_badges', 'list_pin', 'list_sort', 'orders_unread', 'orders_read_all', 'apps_list', 'apps_backup', 'apps_restore', 'apps_delete', 'apps_download',
             'nf_list', 'nf_target', 'nf_delete', 'nf_clear', 'nf_moved', 'nf_moved_delete',
             'sm_status', 'sm_rebuild', 'sm_takeover', 'sm_undo', 'sm_compare', 'sm_why'], true)) {
             return;
@@ -620,8 +623,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $this->loadLanguage();
         $user = $app->getIdentity();
         // the Gridbox lists: own columns (whoever may use the lists), quick edits (whoever may edit)
-        if (\in_array($action, ['list_columns', 'list_edit', 'list_badges', 'list_pin', 'list_sort'], true)) {
-            $right = \in_array($action, ['list_edit', 'list_badges'], true) ? 'core.edit' : 'core.manage';
+        if (\in_array($action, ['list_columns', 'list_edit', 'list_badges', 'list_pin', 'list_sort', 'orders_unread', 'orders_read_all'], true)) {
+            $right = \in_array($action, ['list_edit', 'list_badges', 'orders_unread', 'orders_read_all'], true) ? 'core.edit' : 'core.manage';
             if ($input->getMethod() !== 'POST' || !$user || !$user->authorise($right, 'com_gridbox') || !Session::checkToken('request')) {
                 $this->sendJson(['success' => false, 'message' => Text::_('JERROR_ALERTNOAUTHOR')], 403);
             }
@@ -631,6 +634,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                     'list_badges' => $this->lists()->listBadges(),
                     'list_pin'    => $this->lists()->listPin(),
                     'list_sort'   => $this->lists()->listSort(),
+                    'orders_unread' => $this->lists()->ordersUnread(),
+                    'orders_read_all' => $this->lists()->ordersReadAll(),
                     default       => $this->lists()->listColumnsSave(),
                 });
             } catch (\Throwable $e) {
