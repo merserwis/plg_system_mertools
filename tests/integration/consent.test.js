@@ -71,6 +71,9 @@ run(async ({ login }) => {
       open: !!root && !root.hidden,
       box: r ? { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) } : null,
       vw: innerWidth, vh: innerHeight,
+      // the gaps title → text → buttons (Gridbox's theme zeroes the margins of h2 and p on its body)
+      gaps: (() => { const g = (s) => { const e = document.querySelector(s); return e && e.getBoundingClientRect(); }, t = g('.mtc-title'), x = g('.mtc-text'), b = g('.mtc-btns');
+        return t && x && b ? [Math.round(x.top - t.bottom), Math.round(b.top - x.bottom)] : null; })(),
       dimTop: (document.elementFromPoint(5, 5) || {}).className || '',
       role: box && box.getAttribute('role'), modal: box && box.getAttribute('aria-modal'),
       focusIn: !!box && box.contains(document.activeElement),
@@ -108,6 +111,7 @@ run(async ({ login }) => {
     check('…in the centre', s.box && Math.abs(s.box.x + s.box.w / 2 - s.vw / 2) < 3 && Math.abs(s.box.y + s.box.h / 2 - s.vh / 2) < 3, JSON.stringify(s.box));
     check('…large (at least 560 px wide)', s.box && s.box.w >= 560, JSON.stringify(s.box));
     check('…over a dimmed page', s.dimTop === 'mtc-dim', s.dimTop);
+    check('…the text 16 px under the title, the buttons 24 px under it', s.gaps && s.gaps[0] === 16 && s.gaps[1] === 24, JSON.stringify(s.gaps));
     check('…focus inside', s.focusIn, '');
     check('…policy link', s.policy.endsWith('/polityka-prywatnosci'), s.policy);
     check('…no cookie button while asking', s.reopen === null, String(s.reopen));

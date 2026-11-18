@@ -3,6 +3,23 @@
     <changelog>
         <element>pkg_mertools</element>
         <type>package</type>
+        <version>1.18.1</version>
+        <fix>
+            <item>Cookie consent: space between the title, the text and the buttons</item>
+            <item>1.18.0: Markdown import: the texts after a heading come in whole</item>
+        </fix>
+        <addition>
+            <item>1.18.0: Cookie consent: MerTools' own window, with Google Consent Mode v2</item>
+            <item>1.18.0: Light mode for sites designed dark</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.18.1" target="_blank" rel="noopener noreferrer">The full list of changes of 1.18.1 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
         <version>1.18.0</version>
         <fix>
             <item>Markdown import: the texts after a heading come in whole</item>

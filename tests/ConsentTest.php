@@ -38,10 +38,10 @@ $check('days: at most 13 months', $cfg['days'], 395);
 $check('texts: defaults of the language when empty', [$cfg['t']['title'], $cfg['t']['text']], ['T', 'X']);
 $check('texts: own title', Consent::jsConfig(new Registry(['consent_title' => ' Ciasteczka ']), ['title' => 'T', 'text' => 'X'])['t']['title'], 'Ciasteczka');
 
-// merserwis.pl's head and body (GTM and the pixel delayed by MerTools afterwards, TermsFeed's window)
-$fb   = "<script>\n!function(f,b,e,v,n,t,s)\n{if(f.fbq)return;n=f.fbq=function(){};t.src=v}(window, document,'script',\n'https://connect.facebook.net/en_US/fbevents.js');\nfbq('init', '1606311083614425');\nfbq('track', 'PageView');\n</script>";
-$gtm  = "<script>(function(w,d,s,l,i){j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;})(window,document,'script','dataLayer','GTM-TJP5CT6');</script>";
-$ns   = '<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1606311083614425&amp;ev=PageView&amp;noscript=1"/></noscript>';
+// a head and body as on merserwis.pl (made-up IDs) (GTM and the pixel delayed by MerTools afterwards, TermsFeed's window)
+$fb   = "<script>\n!function(f,b,e,v,n,t,s)\n{if(f.fbq)return;n=f.fbq=function(){};t.src=v}(window, document,'script',\n'https://connect.facebook.net/en_US/fbevents.js');\nfbq('init', '1000000000000001');\nfbq('track', 'PageView');\n</script>";
+$gtm  = "<script>(function(w,d,s,l,i){j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;})(window,document,'script','dataLayer','GTM-TEST000');</script>";
+$ns   = '<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1000000000000001&amp;ev=PageView&amp;noscript=1"/></noscript>';
 $tf   = "<!-- Cookie Consent by TermsFeed -->\n<script type=\"text/javascript\" src=\"/assets/js/cookie-consent.js\"\n  charset=\"UTF-8\"></script>\n"
     . "<script type=\"text/javascript\" charset=\"UTF-8\">\n  document.addEventListener('DOMContentLoaded', function () {\n    cookieconsent.run({\"notice_banner_type\": \"simple\"});\n  });\n</script>\n\n"
     . "<noscript>Free cookie consent management tool by TermsFeed</a></noscript>\n<!-- End Cookie Consent by TermsFeed -->";

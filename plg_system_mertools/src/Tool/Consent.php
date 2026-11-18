@@ -222,6 +222,7 @@ final class Consent
         $btn = 'box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 22px;margin:0;'
             . 'border-radius:8px;font:inherit;font-size:16px;font-weight:700;line-height:1.2;cursor:pointer;text-align:center;letter-spacing:normal;text-transform:none;';
 
+        // .mtc .mtc-box .x (0,3,0): Gridbox's theme zeroes `.com_gridbox:not(.modal) h2, … p` (0,2,1) on the body
         return '.mtc{position:fixed;inset:0;z-index:2147483600;display:flex;pointer-events:none;font-family:inherit;font-size:16px;line-height:1.5}'
             . '.mtc[hidden]{display:none}'
             . '.mtc-dim{position:absolute;inset:0;background:rgba(0,0,0,.55);pointer-events:auto;animation:mtc-in .25s ease}'
@@ -235,8 +236,8 @@ final class Consent
             . '.mtc[data-pos="bottom"] .mtc-box{width:100%;border-radius:14px 14px 0 0;padding:28px max(24px,calc((100vw - 1100px)/2))}'
             . '.mtc[data-pos="corner"]{align-items:flex-end;justify-content:flex-start;padding:16px}'
             . '.mtc[data-pos="corner"] .mtc-box{width:100%;max-width:460px}'
-            . '.mtc .mtc-title{margin:0 0 12px;padding:0;font-family:inherit;font-size:24px;line-height:1.25;font-weight:700;color:var(--title,#111);letter-spacing:normal;text-transform:none;text-align:left}'
-            . '.mtc .mtc-text{margin:0 0 20px;padding:0;font-size:16px;line-height:1.55;letter-spacing:normal;text-align:left;color:var(--text,#333)}'
+            . '.mtc .mtc-box .mtc-title{margin:0 0 16px;padding:0;font-family:inherit;font-size:24px;line-height:1.25;font-weight:700;color:var(--title,#111);letter-spacing:normal;text-transform:none;text-align:left}'
+            . '.mtc .mtc-box .mtc-text{margin:0 0 24px;padding:0;font-size:16px;line-height:1.55;letter-spacing:normal;text-align:left;color:var(--text,#333)}'
             . '.mtc-text a,.mtc-desc a{color:inherit;text-decoration:underline}'
             . '.mtc-btns{display:flex;flex-wrap:wrap;gap:12px;margin-top:4px}'
             . '.mtc-btns button{flex:1 1 160px}.mtc-btns button[hidden]{display:none}'
@@ -258,7 +259,7 @@ final class Consent
             . '.mtc-row input:checked+.mtc-sw::after{transform:translateX(20px)}'
             . '.mtc-row input:disabled+.mtc-sw{opacity:.6}'
             . '.mtc-row input:disabled{cursor:default}'
-            . '.mtc .mtc-desc{margin:6px 0 0;padding:0;font-size:14px;line-height:1.45;letter-spacing:normal;text-align:left;opacity:.85}'
+            . '.mtc .mtc-box .mtc-desc{margin:6px 0 0;padding:0;font-size:14px;line-height:1.45;letter-spacing:normal;text-align:left;opacity:.85}'
             . '.mtc-re{position:fixed;z-index:2147483500;bottom:18px;box-sizing:border-box;width:44px;height:44px;padding:0;margin:0;border-radius:50%;'
             . 'border:1px solid rgba(128,128,128,.35);background:var(--bg-primary,#fff);color:var(--title,#111);cursor:pointer;display:flex;align-items:center;justify-content:center;'
             . 'box-shadow:0 4px 16px rgba(0,0,0,.25);opacity:.85;transition:opacity .2s,transform .2s}'
@@ -267,7 +268,7 @@ final class Consent
             . '.mtc-re:focus-visible{outline:3px solid var(--mtc-a);outline-offset:2px}'
             . '.mtc-re svg{width:24px;height:24px;display:block;pointer-events:none}'
             . '@keyframes mtc-in{from{opacity:0}}@keyframes mtc-up{from{opacity:0;transform:translateY(16px)}}'
-            . '@media (max-width:600px){.mtc-box{padding:22px 18px}.mtc[data-pos="bottom"] .mtc-box{padding:22px 18px}.mtc .mtc-title{font-size:21px}.mtc-btns button{flex:1 1 100%}}'
+            . '@media (max-width:600px){.mtc-box{padding:22px 18px}.mtc[data-pos="bottom"] .mtc-box{padding:22px 18px}.mtc .mtc-box .mtc-title{font-size:21px}.mtc-btns button{flex:1 1 100%}}'
             . '@media (prefers-reduced-motion:reduce){.mtc-dim,.mtc-box{animation:none}.mtc-sw,.mtc-sw::after,.mtc-re{transition:none}}'
             . '@media print{.mtc,.mtc-re{display:none!important}}';
     }

@@ -2,6 +2,12 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.18.1 — 2026-11-18
+
+### 🍪 Cookie consent — space between the title, the text and the buttons
+
+On sites whose Gridbox theme takes the margins of headings and paragraphs away, the text of the cookie consent window stood right under its title and the buttons right under the text, as did the descriptions of the categories in *Settings*. The window now keeps its own spacing on every theme, a little roomier than before: the text 16 px under the title, the buttons 24 px under the text.
+
 ## 1.18.0 — 2026-11-17
 
 ### 🍪 Cookie consent — MerTools' own window, with Google Consent Mode v2
