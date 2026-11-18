@@ -36,6 +36,15 @@ final class Consent
 
     public const POSITIONS = ['center', 'bottom', 'corner'];
 
+    /**
+     * Where the button opening the settings again stands: above MerTools' dark-mode toggle, in one
+     * button with it (a gear opening both), in a corner of its own, or nowhere (a link in the footer).
+     */
+    public const REOPEN = ['toggle', 'merge', 'left', 'right', 'none'];
+
+    /** YouTube's address that sets no cookies, for its players and the frames of its films. */
+    public const YT_NOCOOKIE = 'https://www.youtube-nocookie.com';
+
     public static function enabled(Registry $params): bool
     {
         return (bool) (int) $params->get('consent_enabled', 0);
@@ -77,6 +86,7 @@ final class Consent
     {
         $clarity = (int) $params->get('consent_clarity', 1);
         $tf      = (int) $params->get('consent_termsfeed', 1);
+        $yt      = self::youtube($params);
 
         return '(function(w,d){var c=null,k=d.cookie,m=k.match(/(?:^|; )' . self::COOKIE . '=f([01])t([01])m([01])/);'
             . 'if(m){c={functionality:m[1]==="1",tracking:m[2]==="1",targeting:m[3]==="1"}}'
@@ -91,7 +101,44 @@ final class Consent
             . 'analytics_storage:g(c.tracking),functionality_storage:g(c.functionality),personalization_storage:g(c.functionality)});'
             . ($clarity ? 'w.clarity=w.clarity||function(){(w.clarity.q=w.clarity.q||[]).push(arguments)};'
                 . 'w.clarity("consentv2",{ad_Storage:g(c&&c.targeting),analytics_Storage:g(c&&c.tracking)});' : '')
+            . ($yt ? self::YT_HOOK : '')
             . '})(window,document);';
+    }
+
+    /** Are YouTube's films and video backgrounds played from its address that sets no cookies? */
+    public static function youtube(Registry $params): bool
+    {
+        return (bool) (int) $params->get('consent_youtube', 1);
+    }
+
+    /**
+     * Every player of YouTube's API on youtube-nocookie.com: Gridbox's video backgrounds give the host
+     * www.youtube.com themselves (createVideo.js), its slideshows, lightboxes and overlay buttons take
+     * YTConfig's. The constructor YT.Player is wrapped as it is set on window.YT (by Gridbox's loader or
+     * YouTube's own iframe_api), so no YT exists on a page without films. The frames of that host set no
+     * cookies, also while playing; the API script Gridbox loads (s.ytimg.com) sets none either.
+     */
+    private const YT_HOOK = 'var N="' . self::YT_NOCOOKIE . '",Y;w.YTConfig=w.YTConfig||{};w.YTConfig.host=N;'
+        . 'function W(v){if(typeof v!=="function"||v.mt)return v;var f=function(e,o){o=o||{};if(!o.host||/youtube\\.com/.test(o.host))o.host=N;return new v(e,o)};'
+        . 'f.prototype=v.prototype;f.mt=1;return f}'
+        . 'function H(o){if(!o||typeof o!=="object")return;var P=W(o.Player);try{Object.defineProperty(o,"Player",{configurable:true,enumerable:true,'
+        . 'get:function(){return P},set:function(v){P=W(v)}})}catch(e){}}'
+        . 'if(w.YT)H(w.YT);else try{Object.defineProperty(w,"YT",{configurable:true,enumerable:true,get:function(){return Y},set:function(v){Y=v;H(v)}})}catch(e){}';
+
+    /**
+     * The frames of YouTube's films in the page (Gridbox's video element, a film pasted in a text) from
+     * youtube-nocookie.com: www.youtube.com/embed sets its cookies (YSC, VISITOR_INFO1_LIVE …) as the
+     * frame loads, before any consent.
+     */
+    public static function noCookieYoutube(string $html): string
+    {
+        if (stripos($html, 'youtube.com/embed') === false) {
+            return $html;
+        }
+
+        // the tag to its real end: a ">" inside a quoted value (title="A > B") is not it
+        return (string) preg_replace_callback('#<iframe\b(?:[^>"\']++|"[^"]*+"|\'[^\']*+\')*+>#i', fn (array $m) => (string) preg_replace(
+            '#(\s(?:data-)?src\s*=\s*["\']?)(?:https?:)?//(?:www\.)?youtube\.com/embed/#i', '$1' . self::YT_NOCOOKIE . '/embed/', $m[0]), $html);
     }
 
     /** The head script as the very first thing of <head>, before any tag of the page's own code. */
@@ -195,7 +242,7 @@ final class Consent
     public static function jsConfig(Registry $params, array $texts): array
     {
         $pos    = (string) $params->get('consent_position', 'center');
-        $reopen = (string) $params->get('consent_reopen', 'left');
+        $reopen = (string) $params->get('consent_reopen', 'toggle');
         $title  = trim((string) $params->get('consent_title', ''));
         $text   = trim((string) $params->get('consent_text', ''));
 
@@ -205,7 +252,10 @@ final class Consent
             'levels'   => self::levels($params),
             'pos'      => \in_array($pos, self::POSITIONS, true) ? $pos : 'center',
             'backdrop' => (bool) (int) $params->get('consent_backdrop', 1),
-            'reopen'   => \in_array($reopen, ['none', 'left', 'right'], true) ? $reopen : 'left',
+            'reopen'   => \in_array($reopen, self::REOPEN, true) ? $reopen : 'toggle',
+            // the look of MerTools' dark-mode toggle (its size, ring, shadow and colours) when it is on
+            'look'     => (bool) (int) $params->get('consent_reopen_look', 1),
+            'youtube'  => self::youtube($params),
             'rx'       => max(0, min(400, (int) $params->get('consent_reopen_x', 18))),
             'ry'       => max(0, min(400, (int) $params->get('consent_reopen_y', 18))),
             'policy'   => self::policyUrl($params),
@@ -240,7 +290,9 @@ final class Consent
             . '.mtc .mtc-box .mtc-text{margin:0 0 24px;padding:0;font-size:16px;line-height:1.55;letter-spacing:normal;text-align:left;color:var(--text,#333)}'
             . '.mtc-text a,.mtc-desc a{color:inherit;text-decoration:underline}'
             . '.mtc-btns{display:flex;flex-wrap:wrap;gap:12px;margin-top:4px}'
-            . '.mtc-btns button{flex:1 1 160px}.mtc-btns button[hidden]{display:none}'
+            // each label on one line ("Akceptuję wszystkie" broke in two in a box of 620 px): a button too
+            // wide for the row goes to the next one whole; on a phone each takes the width again
+            . '.mtc-btns button{flex:1 1 160px;white-space:nowrap}.mtc-btns button[hidden]{display:none}'
             . '.mtc-yes{' . $btn . 'border:2px solid var(--mtc-a);background:var(--mtc-a);color:var(--mtc-af)}'
             . '.mtc-no,.mtc-save{' . $btn . 'border:2px solid var(--mtc-a);background:transparent;color:var(--title,#111)}'
             . '.mtc-more{' . $btn . 'border:2px solid transparent;background:transparent;color:var(--title,#111);text-decoration:underline;text-underline-offset:3px}'
@@ -260,16 +312,19 @@ final class Consent
             . '.mtc-row input:disabled+.mtc-sw{opacity:.6}'
             . '.mtc-row input:disabled{cursor:default}'
             . '.mtc .mtc-box .mtc-desc{margin:6px 0 0;padding:0;font-size:14px;line-height:1.45;letter-spacing:normal;text-align:left;opacity:.85}'
-            . '.mtc-re{position:fixed;z-index:2147483500;bottom:18px;box-sizing:border-box;width:44px;height:44px;padding:0;margin:0;border-radius:50%;'
+            // the button opening the settings again: its box placed by the script, the button in its own look
+            // or in that of the dark-mode toggle (.mertools-dt in .mertools-dt-float, the toggle's own CSS)
+            . '.mtc-re-box{position:fixed;z-index:2147483500;bottom:18px;display:flex;margin:0;padding:0}'
+            . '.mtc-re[hidden]{display:none!important}'
+            . '.mtc-re:not(.mertools-dt){box-sizing:border-box;width:44px;height:44px;padding:0;margin:0;border-radius:50%;'
             . 'border:1px solid rgba(128,128,128,.35);background:var(--bg-primary,#fff);color:var(--title,#111);cursor:pointer;display:flex;align-items:center;justify-content:center;'
             . 'box-shadow:0 4px 16px rgba(0,0,0,.25);opacity:.85;transition:opacity .2s,transform .2s}'
-            . '.mtc-re[hidden]{display:none}'
-            . '.mtc-re:hover,.mtc-re:focus-visible{opacity:1;transform:scale(1.06)}'
+            . '.mtc-re:not(.mertools-dt):hover,.mtc-re:not(.mertools-dt):focus-visible{opacity:1;transform:scale(1.06)}'
             . '.mtc-re:focus-visible{outline:3px solid var(--mtc-a);outline-offset:2px}'
-            . '.mtc-re svg{width:24px;height:24px;display:block;pointer-events:none}'
+            . '.mtc-re:not(.mertools-dt) svg{width:24px;height:24px;display:block;pointer-events:none}'
             . '@keyframes mtc-in{from{opacity:0}}@keyframes mtc-up{from{opacity:0;transform:translateY(16px)}}'
-            . '@media (max-width:600px){.mtc-box{padding:22px 18px}.mtc[data-pos="bottom"] .mtc-box{padding:22px 18px}.mtc .mtc-box .mtc-title{font-size:21px}.mtc-btns button{flex:1 1 100%}}'
+            . '@media (max-width:600px){.mtc-box{padding:22px 18px}.mtc[data-pos="bottom"] .mtc-box{padding:22px 18px}.mtc .mtc-box .mtc-title{font-size:21px}.mtc-btns button{flex:1 1 100%;white-space:normal}}'
             . '@media (prefers-reduced-motion:reduce){.mtc-dim,.mtc-box{animation:none}.mtc-sw,.mtc-sw::after,.mtc-re{transition:none}}'
-            . '@media print{.mtc,.mtc-re{display:none!important}}';
+            . '@media print{.mtc,.mtc-re-box,.mtc-re{display:none!important}}';
     }
 }

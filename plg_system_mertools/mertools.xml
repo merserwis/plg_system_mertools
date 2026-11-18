@@ -6,7 +6,7 @@
     <creationDate>2026-10-28</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.18.1</version>
+    <version>1.18.2</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -1023,19 +1023,31 @@
                     <option value="tracking">PLG_SYSTEM_MERTOOLS_CONSENT_TRACKING</option>
                     <option value="targeting">PLG_SYSTEM_MERTOOLS_CONSENT_TARGETING</option>
                 </field>
-                <field name="consent_reopen" type="list" default="left" showon="consent_enabled:1"
+                <field name="consent_reopen" type="list" default="toggle" showon="consent_enabled:1"
                     label="PLG_SYSTEM_MERTOOLS_CONSENT_REOPEN_LABEL" description="PLG_SYSTEM_MERTOOLS_CONSENT_REOPEN_DESC">
+                    <option value="toggle">PLG_SYSTEM_MERTOOLS_CONSENT_REOPEN_TOGGLE</option>
+                    <option value="merge">PLG_SYSTEM_MERTOOLS_CONSENT_REOPEN_MERGE</option>
                     <option value="left">PLG_SYSTEM_MERTOOLS_CONSENT_REOPEN_LEFT</option>
                     <option value="right">PLG_SYSTEM_MERTOOLS_CONSENT_REOPEN_RIGHT</option>
                     <option value="none">PLG_SYSTEM_MERTOOLS_CONSENT_REOPEN_NONE</option>
                 </field>
                 <field name="consent_reopen_x" type="number" default="18" min="0" max="400" step="1" filter="integer"
-                    showon="consent_enabled:1[AND]consent_reopen!:none" label="PLG_SYSTEM_MERTOOLS_CONSENT_REOPEN_X_LABEL" description="PLG_SYSTEM_MERTOOLS_CONSENT_REOPEN_X_DESC" />
+                    showon="consent_enabled:1[AND]consent_reopen:left,right" label="PLG_SYSTEM_MERTOOLS_CONSENT_REOPEN_X_LABEL" description="PLG_SYSTEM_MERTOOLS_CONSENT_REOPEN_X_DESC" />
                 <field name="consent_reopen_y" type="number" default="18" min="0" max="400" step="1" filter="integer"
-                    showon="consent_enabled:1[AND]consent_reopen!:none" label="PLG_SYSTEM_MERTOOLS_CONSENT_REOPEN_Y_LABEL" description="PLG_SYSTEM_MERTOOLS_CONSENT_REOPEN_Y_DESC" />
+                    showon="consent_enabled:1[AND]consent_reopen:left,right" label="PLG_SYSTEM_MERTOOLS_CONSENT_REOPEN_Y_LABEL" description="PLG_SYSTEM_MERTOOLS_CONSENT_REOPEN_Y_DESC" />
+                <field name="consent_reopen_look" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    showon="consent_enabled:1[AND]consent_reopen:left,right" label="PLG_SYSTEM_MERTOOLS_CONSENT_REOPEN_LOOK_LABEL" description="PLG_SYSTEM_MERTOOLS_CONSENT_REOPEN_LOOK_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
                 <field name="consent_scripts" type="textarea" rows="6" filter="raw" showon="consent_enabled:1"
                     default="targeting: connect.facebook.net&#10;targeting: fbq(&#10;targeting: facebook.com/tr?&#10;targeting: snap.licdn.com&#10;targeting: analytics.tiktok.com&#10;tracking: static.hotjar.com&#10;tracking: mc.yandex.ru"
                     label="PLG_SYSTEM_MERTOOLS_CONSENT_SCRIPTS_LABEL" description="PLG_SYSTEM_MERTOOLS_CONSENT_SCRIPTS_DESC" />
+                <field name="consent_youtube" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="consent_enabled:1"
+                    label="PLG_SYSTEM_MERTOOLS_CONSENT_YOUTUBE_LABEL" description="PLG_SYSTEM_MERTOOLS_CONSENT_YOUTUBE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
                 <field name="consent_clarity" type="radio" layout="joomla.form.field.radio.switcher" default="1" showon="consent_enabled:1"
                     label="PLG_SYSTEM_MERTOOLS_CONSENT_CLARITY_LABEL" description="PLG_SYSTEM_MERTOOLS_CONSENT_CLARITY_DESC">
                     <option value="0">JNO</option>

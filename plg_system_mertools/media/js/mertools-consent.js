@@ -270,34 +270,108 @@
   }
 
   // ------------------------------------------------------------ opening the settings again
+  // MerTools' dark-mode toggle on the page (its CSS gives the button the toggle's look)
+  var dt = !!(opts.dark && opts.dark.toggle !== false);
+  // above the floating toggle or in one gear with it: the toggle's script takes the button into its box
+  var dockMode = dt && (cfg.reopen === 'toggle' || cfg.reopen === 'merge') ? cfg.reopen : '';
+  var reBox = null, docked = false, shown = false;
+
   function reopenButton() {
     if (cfg.reopen === 'none') return;
-    opener = button('mtc-re', '', function () { open(true); });
+    var look = dt && (dockMode || cfg.look);
+    opener = button('mtc-re' + (look ? ' mertools-dt' : ''), '', function () { open(true); });
     opener.setAttribute('aria-label', t.reopen);
     opener.title = t.reopen;
-    opener.style[cfg.reopen === 'right' ? 'right' : 'left'] = cfg.rx + 'px';
-    opener.style.bottom = cfg.ry + 'px';
     opener.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-4-4 4 4 0 0 1-4-4 2 2 0 0 1-2-2Zm-3.5 7a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm6 5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm-6.5 2a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z"/></svg>';
-    d.body.appendChild(opener);
-    place();
-    w.addEventListener('load', function () { place(); setTimeout(place, 1500); });
+    // a corner of its own: in a box placed here (with the toggle's look, the toggle's floating box)
+    reBox = el('span', 'mtc-re-box' + (look ? ' mertools-dt-box mertools-dt-float' : ''));
+    // (the toggle's floating box has right:18px of its own)
+    reBox.style.left = cfg.reopen === 'right' ? 'auto' : cfg.rx + 'px';
+    reBox.style.right = cfg.reopen === 'right' ? cfg.rx + 'px' : 'auto';
+    reBox.style.bottom = cfg.ry + 'px';
+    // shown once placed: Joomla's accessibility icon and the toggle appear around the page's load,
+    // and a button placed before them jumped away a moment after it was seen
+    reBox.style.visibility = 'hidden';
+    if (dockMode) {
+      // the toggle's script calls docked(true) while it floats, docked(false) when it is in the menu,
+      // hidden or gone; it runs before or after this one, so the button waits in a queue
+      (w.mertoolsDock = w.mertoolsDock || []).push({ el: opener, mode: dockMode, label: t.reopen, docked: dock });
+    }
+    if (!docked) alone();
     w.addEventListener('resize', place, { passive: true });
+    // the toggle placed again (load, a turned phone, the accessibility icon come late)
+    d.addEventListener('mertools:dt-placed', place);
+    if (d.readyState === 'complete') reveal();
+    else {
+      w.addEventListener('load', reveal);
+      // a picture or a frame that never finishes loading must not keep the visitor from the settings
+      setTimeout(reveal, 2500);
+    }
+  }
+
+  var revealing = false;
+
+  function reveal() {
+    if (revealing) return;
+    revealing = true;
+    setTimeout(function () {
+      shown = true;
+      place();
+      if (reBox) reBox.style.visibility = '';
+      // the last late one: a panel of the site's own laid out after the load
+      setTimeout(place, 1500);
+    }, 350);
+  }
+
+  /** In the toggle's box (true) or back in a corner of its own (false). */
+  function dock(on) {
+    docked = !!on;
+    if (docked) {
+      if (reBox && reBox.parentNode) reBox.parentNode.removeChild(reBox);
+      return;
+    }
+    alone();
+  }
+
+  function alone() {
+    if (!reBox) return;
+    if (opener.parentNode !== reBox) reBox.appendChild(opener);
+    if (!reBox.parentNode) d.body.appendChild(reBox);
+    if (shown) place();
   }
 
   /** above Joomla's accessibility icon or MerTools' floating dark-mode toggle when they share the corner */
   function place() {
-    if (!opener) return;
-    opener.style.bottom = cfg.ry + 'px';
+    if (!reBox || docked || !reBox.parentNode) return;
+    reBox.style.bottom = cfg.ry + 'px';
     var was = opener.hidden;
     opener.hidden = false;
-    var me = opener.getBoundingClientRect();
+    var me = reBox.getBoundingClientRect();
     [].forEach.call(d.querySelectorAll('._access-icon,.mertools-dt-float'), function (o) {
+      if (o === reBox) return;
       var r = o.getBoundingClientRect();
       if (!r.width || r.right <= me.left || r.left >= me.right || r.bottom <= me.top || r.top >= me.bottom) return;
-      opener.style.bottom = Math.round(innerHeight - r.top + 10) + 'px';
-      me = opener.getBoundingClientRect();
+      reBox.style.bottom = Math.round(innerHeight - r.top + 10) + 'px';
+      me = reBox.getBoundingClientRect();
     });
     opener.hidden = was;
+  }
+
+  // ------------------------------------------------------------ YouTube without cookies
+  // Gridbox's video element with a thumbnail writes its frame of www.youtube.com/embed on a click
+  // (initvideo.js, jQuery's replaceWith); the head script takes care of the players of YouTube's API
+  // and the plugin of the frames in the page
+  function noCookieYoutube() {
+    var $ = w.$g || w.jQuery;
+    if (!cfg.youtube || !$ || !$.fn || !$.fn.replaceWith || $.fn.replaceWith.mt) return;
+    var replaceWith = $.fn.replaceWith;
+    $.fn.replaceWith = function (v) {
+      if (typeof v === 'string' && v.indexOf('youtube.com/embed/') > -1) {
+        arguments[0] = v.replace(/(["'])(?:https?:)?\/\/(?:www\.)?youtube\.com\/embed\//g, '$1https://www.youtube-nocookie.com/embed/');
+      }
+      return replaceWith.apply(this, arguments);
+    };
+    $.fn.replaceWith.mt = 1;
   }
 
   d.addEventListener('click', function (e) {
@@ -308,6 +382,7 @@
   });
 
   function start() {
+    noCookieYoutube();
     reopenButton();
     // the strictly necessary scripts run at once, with or without a choice
     release();

@@ -2,6 +2,26 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.18.2 — 2026-11-18
+
+### 🍪 Cookie consent — the cookie button with the light/dark toggle, or both in one gear
+
+The button that opens the cookie settings again had a look of its own, and when it shared a corner with the light/dark mode button it jumped above it a moment after the page appeared. *Button to change the consent* (tab *Cookie consent*) now offers:
+
+- **Above the light/dark mode toggle** (the new default): the cookie button stands right above the floating toggle, centred on it, 12 px apart, of the same size, ring, shadow and colours, in light and dark mode. It is there from the first moment, without jumping.
+- **In one button with the mode toggle (a gear)**: one gear where the toggle was. A click opens a small list above it: light or dark mode, the palette dots when they are offered, and the cookie settings, each with its name. Escape or a click elsewhere closes it; it works by keyboard, and screen readers are told whether it is open.
+- **Bottom left / bottom right corner**, as before, now in the toggle's look too (new switch *Look of the mode toggle*, on by default). The button is shown once it is in its place, so it no longer jumps above the accessibility icon or the toggle.
+
+When the toggle does not float (dark mode off, the toggle in the menu or hidden on phones), the button stands alone in the bottom left corner. Sites that saved their settings before keep the corner they chose.
+
+### ▶️ YouTube films without cookies before consent
+
+YouTube films on a page (Gridbox's video element, a film pasted into a text) and the video backgrounds of sections came from youtube.com, which sets its cookies (`YSC`, `VISITOR_INFO1_LIVE`…) as soon as the page opens, before any consent. With the cookie consent on they now play from youtube-nocookie.com, YouTube's address that sets no cookies, neither when the page opens nor while a film plays. This covers Gridbox's video backgrounds, slideshows, lightboxes and the thumbnails that turn into the film on a click. New setting *YouTube without cookies*, on by default.
+
+### 🔘 Cookie consent — each button on one line
+
+In the window in the middle of the screen, *Accept all* broke into two lines on some sites (three buttons in a box 620 px wide). Each button now keeps its label on one line; a button too wide for the row goes whole to the next one, and on a phone they stand one under another as before.
+
 ## 1.18.1 — 2026-11-18
 
 ### 🍪 Cookie consent — space between the title, the text and the buttons

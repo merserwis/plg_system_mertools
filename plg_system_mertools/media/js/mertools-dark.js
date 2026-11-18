@@ -798,6 +798,7 @@
     // the icon and the label say what a click does
     var nx = next();
     btn.innerHTML = nx === 'dark' ? MOON : SUN;
+    if (merged()) caption(btn, nx === 'dark' ? (cfg.menuDark || 'Dark mode') : (cfg.menuLight || 'Light mode'));
     btn.setAttribute('data-next', nx);
     btn.setAttribute('aria-pressed', !on() ? 'false' : 'true');
     var label = nx === 'dark' ? (cfg.toDark || 'Switch to dark mode') : (cfg.toLight || 'Switch to light mode');
@@ -890,7 +891,9 @@
     box.setAttribute('data-dir', dir);
   }
 
-  function detach() {
+  /** @param {boolean=} keep the cookie button stays (the box only moves to float again) */
+  function detach(keep) {
+    if (!keep) undock();
     box.classList.remove('mertools-dt-float', 'mertools-dt-burger');
     ['right', 'bottom', 'top', 'left', 'position'].forEach(function (k) { box.style.removeProperty(k); });
     if (li && li.parentNode) li.parentNode.removeChild(li);
@@ -898,10 +901,153 @@
   }
 
   function placeFloat() {
-    detach();
+    detach(true);
     box.classList.add('mertools-dt-float');
     document.body.appendChild(box);
+    dockAll();
     keepFloatVisible();
+  }
+
+  // ------------------------------------------------------------ the cookie button of the consent
+  // mertools-consent.js hands its button over (window.mertoolsDock, a queue until this script runs):
+  // above the floating toggle in one column ("toggle"), or with it under one gear ("merge"). Only while
+  // the toggle floats; in the menu, beside the hamburger or hidden the button goes back to its corner.
+  var dockItems = [], stack = null, gear = null, panel = null;
+  var GEAR = '<svg class="mertools-dt-cog" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>';
+
+  function takeDock() {
+    var queued = window.mertoolsDock;
+    window.mertoolsDock = {
+      push: function (it) {
+        if (!it || !it.el) return;
+        dockItems.push(it);
+        if (box && box.classList.contains('mertools-dt-float')) { dockAll(); keepFloatVisible(); }
+        else if (it.docked) it.docked(false);
+      }
+    };
+    if (queued && queued.length) for (var i = 0; i < queued.length; i++) if (queued[i] && queued[i].el) dockItems.push(queued[i]);
+  }
+
+  function merged() {
+    return !!(box && box.classList.contains('mertools-dt-merged'));
+  }
+
+  /** A visible name beside the icon in the gear's list (the button keeps its aria-label). */
+  function caption(el, text) {
+    var s = el.querySelector('.mertools-dt-label');
+    if (!text) { if (s) s.parentNode.removeChild(s); return; }
+    if (!s) {
+      s = document.createElement('span');
+      s.className = 'mertools-dt-label';
+      s.setAttribute('aria-hidden', 'true');
+      el.appendChild(s);
+    }
+    s.textContent = text;
+  }
+
+  function dockAll() {
+    if (!dockItems.length) return;
+    if (dockItems.some(function (it) { return it.mode === 'merge'; })) { merge(); return; }
+    if (!stack) {
+      stack = document.createElement('span');
+      stack.className = 'mertools-dt-stack';
+    }
+    if (stack.parentNode !== box) box.appendChild(stack);
+    dockItems.forEach(function (it) {
+      if (it.el.parentNode === stack) return;
+      stack.appendChild(it.el);
+      if (it.docked) it.docked(true);
+    });
+  }
+
+  function undock() {
+    dockItems.forEach(function (it) {
+      if (!box || !box.contains(it.el)) return;
+      caption(it.el, null);
+      it.el.parentNode.removeChild(it.el);
+      if (it.docked) it.docked(false);
+    });
+    unmerge();
+    if (stack && stack.parentNode) stack.parentNode.removeChild(stack);
+  }
+
+  /** The list of the gear open or closed; focus back on the gear when asked (Escape, an item chosen). */
+  function menu(open, focus) {
+    if (!panel || !gear) return;
+    panel.hidden = !open;
+    gear.setAttribute('aria-expanded', open ? 'true' : 'false');
+    box.classList.toggle('is-menu', !!open);
+    if (focus) gear.focus();
+  }
+
+  function buildGear() {
+    var name = cfg.menu || 'Site settings';
+    gear = document.createElement('button');
+    gear.type = 'button';
+    gear.className = 'mertools-dt mertools-dt-gear';
+    gear.innerHTML = GEAR;
+    gear.setAttribute('aria-label', name);
+    gear.setAttribute('title', name);
+    gear.setAttribute('aria-expanded', 'false');
+    gear.setAttribute('aria-controls', 'mertools-dt-panel');
+    gear.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      menu(panel.hidden);
+    });
+    panel = document.createElement('div');
+    panel.className = 'mertools-dt-panel';
+    panel.id = 'mertools-dt-panel';
+    panel.setAttribute('role', 'group');
+    panel.setAttribute('aria-label', name);
+    panel.hidden = true;
+    // the cookie button closes the list before its window opens, so the window gives the focus back to
+    // the gear when it closes (the button itself is hidden then)
+    panel.addEventListener('click', function (e) {
+      for (var i = 0; i < dockItems.length; i++) if (dockItems[i].el.contains(e.target)) { menu(false, true); return; }
+    }, true);
+    box.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && merged() && !panel.hidden) menu(false, true);
+    });
+    document.addEventListener('click', function (e) {
+      if (merged() && !panel.hidden && !box.contains(e.target)) menu(false);
+    });
+  }
+
+  /** One gear instead of the toggle: its list holds the toggle, the palette dots and the cookie button. */
+  function merge() {
+    if (!gear) buildGear();
+    if (!merged()) {
+      box.classList.add('mertools-dt-merged');
+      box.insertBefore(gear, box.firstChild);
+      panel.appendChild(btn);
+      if (dots) panel.appendChild(dots);
+      box.appendChild(panel);
+      update(true);
+    }
+    dockItems.forEach(function (it) {
+      if (it.el.parentNode === panel) return;
+      caption(it.el, it.label);
+      panel.appendChild(it.el);
+      if (it.docked) it.docked(true);
+    });
+  }
+
+  function unmerge() {
+    if (!merged()) return;
+    menu(false);
+    box.classList.remove('mertools-dt-merged');
+    if (gear.parentNode) gear.parentNode.removeChild(gear);
+    box.insertBefore(btn, box.firstChild);
+    if (dots) box.appendChild(dots);
+    if (panel.parentNode) panel.parentNode.removeChild(panel);
+    caption(btn, null);
+    update(true);
+  }
+
+  /** The page told the toggle moved (the consent's own button keeps clear of it). */
+  function placed() {
+    try { document.dispatchEvent(new CustomEvent('mertools:dt-placed')); } catch (e) { /* old browsers */ }
   }
 
   /** A fixed element is placed against the layout viewport; on a phone whose page is wider than the
@@ -953,7 +1099,8 @@
       right = visRight + fx;
     } else {
       left = vv.offsetLeft + fx;
-      var a = a11yButton(), bw = btn.offsetWidth, bh = btn.offsetHeight, r = a ? a.getBoundingClientRect() : null;
+      var face = merged() ? gear : btn;
+      var a = a11yButton(), bw = face.offsetWidth, bh = face.offsetHeight, r = a ? a.getBoundingClientRect() : null;
       // the bottom left corner taken by the accessibility button: go above it instead of covering it
       if (a && place === 'float-left') {
         var top = window.innerHeight - bottom - bh;
@@ -973,6 +1120,7 @@
     box.style.setProperty('right', right !== null ? Math.max(right, 8) + 'px' : 'auto');
     box.style.setProperty('left', left !== null ? Math.max(left, 4) + 'px' : 'auto');
     box.style.setProperty('bottom', Math.max(bottom, 8) + 'px');
+    placed();
   }
 
   /** In an element of the page chosen for phones (inside at the start or end, before or after it). */
@@ -995,7 +1143,7 @@
   function place() {
     if (!box) return;
     var m = mode();
-    if (m === 'hidden') { detach(); return; }
+    if (m === 'hidden') { detach(); placed(); return; }
     if (m === 'selector') {
       if (!placeCustom()) placeFloat();
       return;
@@ -1013,7 +1161,7 @@
       li.className = 'nav-item mertools-dt-li';
       li.appendChild(box);
       if (m === 'start') ul.insertBefore(li, ul.firstChild); else ul.appendChild(li);
-      if (onScreen(btn)) { direction('down'); matchMenu(); return; }
+      if (onScreen(btn)) { direction('down'); matchMenu(); placed(); return; }
     }
     // 2. beside the hamburger (phones: the menu is closed, off-screen)
     var burger = hamburger(host);
@@ -1032,7 +1180,7 @@
       if (rb.width < 4) rb = burger.getBoundingClientRect();
       box.style.left = Math.round(rb.left - r0.width - 12 - r0.left) + 'px';
       box.style.top = Math.round(rb.top + (rb.height - r0.height) / 2 - r0.top) + 'px';
-      if (onScreen(btn)) { direction('down'); return; }
+      if (onScreen(btn)) { direction('down'); placed(); return; }
     }
     // 3. floating in the visible part of the screen
     placeFloat();
@@ -1102,6 +1250,7 @@
     });
     box.appendChild(btn);
     buildDots();
+    takeDock();
     place();
     update();
 

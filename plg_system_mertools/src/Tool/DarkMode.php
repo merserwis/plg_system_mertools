@@ -470,7 +470,36 @@ final class DarkMode
             . 'box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s;-webkit-appearance:none;appearance:none;flex:0 0 auto}'
             . '.mertools-dt-dot:hover,.mertools-dt-dot:focus-visible{transform:scale(1.18);outline:none}'
             . '.mertools-dt-dot[aria-pressed="true"]{box-shadow:0 0 0 2px var(--bg-secondary,#fff),0 0 0 4px ' . $accent . '}'
-            . '@media (prefers-reduced-motion:reduce){.mertools-dt-dots,.mertools-dt-dot{transition:none}}';
+            . '@media (prefers-reduced-motion:reduce){.mertools-dt-dots,.mertools-dt-dot{transition:none}}'
+            . self::dockCss($ring, $shadow);
+    }
+
+    /**
+     * The cookie button of the consent with the floating toggle (mertools-dark.js takes it into the
+     * toggle's box): above it in one column, or with it under one gear whose list opens upwards.
+     */
+    private static function dockCss(int $ring, int $shadow): string
+    {
+        // (0,3,1): over the toggle's own floating look, dark mode's included
+        $item = 'html .mertools-dt-float .mertools-dt-panel .mertools-dt';
+
+        return '.mertools-dt-box [hidden]{display:none!important}'
+            . '.mertools-dt-stack{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:12px;padding-bottom:12px}'
+            . '.mertools-dt-cog{transition:transform .3s ease}.mertools-dt-box.is-menu .mertools-dt-cog{transform:rotate(60deg)}'
+            . '.mertools-dt-panel{position:absolute;bottom:100%;margin-bottom:12px;box-sizing:border-box;display:flex;flex-direction:column;align-items:stretch;gap:2px;'
+            . 'min-width:max-content;padding:8px;border-radius:18px;background:var(--bg-primary,#fff);color:var(--title,#1f2328);'
+            . ($ring ? 'border:1px solid rgba(128,128,128,.35);' : 'border:0;')
+            . 'box-shadow:' . ($shadow ? '0 10px 30px rgba(0,0,0,.28),0 2px 6px rgba(0,0,0,.18)' : 'none') . ';animation:mt-dt-up .18s ease}'
+            . 'html[data-mertools-theme="dark"] .mertools-dt-panel{background:var(--bg-secondary,#232c3d);color:var(--title,#e8ecf3)}'
+            . '.mertools-dt-box[data-dir="left"] .mertools-dt-panel{right:0}.mertools-dt-box[data-dir="right"] .mertools-dt-panel{left:0}'
+            . $item . '{width:auto;height:auto;min-width:0;min-height:44px;justify-content:flex-start;gap:10px;padding:6px 16px 6px 10px;margin:0;'
+            . 'border:0;border-radius:999px;background:transparent;box-shadow:none;color:inherit;opacity:1;transform:none}'
+            . $item . ':hover,' . $item . ':focus-visible{background:var(--hover,rgba(128,128,128,.14));transform:none}'
+            . '.mertools-dt-label{font-family:inherit;font-size:15px;line-height:1.2;font-weight:600;letter-spacing:normal;text-transform:none;white-space:nowrap}'
+            . '.mertools-dt-box .mertools-dt-panel .mertools-dt-dots{position:static;opacity:1;visibility:visible;pointer-events:auto;transform:none!important;padding:0 6px;transition:none}'
+            . '.mertools-dt-panel .mertools-dt-dots-in{background:transparent;border:0;box-shadow:none;padding:2px 0 8px 4px}'
+            . '@keyframes mt-dt-up{from{opacity:0;transform:translateY(8px)}}'
+            . '@media (prefers-reduced-motion:reduce){.mertools-dt-panel{animation:none}.mertools-dt-cog{transition:none}}';
     }
 
     /** The early script (in <head>): sets the theme before the first paint so there is no flash. */

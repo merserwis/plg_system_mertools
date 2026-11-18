@@ -93,7 +93,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.18.1';
+    public const VERSION = '1.18.2';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -448,11 +448,15 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
     }
 
-    /** TermsFeed taken out, the trackers held (both safe to run twice on a page). */
+    /** TermsFeed taken out, YouTube's frames from its address without cookies, the trackers held (all safe to run twice on a page). */
     private function consentPage(string $html): string
     {
         if ((int) $this->params->get('consent_termsfeed', 1)) {
             $html = Consent::dropTermsFeed($html);
+        }
+
+        if (Consent::youtube($this->params)) {
+            $html = Consent::noCookieYoutube($html);
         }
 
         return Consent::hold($html, Consent::rules($this->params));
@@ -560,6 +564,10 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
                 'toDark'  => $this->translate('PLG_SYSTEM_MERTOOLS_DARK_TO_DARK'),
                 'toLight' => $this->translate('PLG_SYSTEM_MERTOOLS_DARK_TO_LIGHT'),
                 'choose'  => $this->translate('PLG_SYSTEM_MERTOOLS_DARK_CHOOSE'),
+                // the gear holding the toggle and the cookie button (consent_reopen = merge)
+                'menu'      => $this->translate('PLG_SYSTEM_MERTOOLS_DARK_MENU'),
+                'menuDark'  => $this->translate('PLG_SYSTEM_MERTOOLS_DARK_MENU_DARK'),
+                'menuLight' => $this->translate('PLG_SYSTEM_MERTOOLS_DARK_MENU_LIGHT'),
                 'names'   => array_combine($all = array_merge(DarkMode::PALETTES, DarkMode::LIGHT_PALETTES), array_map(
                     fn ($k) => $this->translate('PLG_SYSTEM_MERTOOLS_DARK_PALNAME_' . strtoupper($k)), $all)),
             ],

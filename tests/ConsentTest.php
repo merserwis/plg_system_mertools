@@ -81,5 +81,28 @@ $check('head script held by nothing', Consent::hold($head, Consent::rules($p)) =
 $check('without Clarity no clarity stub', str_contains(Consent::headScript(new Registry(['consent_clarity' => 0])), 'clarity'), false);
 $check('without TermsFeed its cookie not read', str_contains(Consent::headScript(new Registry(['consent_termsfeed' => 0])), 'cookie_consent'), false);
 
+// the button opening the settings again, YouTube without cookies (1.18.2)
+$check('reopen: above the mode toggle by default', Consent::jsConfig($p, ['title' => 'T', 'text' => 'X'])['reopen'], 'toggle');
+$check('reopen: in one button kept', Consent::jsConfig(new Registry(['consent_reopen' => 'merge']), ['title' => 'T', 'text' => 'X'])['reopen'], 'merge');
+$check('reopen: a corner of its own kept (saved before 1.18.2)', Consent::jsConfig(new Registry(['consent_reopen' => 'left']), ['title' => 'T', 'text' => 'X'])['reopen'], 'left');
+$check('reopen: unknown -> above the toggle', Consent::jsConfig(new Registry(['consent_reopen' => 'top']), ['title' => 'T', 'text' => 'X'])['reopen'], 'toggle');
+$check('reopen: the look of the toggle by default, off when set', [Consent::jsConfig($p, ['title' => 'T', 'text' => 'X'])['look'],
+    Consent::jsConfig(new Registry(['consent_reopen_look' => '0']), ['title' => 'T', 'text' => 'X'])['look']], [true, false]);
+$check('youtube: on by default, off when set', [Consent::youtube($p), Consent::youtube(new Registry(['consent_youtube' => '0']))], [true, false]);
+$check('youtube: the players hooked in the head script', str_contains(Consent::headScript($p), 'YTConfig.host=N') && str_contains(Consent::headScript($p), '"https://www.youtube-nocookie.com"'), true);
+$check('youtube: off, no hook', str_contains(Consent::headScript(new Registry(['consent_youtube' => '0'])), 'YT'), false);
+$check('youtube: the host test in the hook a regular expression of youtube.com', str_contains(Consent::headScript($p), '/youtube\.com/.test(o.host)'), true);
+$yt = '<div><iframe src="https://www.youtube.com/embed/KCEh7dUO5l8?start=0&amp;showinfo=1" frameborder="0" allowfullscreen=""></iframe>'
+    . "<IFRAME data-src='//youtube.com/embed/abc'></IFRAME><iframe src=\"https://player.vimeo.com/video/1\"></iframe>"
+    . '<a href="https://www.youtube.com/embed/x">link</a><script>var u="https://www.youtube.com/embed/";</script></div>';
+$check('youtube: the frames of the page from youtube-nocookie.com, links and scripts as they are', Consent::noCookieYoutube($yt),
+    '<div><iframe src="https://www.youtube-nocookie.com/embed/KCEh7dUO5l8?start=0&amp;showinfo=1" frameborder="0" allowfullscreen=""></iframe>'
+    . "<IFRAME data-src='https://www.youtube-nocookie.com/embed/abc'></IFRAME><iframe src=\"https://player.vimeo.com/video/1\"></iframe>"
+    . '<a href="https://www.youtube.com/embed/x">link</a><script>var u="https://www.youtube.com/embed/";</script></div>');
+$check('youtube: a ">" in a quoted value does not end the tag', Consent::noCookieYoutube('<iframe title="A > B" data-x=\'1>2\' src="https://www.youtube.com/embed/abc"></iframe>'),
+    '<iframe title="A > B" data-x=\'1>2\' src="https://www.youtube-nocookie.com/embed/abc"></iframe>');
+$check('youtube: twice the same', Consent::noCookieYoutube(Consent::noCookieYoutube($yt)), Consent::noCookieYoutube($yt));
+$check('youtube: a page without YouTube untouched', Consent::noCookieYoutube('<p>x</p>'), '<p>x</p>');
+
 echo $fail ? "$fail FAILED\n" : "ALL PASS\n";
 exit($fail ? 1 : 0);
