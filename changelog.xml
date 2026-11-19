@@ -3,6 +3,19 @@
     <changelog>
         <element>pkg_mertools</element>
         <type>package</type>
+        <version>1.19.0</version>
+        <addition>
+            <item>YouTube films loaded only when played</item>
+            <item>Markdown import: into pages and products too</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.19.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.19.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
         <version>1.18.2</version>
         <fix>
             <item>Cookie consent: the cookie button with the light/dark toggle, or both in one gear</item>

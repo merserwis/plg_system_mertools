@@ -41,8 +41,12 @@ final class EditorImport extends Feature
             'placeholders' => $this->placeholders(),
             'texts'        => [
                 'button'  => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_BUTTON'),
+                'side'    => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_SIDE'),
                 'working' => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_WORKING'),
                 'done'    => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_DONE'),
+                'rest'    => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_REST'),
+                'overwrite' => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_OVERWRITE'),
+                'failed'  => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_FAILED'),
                 'filled'  => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_FILLED'),
                 'kept'    => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_KEPT'),
                 'names'   => [

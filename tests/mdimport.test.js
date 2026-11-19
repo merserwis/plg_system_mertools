@@ -3,7 +3,7 @@
 // Run: node tests/mdimport.test.js
 'use strict';
 const path = require('path');
-const { parse } = require(path.join(__dirname, '../plg_system_mertools/media/js/mertools-mdimport.js'));
+const { parse, amount, fieldUrl, safeText, safeHtml } = require(path.join(__dirname, '../plg_system_mertools/media/js/mertools-mdimport.js'));
 
 let failed = 0;
 const check = (label, got, expected) => {
@@ -172,6 +172,65 @@ slow('10000 *a', '*a '.repeat(10000));
 slow('100000 closers with no opener (a* )', 'a* '.repeat(100000));
 slow('100000 openers with no closer (**a )', '**a '.repeat(100000));
 slow('a long document', Array.from({ length: 3000 }, (_, i) => `## Heading ${i}\n\nText **${i}** with [a link](https://x.pl/${i}) and \`code\`.\n\n- one\n- two\n`).join('\n'));
+
+// ---- the fields of an app's item (a product): "Label: value" lines and sections under a heading named as a field
+const LABELS = ['sku', 'cena', 'producent', 'cechy i funkcje', 'dane techniczne', 'wyposazenie', 'akcesoria'];
+const field = (label) => LABELS.includes(label.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim());
+const PRODUCT = '# Sonel MPI-516 Miernik\n\nSKU: SONE/MPI516\n**Cena:** 6 950,00 zł\nProducent: [Sonel](/sonel)\nOpis meta: Krótki opis.\n\n'
+  + 'Wstęp produktu.\n\n## Cechy i funkcje\n\nPomiar **pętli**.\n\n### Pomiary\n\n- RCD\n\n## Dane techniczne\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\n'
+  + '## Coś innego\n\nTekst.\n\n## Wyposażenie\n\n- Przewód\n';
+r = parse(PRODUCT, { field });
+check('product: title from the # heading, intro from Opis meta', [r.title, r.intro], ['Sonel MPI-516 Miernik', 'Krótki opis.']);
+check('product: label lines of the fields, a link with its address', r.extra, [
+  { label: 'SKU', value: 'SONE/MPI516', link: '' }, { label: 'Cena', value: '6 950,00 zł', link: '' }, { label: 'Producent', value: 'Sonel', link: '/sonel' }]);
+check('product: sections named as fields, a sub-heading inside', r.sections.map((s) => [s.label, s.html]), [
+  ['Cechy i funkcje', '<p>Pomiar <strong>pętli</strong>.</p><h3>Pomiary</h3><ul><li>RCD</li></ul>'],
+  ['Dane techniczne', '<table style="border-collapse: collapse; width: 100%;" border="1" cellpadding="6"><thead><tr><th>A</th><th>B</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table>'],
+  ['Wyposażenie', '<ul><li>Przewód</li></ul>']]);
+check('product: the text of a section', r.sections[0].text, 'Pomiar pętli.\nPomiary\nRCD');
+check('product: what is in no field stays modules, in order', r.blocks, [
+  { type: 'text', html: '<p>Wstęp produktu.</p>' }, { type: 'headline', level: 2, text: 'Coś innego' }, { type: 'text', html: '<p>Tekst.</p>' }]);
+r = parse('---\ntitle: T\nsku: X-1\nproducent: "Fluke"\n---\n## Akcesoria\n\n- a\n', { field });
+check('product: front matter keys of the fields', [r.title, r.extra.map((e) => e.label + '=' + e.value)], ['T', ['sku=X-1', 'producent=Fluke']]);
+check('product: a section at the end of the document', r.sections, [{ label: 'Akcesoria', html: '<ul><li>a</li></ul>', text: 'a' }]);
+r = parse('SKU: X\n\nText', {});
+check('no fields given: "SKU: x" is text', [r.extra, r.blocks], [[], [{ type: 'text', html: '<p>SKU: X</p><p>Text</p>' }]]);
+r = parse('Producent: https://sonel.pl\nSKU: <b>x</b>', { field });
+check('a bare address is the link; HTML in a value is text', r.extra, [{ label: 'Producent', value: 'https://sonel.pl', link: 'https://sonel.pl' }, { label: 'SKU', value: '<b>x</b>', link: '' }]);
+r = parse('Producent: [x](javascript:alert(1))\nSKU: 1', { field });
+check('no javascript: link', r.extra[0].link, '');
+r = parse('## Dane techniczne\n\nA\n\n## Dane techniczne\n\nB', { field });
+check('a field named twice: the first section, the second a headline', [r.sections.length, r.blocks.map((b) => b.type)], [1, ['headline', 'text']]);
+
+// ---- review: amounts, addresses a field keeps, one line of a field
+check('amounts', ['6 950,00 zł', '1234.5', '0.125', '0,125', '1.234.567', '1.234,50', '1,234.50', '12,3456', '-0.5', ',5', '6950'].map(amount),
+  ['6950.00', '1234.5', '0.125', '0.125', '1234567', '1234.50', '1234.50', '12.3456', '-0.5', '0.5', '6950']);
+check('amounts with words around them', ['ok. 100 zł', 'Cena: 1 234,50 PLN netto', '€ 12.5', '99,99 zł/szt.', 'PLN 1.234.567,89'].map(amount), ['100', '1234.50', '12.5', '99.99', '1234567.89']);
+check('no amount: other digits around it, or spaces not grouping thousands', ['100 zł + 23% VAT', '1e3', '12 34', '100 zł (2 szt.)', '1 2345'].map(amount), ['', '', '', '', '']);
+check('addresses with character references refused', ['javascript&colon;alert(1)', 'java&#115;cript:x', '/a&quot/onmouseover=alert(1)', '/x?a=1&b=2', '/x?a=1&'].map(fieldUrl), ['', '', '', '/x?a=1&b=2', '/x?a=1&']);
+check('a text for a field: no tag, no end of an attribute, no entity', safeText('x" onmouseover="a" <img src=x onerror=b> &lt;i&gt; R&D &amp;'), 'x” onmouseover=”a” ‹img src=x onerror=b› ＆lt;i＆gt; R&D ＆amp;');
+check('HTML for a text editor field: the document\'s HTML stays text after CKEditor reads it', safeHtml('<p>a &lt;img onerror=x&gt; &amp;lt;</p>'), '<p>a ‹img onerror=x› &amp;lt;</p>');
+check('no amount: ambiguous or not a number', ['6.950', '6,950', '1.2.3', '1,234,5.6', 'abc', '', '1.23.456,7'].map(amount), ['', '', '', '', '', '', '']);
+check('addresses a field keeps', ['javascript:alert(1)', ' JaVa\tscript:x', 'data:text/html,x', '/a"onmouseover="alert(1)', 'index.php?option=com_gridbox&id=1', 'https://x.pl/a b', "/a'b<c>"].map(fieldUrl),
+  ['', '', '', '/a%22onmouseover=%22alert(1)', 'index.php?option=com_gridbox&id=1', 'https://x.pl/a%20b', '/a%27b%3Cc%3E']);
+r = parse('Producent: [Wiki](https://pl.wikipedia.org/wiki/A_(b))\nSKU: 1', { field });
+check('a link with brackets in its address', r.extra[0], { label: 'Producent', value: 'Wiki', link: 'https://pl.wikipedia.org/wiki/A_(b)' });
+r = parse('Producent: [x](/a"onmouseover="alert(1))\nSKU: 1', { field });
+check('a quote in an address cannot leave the attribute', r.extra[0].link, '/a%22onmouseover=%22alert(1)');
+r = parse('Producent: [<img src=x onerror=alert(1)>](/sonel)\nSKU: 1', { field });
+check('HTML in a label is text of the value (the form escapes it for Gridbox)', [r.extra[0].value, r.extra[0].link], ['<img src=x onerror=alert(1)>', '/sonel']);
+r = parse('# Produkt\n\nSKU: X-1\n\nTekst.', { field });
+check('one line of a field of the form under the title', [r.extra, r.blocks], [[{ label: 'SKU', value: 'X-1', link: '' }], [{ type: 'text', html: '<p>Tekst.</p>' }]]);
+r = parse('Opis: to jest zwykły akapit.\n\nTekst.', { field });
+check('one line of the page\'s own fields is still text', [r.intro, r.blocks.length], ['', 1]);
+
+// ---- a page: nothing else shows the title, so its # heading stays as the h1
+r = parse('# Usługi\n\nText\n\n# Second', { keepTitle: true });
+check('page: the title is also a headline h1, a second # is h2', [r.title, r.blocks.map((b) => b.type + (b.level || ''))], ['Usługi', ['headline1', 'text', 'headline2']]);
+r = parse('# Usługi\n\nText', { keepTitle: 2 });
+check('page with an h1 already: the title a headline h2', r.blocks.map((b) => b.type + (b.level || '')), ['headline2', 'text']);
+r = parse('Tytuł: Usługi\nAdres: uslugi\n\nLead\n\n# Usługi\n\nText', { keepTitle: true });
+check('page: the # heading that repeats the title after a text is the h1, after that text', r.blocks.map((b) => b.type + (b.level || '')), ['text', 'headline1', 'text']);
 
 console.log(failed ? `${failed} FAILED` : 'ALL PASS');
 process.exit(failed ? 1 : 0);

@@ -342,5 +342,45 @@ $chain = Speedup::slideImages($chain, Speedup::productName($chain), '%1$s – zd
 $check('chain as in the plugin: copies, main photo, picture with the same copies', $has($chain, '<li class="item active"><div class="ba-slideshow-img" data-src="/m/s-1500.webp" style="background-image: url(/m/s-1500.webp);" data-mt-bg="1"><picture><source media="(max-width:480px)" srcset="/m/s-480.webp"><source media="(max-width:768px)" srcset="/m/s-768.webp"><img class="mt-slide-img" src="/m/s-1500.webp" alt="Sonel MPI-530" decoding="async" draggable="false" fetchpriority="high"></picture></div></li>'), true);
 $check('chain: main photo still found', $chainPhoto, '/m/s-1500.webp');
 
+// ---------------------------------------------------------------- YouTube films: a picture and a play button until played
+$yt = '<div class="responsive-video"><iframe allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen="" src="https://www.youtube-nocookie.com/embed/yiqbq_-v0RM"></iframe></div>';
+$f  = Speedup::youtubeFacade($yt, 'Odtwórz film');
+$doc = preg_match('#srcdoc="([^"]*)"#', $f, $sm) ? html_entity_decode($sm[1], ENT_QUOTES | ENT_HTML5, 'UTF-8') : '';
+$check('yt: the frame stays, its address and attributes kept', str_starts_with($f, '<div class="responsive-video"><iframe allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen="" src="https://www.youtube-nocookie.com/embed/yiqbq_-v0RM" srcdoc="') && str_ends_with($f, '></iframe></div>'), true);
+$check('yt: the player on a click, playing, on the same host', $has($doc, '<a href="https://www.youtube-nocookie.com/embed/yiqbq_-v0RM?autoplay=1" aria-label="Odtwórz film">'), true);
+$check('yt: the film\'s picture', $has($doc, '<img src="https://i.ytimg.com/vi/yiqbq_-v0RM/hqdefault.jpg" alt="" decoding="async">'), true);
+$check('yt: lazy, a title, marked', [$has($f, ' loading="lazy"'), $has($f, ' title="Odtwórz film"'), $has($f, ' data-mt-yt="yiqbq_-v0RM"')], [true, true, true]);
+$check('yt: idempotent', Speedup::youtubeFacade($f, 'Odtwórz film'), $f);
+$f = Speedup::youtubeFacade('<iframe src="https://www.youtube.com/embed/abcdefghijk?start=30&amp;showinfo=1&amp;controls=1&amp;autoplay=0" frameborder="0" allowfullscreen=""></iframe>', 'Play');
+$doc = preg_match('#srcdoc="([^"]*)"#', $f, $sm) ? html_entity_decode($sm[1], ENT_QUOTES | ENT_HTML5, 'UTF-8') : '';
+$check('yt: Gridbox\'s parameters kept, autoplay=0 made 1, & escaped in the document', $has($doc, 'href="https://www.youtube.com/embed/abcdefghijk?start=30&amp;showinfo=1&amp;controls=1&amp;autoplay=1"'), true);
+$check('yt: no allow → one that lets it play', $has($f, ' allow="autoplay; encrypted-media; picture-in-picture; fullscreen"'), true);
+$f = Speedup::youtubeFacade('<iframe allowfullscreen="allowfullscreen" height="450" src="//www.youtube.com/embed/abcdefghijk" width="800" title="Film &quot;A&quot;" allow="encrypted-media"></iframe>', 'Play');
+$check('yt: a protocol-relative address played over https', $has(html_entity_decode($f), 'https://www.youtube.com/embed/abcdefghijk?autoplay=1'), true);
+$check('yt: its title kept, autoplay added to its allow', [$has($f, 'title="Film &quot;A&quot;"'), substr_count($f, ' title='), $has($f, 'allow="encrypted-media; autoplay"')], [true, 1, true]);
+foreach ([
+    'a video background (enablejsapi)' => '<iframe src="https://www.youtube.com/embed/AZvIC1iEfYw?controls=0&amp;loop=1&amp;enablejsapi=1&amp;widgetid=1"></iframe>',
+    'autoplay=1' => '<iframe src="https://www.youtube.com/embed/abcdefghijk?autoplay=1&amp;mute=1"></iframe>',
+    'a playlist' => '<iframe src="https://www.youtube.com/embed/videoseries?list=PL9qelGYjhWdQ9qljGK"></iframe>',
+    'a list with a film' => '<iframe src="https://www.youtube.com/embed/abcdefghijk?list=PL9qelGYjhWdQ9qljGK"></iframe>',
+    'sandbox' => '<iframe sandbox="" src="//www.youtube.com/embed/CclovtQTWQc"></iframe>',
+    'its own srcdoc' => '<iframe srcdoc="x" src="https://www.youtube.com/embed/abcdefghijk"></iframe>',
+    'another site' => '<iframe src="https://player.vimeo.com/video/123/embed/x"></iframe>',
+    'youtube.com.evil' => '<iframe src="https://www.youtube.com.evil.pl/embed/abcdefghijk"></iframe>',
+    'a script\'s string' => '<script>var x = \'<iframe src="https://www.youtube.com/embed/\' + id + \'"></iframe>\';</script>',
+] as $what => $in) {
+    $check('yt: left as it is: ' . $what, Speedup::youtubeFacade($in, 'Play'), $in);
+}
+$scripted = '<script>const video = "<iframe src=\'https://www.youtube.com/embed/abcdefghijk\'></iframe>";</script>'
+    . '<style>/* <iframe src="https://www.youtube.com/embed/abcdefghijk"> */</style><textarea><iframe src="https://www.youtube.com/embed/abcdefghijk"></textarea>';
+$check('yt: a frame in a script, a style or a textarea is their text', Speedup::youtubeFacade($scripted, 'P'), $scripted);
+$after = Speedup::youtubeFacade($scripted . '<iframe src="https://www.youtube.com/embed/abcdefghijk"></iframe><SCRIPT type="x">a</SCRIPT >', 'P');
+$check('yt: the frame after them still made a picture, the rest as it was', [str_starts_with($after, $scripted . '<iframe src="https://www.youtube.com/embed/abcdefghijk" srcdoc="'), str_ends_with($after, '></iframe><SCRIPT type="x">a</SCRIPT >')], [true, true]);
+$nf = Speedup::youtubeFacade('<iframe src="https://www.youtube.com/embed/abcdefghijk"></iframe>', 'P', 'AbCdEf0123456789+/==');
+$check('yt: the style of the frame\'s document has the page\'s nonce', $has($nf, 'srcdoc="&lt;!DOCTYPE html&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;style nonce=&quot;AbCdEf0123456789+/==&quot;&gt;'), true);
+$check('yt: without a nonce none', $has(Speedup::youtubeFacade('<iframe src="https://www.youtube.com/embed/abcdefghijk"></iframe>', 'P'), 'nonce'), false);
+$check('yt: a ">" in a quoted value is not the end of the tag', $has(Speedup::youtubeFacade('<iframe title="A > B" src="https://www.youtube.com/embed/abcdefghijk"></iframe>', 'P'), 'title="A > B" src="https://www.youtube.com/embed/abcdefghijk" srcdoc="'), true);
+$check('yt: a quote in the label cannot leave the attribute', $has(Speedup::youtubeFacade('<iframe src="https://www.youtube.com/embed/abcdefghijk"></iframe>', 'a"b<c'), 'title="a&quot;b&lt;c"'), true);
+
 echo $fail === 0 ? "\nALL PASS\n" : "\n$fail FAILED\n";
 exit($fail === 0 ? 0 : 1);

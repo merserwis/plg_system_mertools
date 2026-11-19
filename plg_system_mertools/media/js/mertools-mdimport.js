@@ -1,16 +1,23 @@
 /**
- * MerTools — importing a Markdown document into the Gridbox editor of a blog post: a button left of
- * the "Advanced Editor" switch asks for a .md file and puts it into the post as the modules Gridbox
- * has for it — a Headline for every heading (its level is the tag of the module) and a Text for
- * everything between two headings, with the Markdown made into formatting: bold, italics, strike,
- * code, links, images, lists, quotes, code blocks, tables, rules.
+ * MerTools — importing a Markdown document into the Gridbox editor: of a blog post (a button left of the
+ * "Advanced Editor" switch), of a page and of an item of an app with fields, such as a product (an icon in the
+ * editor's left bar). It asks for a .md file and puts it in as the modules Gridbox has for it — a Headline for
+ * every heading (its level is the tag of the module) and a Text for everything between two headings, with the
+ * Markdown made into formatting: bold, italics, strike, code, links, images, lists, quotes, code blocks,
+ * tables, rules.
  *
- * No heading is a module of the first level: Gridbox shows the title of the post as the h1. A section of
- * "Tytuł: / Adres (slug): / Opis meta: / Słowa kluczowe:" lines at the top (or a front matter) fills
- * the fields Title, Alias, Intro text and Meta keywords, else the first # heading is the title. A new
- * post (nothing in it but Gridbox's "click here and start typing") takes them over what is in the
- * fields; a post with content only into empty fields. The modules go to the end of the column the
- * post's texts are in, in place of that empty text. Raw HTML of the document is shown as text.
+ * A section of "Tytuł: / Adres (slug): / Opis meta: / Słowa kluczowe:" lines at the top (or a front matter)
+ * fills the fields Title, Alias, Intro text and Meta keywords, else the first # heading is the title. In a post
+ * no heading is of the first level (Gridbox shows its title as the h1); in a page the title's # heading stays,
+ * an h1 (an h2 when the page has an h1). A new post or page (nothing in it but Gridbox's "click here and start
+ * typing") takes the fields over what is in them, one with content only into empty fields; the modules go to
+ * the end of the column the post's texts are in, in a page with content into a new section at its end.
+ *
+ * An item with fields (a product): a "Label: value" line at the top fills the field of that label in the item's
+ * form (SKU, Cena, Producent as [Sonel](/sonel), any field of the app), a heading named as a field fills it with
+ * what is under it; the labels are read from the form, so any app's fields work. What is in no field goes into
+ * the content of the item's page. Fields with content are replaced only when the editor's question is answered
+ * yes. Raw HTML of the document is shown as text.
  *
  * The parser (MerToolsMarkdown.parse) has no part of the editor in it: tests/mdimport.test.js runs it.
  */
@@ -512,9 +519,11 @@
     return v.replace(/\.html?$/i, '').trim().replace(/\s+/g, '-');
   };
 
-  // the lines of label: value at the top of the document, when they are such a section, and the line after it
-  const metaSection = (lines) => {
+  // the lines of label: value at the top of the document, when they are such a section, and the line after it;
+  // known(label): the label names a field of the page besides the four (a field of a product: SKU, Producent)
+  const metaSection = (lines, known) => {
     const found = {};
+    const extra = [];
     let i = 0;
     let count = 0;
     let bold = false;
@@ -525,19 +534,79 @@
       const m = META_LINE.exec(lines[i]);
       if (!m || ATX.test(lines[i]) || ITEM.test(lines[i]) || QUOTE.test(lines[i]) || REF.test(lines[i])) break;
       const field = fieldOf(m[2]);
+      const other = !field && known(m[2]);
       // a label it does not know is of the section only in bold ("**Autor:** …"); "https://…" or "Uwaga: …" is text
-      if (!field && !m[1]) break;
+      if (!field && !other && !m[1]) break;
       if (field && !(field in found)) { found[field] = m[3]; count++; }
+      if (other) { extra.push([m[2], m[3]]); count++; }
       if (m[1]) bold = true;
     }
     while (i > start && BLANK.test(lines[i - 1])) i--;
     let end = i;
     while (end < lines.length && BLANK.test(lines[end])) end++;
     const rule = end < lines.length && HR.test(lines[end]);
-    // a first paragraph that only begins with "Opis: …" is text, not a section of fields
-    if (!count || i === start || !(count >= 2 || bold || rule)) return null;
+    // a first paragraph that only begins with "Opis: …" is text, not a section of fields; a line of a field of the
+    // item's form ("SKU: X-1") is one
+    if (!count || i === start || !(count >= 2 || bold || rule || extra.length)) return null;
 
-    return { fields: found, next: rule ? end + 1 : i };
+    return { fields: found, extra, next: rule ? end + 1 : i };
+  };
+
+  // an address as a field of Gridbox keeps it: Gridbox writes it into href="…" as it is, so it goes only where a link
+  // of the document may go, and nothing in it ends the attribute; '' when it may not
+  const fieldUrl = (url) => {
+    const u = String(url || '').replace(INVISIBLE, '').trim();
+    // Gridbox writes it into the page as HTML, where "javascript&colon;…" or "&#58;" is a colon: an & only before a
+    // parameter of the query ("&id=256"), which no browser reads as a character
+    if (!u || !safeUrl(u) || /&(?![\w.\-[\]%]*(?:=|$))/.test(u)) return '';
+
+    return u.replace(/["'<>`\\ ]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
+  };
+  // the address of a value that is one link and nothing else: "[Sonel](/sonel)", "<https://…>", "https://…"
+  const linkOf = (md) => {
+    const s = String(md).trim();
+    if (s[0] === '[') {
+      const close = closingBracket(s, 0);
+      const d = close === -1 ? null : parseDestination(s, close + 1);
+
+      return d && d.end === s.length ? fieldUrl(d.dest) : '';
+    }
+    const m = /^<?((?:https?:\/\/|\/)[^\s<>]+)>?$/.exec(s);
+
+    return m ? fieldUrl(m[1]) : '';
+  };
+  // the value of a "Label: value" line for a field: its text, and the address when it is a link
+  const valueOf = (label, md) => ({ label: plainText(label), value: plainText(md), link: linkOf(md) });
+
+  // "6 950,00 zł" → 6950.00, "0,125" → 0.125, "1.234.567" → 1234567; '' for what is no amount, or could be two
+  // ("6.950": six thousand or six and a bit?)
+  const amount = (v) => {
+    // one number, with words or a currency before or after it but no other digits ("100 zł + 23% VAT", "1e3": none)
+    const m = /^[^\d]*?(-?(?:[.,](?=\d))?\d[\d \u00a0.,]*?)(?:[ \u00a0]*[^\d \u00a0.,-][^\d]*)?[.,]?$/.exec(String(v).trim());
+    if (!m) return '';
+    // spaces only between groups of thousands ("6 950,00")
+    if (/[ \u00a0]/.test(m[1]) && !/^-?\d{1,3}(?:[ \u00a0]\d{3})+(?:[.,]\d+)?$/.test(m[1])) return '';
+    const s = m[1].replace(/[ \u00a0]/g, '');
+    const seps = s.match(/[.,]/g) || [];
+    let out = s;
+    if (seps.length) {
+      const last = Math.max(s.lastIndexOf('.'), s.lastIndexOf(','));
+      const int = s.slice(0, last);
+      const frac = s.slice(last + 1);
+      if (new Set(seps).size === 2) {
+        // 1.234,50 or 1,234.50: the last is the decimal one, the other only groups thousands before it
+        if (!/^-?\d{1,3}([.,]\d{3})*$/.test(int) || int.includes(s[last])) return '';
+        out = int.replace(/[.,]/g, '') + '.' + frac;
+      } else if (seps.length > 1) {
+        if (!/^-?\d{1,3}([.,]\d{3})+$/.test(s)) return '';
+        out = s.replace(/[.,]/g, '');
+      } else {
+        if (frac.length === 3 && !/^-?0?$/.test(int)) return '';
+        out = (/^-?$/.test(int) ? int + '0' : int) + '.' + frac;
+      }
+    }
+
+    return /^-?\d+(\.\d+)?$/.test(out) ? out : '';
   };
 
   /**
@@ -547,24 +616,45 @@
    * heading of the first level. No heading is of the first level in the post (Gridbox shows the title as
    * one): one at the top, or a first heading that repeats the title, is the title and is left out; any
    * other is of the second level.
+   *
+   * Options: field(label) — the label names a field of the page (an app's item: a product's SKU, Producent,
+   * Dane techniczne): a "Label: value" line of it at the top is in extra [{label, value, link}], and a heading
+   * of it begins a section of it (up to the next heading of its level or a higher one, its sub-headings in it)
+   * in sections [{label, html, text}], not in blocks. keepTitle — the # heading that is the title is also a
+   * headline, of the first level (a page, where nothing else shows the title), or of the second (keepTitle: 2,
+   * a page with an h1 of its own already).
    */
-  const parse = (markdown) => {
+  const parse = (markdown, options = {}) => {
+    const known = typeof options.field === 'function' ? (label) => !!options.field(plainText(label)) : () => false;
     let text = String(markdown).replace(/^﻿/, '').replace(/\r\n?/g, '\n');
     const fields = { title: '', alias: '', intro: '', keywords: '' };
+    const extra = [];
     const front = /^---[ \t]*\n([\s\S]*?)\n(?:---|\.\.\.)[ \t]*(?:\n|$)/.exec(text);
     if (front) {
       front[1].split('\n').forEach((line) => {
-        const m = /^([\p{L}_ -]+):[ \t]*(.+?)[ \t]*$/u.exec(line);
-        const field = m && fieldOf(m[1].replace(/_/g, ' '));
-        if (field && !fields[field]) fields[field] = m[2].replace(/^(["'])(.*)\1$/, '$2');
+        const m = /^([\p{L}\p{N}_ .()%/-]+?):[ \t]*(.+?)[ \t]*$/u.exec(line);
+        if (!m) return;
+        const value = m[2].replace(/^(["'])(.*)\1$/, '$2');
+        const field = fieldOf(m[1].replace(/_/g, ' '));
+        if (field && !fields[field]) fields[field] = value;
+        else if (!field && known(m[1].replace(/_/g, ' '))) extra.push([m[1].replace(/_/g, ' '), value]);
       });
       text = text.slice(front[0].length);
     }
     let lines = text.split('\n').map((l) => l.replace(/^\t+/, (tabs) => '    '.repeat(tabs.length)));
-    const meta = metaSection(lines);
+    let meta = metaSection(lines, known);
+    let top = 0;
+    if (!meta) {
+      // or right under the # heading the document begins with ("# Miernik X" and then "SKU: …")
+      while (top < lines.length && BLANK.test(lines[top])) top++;
+      const h = ATX.exec(lines[top] || '');
+      meta = h && h[1].length === 1 ? metaSection(lines.slice(top + 1), known) : null;
+      top = meta ? top + 1 : 0;
+    }
     if (meta) {
       Object.keys(meta.fields).forEach((field) => { fields[field] = meta.fields[field]; });
-      lines = lines.slice(meta.next);
+      extra.push(...meta.extra);
+      lines = lines.slice(0, top).concat(lines.slice(top + meta.next));
     }
     Object.keys(fields).forEach((field) => { fields[field] = plainText(fields[field]); });
     if (fields.alias) fields.alias = slug(fields.alias);
@@ -574,29 +664,57 @@
     let html = [];
     let heading = false;
     let h1 = '';
+    const sections = [];
+    let section = null;
     const close = () => { if (html.length) out.push({ type: 'text', html: html.join('') }); html = []; };
     const same = (a, b) => a.replace(/\s+/g, ' ').trim().toLowerCase() === b.replace(/\s+/g, ' ').trim().toLowerCase();
+    const end = () => {
+      if (!section) return;
+      const body = section.html.join('');
+      sections.push({ label: section.label, html: body, text: stripTags(body.replace(/<\/(p|h\d|li|tr|blockquote|pre)>|<br>/g, '\n')).replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim() });
+      section = null;
+    };
     nodes.forEach((node, k) => {
-      if (node.type !== 'h') { html.push(render(node, refs)); return; }
+      if (node.type === 'h' && section && node.level > section.level) { section.html.push(render(node, refs)); return; }
+      if (node.type !== 'h') { (section ? section.html : html).push(render(node, refs)); return; }
       const label = stripTags(inline(node.text, refs)).trim();
       if (!label) return;
+      end();
       // the title: the first heading, of the first level, when it says the title named above it, else when the
       // document begins with it (a # heading that differs from the title named above it stays, of level 2)
       if (node.level === 1 && !heading && (fields.title ? same(label, fields.title) : k === 0)) {
         heading = true;
         if (k === 0) h1 = label;
+        if (options.keepTitle) { close(); out.push({ type: 'headline', level: options.keepTitle === 2 ? 2 : 1, text: label }); }
         return;
       }
       heading = true;
+      if (known(label) && !sections.some((s) => same(s.label, label))) {
+        close();
+        section = { label, level: node.level, html: [] };
+        return;
+      }
       close();
       out.push({ type: 'headline', level: Math.max(2, node.level), text: label });
     });
+    end();
     close();
 
-    return { title: fields.title || h1, alias: fields.alias, intro: fields.intro, keywords: fields.keywords, blocks: out };
+    return { title: fields.title || h1, alias: fields.alias, intro: fields.intro, keywords: fields.keywords, blocks: out,
+      sections, extra: extra.map(([label, value]) => valueOf(label, value)) };
   };
 
-  const api = { parse };
+  /**
+   * A text for a field of Gridbox's form. Gridbox writes the fields into its editor (value="…", <textarea>…) and many
+   * into the page (a link's label, a plain textarea, the SKU of the e-mails) as they are, without escaping: a "
+   * would end the attribute, a < begin a tag, and an entity (&lt;) would be one once the editor has read it and the
+   * page is saved again. So no such character goes in: < > " as ‹ › ” and the & of a character reference as ＆.
+   */
+  const safeText = (v) => String(v).replace(/</g, '‹').replace(/>/g, '›').replace(/"/g, '”').replace(/&(?=#?[A-Za-z0-9]+;)/g, '＆');
+  // the same for the HTML of a field with a text editor: CKEditor is given its <textarea>'s text, entities read
+  const safeHtml = (html) => String(html).replace(/&lt;/g, '‹').replace(/&gt;/g, '›');
+
+  const api = { parse, amount, fieldUrl, safeText, safeHtml };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (typeof document === 'undefined') return;
   window.MerToolsMarkdown = api;
@@ -698,6 +816,182 @@
     }
   };
 
+  // ---------------------------------------------------------------- the fields of a page and of an app's item
+
+  // a label as it is compared: no case, accents, star of a required field, colon or extra spaces
+  const key = (label) => String(label).normalize('NFD').replace(/\p{M}/gu, '').replace(/[łŁ]/g, 'l')
+    .replace(/[\s*:]+$/, '').replace(/\s+/g, ' ').trim().toLowerCase();
+  // other names of the store's own fields of a product, besides the labels Gridbox gives them in the form
+  const ALIASES = {
+    sku: ['sku', 'kod', 'kod produktu', 'symbol', 'indeks', 'index', 'numer katalogowy', 'nr katalogowy', 'part number', 'mpn', 'product code'],
+    price: ['cena', 'cena regularna', 'price', 'regular price'],
+    sale_price: ['cena promocyjna', 'cena po rabacie', 'sale price'],
+    stock: ['stan', 'stan magazynowy', 'w magazynie', 'stock', 'in stock'],
+    min: ['minimalna ilosc', 'min. ilosc', 'min. qty', 'min qty'],
+  };
+  const fire = (el) => {
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+  // what a field gets: a section of the document ({html, text}) or the value of a line ({value, link})
+  const asHtml = (entry) => (entry.html !== undefined ? entry.html : (entry.value ? '<p>' + esc(entry.value) + '</p>' : ''));
+  const asText = (entry) => (entry.text !== undefined ? entry.text : entry.value);
+  const blank = (v) => !/<(img|iframe|table|video|hr)\b/i.test(v) && stripTags(String(v)).replace(/ |&nbsp;/g, ' ').trim() === '';
+  const SIMPLE = ['text', 'number', 'price', 'date', 'event-date'];
+
+  // one field of the form of an app's item: {label, rich, get(), set(entry) → false when the value does not fit it}
+  const formField = (g, label) => {
+    const type = g.dataset.fieldType;
+    if (g.classList.contains('product-data') || SIMPLE.includes(type)) {
+      const el = g.querySelector('input[type="text"], input[type="number"], input:not([type])');
+      if (!el) return null;
+      const money = type === 'price' || type === 'number';
+
+      return { label, get: () => el.value.trim(), set: (e) => {
+        const text = asText(e).replace(/\s*\n\s*/g, ' ');
+        const v = money ? amount(text) : safeText(text);
+        if (v === '') return false;
+        el.value = v;
+        fire(el);
+
+        return true;
+      } };
+    }
+    if (type === 'textarea') {
+      const el = g.querySelector('textarea[name="' + g.dataset.id + '"]');
+      if (!el) return null;
+      if (el.dataset.texteditor && !el.dataset.jce) {
+        const cke = () => app.fieldsCKE && app.fieldsCKE[el.name];
+
+        return { label, rich: true, get: () => (cke() ? cke().getData() : el.value), set: (e) => {
+          const html = safeHtml(asHtml(e));
+          el.value = html;
+          if (cke()) cke().setData(html);
+
+          return true;
+        } };
+      }
+      if (el.dataset.texteditor && window.WFEditor) {
+        const id = 'editor' + el.dataset.jce;
+
+        return { label, rich: true, get: () => window.WFEditor.getContent(id), set: (e) => { window.WFEditor.setContent(id, safeHtml(asHtml(e))); return true; } };
+      }
+
+      return { label, get: () => el.value.trim(), set: (e) => { el.value = safeText(asText(e)); fire(el); return true; } };
+    }
+    if (type === 'url' || type === 'field-button') {
+      const text = g.querySelector('input[type="text"][data-name="label"]');
+      const link = g.querySelector('input[type="text"][data-name="link"]');
+      if (!link) return null;
+
+      return { label, get: () => [text ? text.value : '', link.value].filter(Boolean).join(' ').trim(), set: (e) => {
+        // a line gives its link; a section its first link, with the text of that link
+        const a = e.html ? new DOMParser().parseFromString(e.html, 'text/html').querySelector('a[href]') : null;
+        const value = (a ? a.textContent : asText(e).split('\n')[0]).replace(/\s+/g, ' ').trim();
+        const address = e.link || (a ? fieldUrl(a.getAttribute('href')) : '') || (text ? '' : fieldUrl(value));
+        if (!address && !text) return false;
+        const label = safeText(value);
+        // a new label without an address: the address of the old one would lead elsewhere, so it goes
+        if (address || (text && label && label !== text.value && link.value !== '')) {
+          link.value = address;
+          fire(link);
+        }
+        if (text && label && value !== address) {
+          text.value = label;
+          fire(text);
+        }
+
+        return true;
+      } };
+    }
+    if (type === 'select') {
+      const el = g.querySelector('select[name]');
+      if (!el) return null;
+
+      return { label, get: () => el.value, set: (e) => {
+        const want = key(asText(e));
+        const option = [...el.options].find((o) => o.value !== '' && (key(o.textContent) === want || key(o.value) === want));
+        if (!option) return false;
+        el.value = option.value;
+        fire(el);
+
+        return true;
+      } };
+    }
+    if (type === 'radio' || type === 'checkbox') {
+      const boxes = [...g.querySelectorAll('input[type="' + type + '"][name]')];
+      if (!boxes.length) return null;
+      const title = (b) => key(((b.closest('.ba-checkbox-wrapper') || b).querySelector('span') || b).textContent || b.value);
+
+      return { label, get: () => boxes.filter((b) => b.checked).map((b) => b.value).join(','), set: (e) => {
+        const want = asText(e).split(type === 'radio' ? /\n/ : /[,;\n]/).map(key).filter(Boolean);
+        const hit = boxes.filter((b) => want.includes(title(b)) || want.includes(key(b.value)));
+        if (!hit.length) return false;
+        boxes.forEach((b) => { b.checked = type === 'checkbox' ? hit.includes(b) : b === hit[0]; });
+        fire(hit[0]);
+
+        return true;
+      } };
+    }
+
+    return null; // files, galleries, maps and the like: not from a text
+  };
+
+  // the fields of the form of an app's item (a product) by their labels, and the store's own by other names too
+  const formFields = () => {
+    const found = new Map();
+    const box = document.getElementById('blog-post-editor-fields-options');
+    if (!box) return found;
+    const aliases = [];
+    box.querySelectorAll('.blog-post-editor-options-group[data-field-type]').forEach((g) => {
+      const name = g.querySelector('.ba-field-editor-label');
+      if (!name) return;
+      const copy = name.cloneNode(true);
+      copy.querySelectorAll('.required-fields-star, .ba-tooltip').forEach((el) => el.remove());
+      const label = copy.textContent.replace(/\s+/g, ' ').trim();
+      const field = label && formField(g, label);
+      if (!field) return;
+      if (!found.has(key(label))) found.set(key(label), field);
+      if (g.classList.contains('product-data')) (ALIASES[g.dataset.fieldKey] || []).forEach((a) => aliases.push([a, field]));
+    });
+    aliases.forEach(([a, field]) => { if (!found.has(key(a))) found.set(key(a), field); });
+
+    return found;
+  };
+
+  // a field of the page itself (the panel and the settings window have one each: Gridbox saves the window's)
+  const pageField = (field) => {
+    const els = [...document.querySelectorAll('.page-settings-input-trigger[name="' + FIELD_NAMES[field] + '"]')];
+    if (!els.length) return null;
+
+    return { label: cfg.texts.names[field], get: () => els[0].value.trim(), set: (e) => {
+      els.forEach((el) => { el.value = e.value; });
+      els[0].dispatchEvent(new Event('input', { bubbles: true }));
+
+      return true;
+    } };
+  };
+
+  // a section of one column at the end of the page, as Gridbox's own New section makes it
+  const newColumn = async (w) => {
+    const columns = () => [...w.document.querySelectorAll('#ba-edit-section .ba-grid-column')];
+    const known = new Set(columns());
+    const dialog = document.getElementById('add-section-dialog');
+    if (dialog) dialog.classList.remove('add-columns');
+    if (app.pageStructure && app.pageStructure.context) app.pageStructure.context.task = null;
+    w.app.checkModule('addColumns', { data: '12' });
+    const column = await until(() => columns().find((c) => !known.has(c)), 15000);
+    await sleep(300);
+    closePanels();
+
+    return column;
+  };
+  const closePanels = () => {
+    if (typeof window.$g === 'function') window.$g('.ba-modal-cp.draggable-modal-cp.in:not(#page-structure-dialog)').modal('hide');
+  };
+
+  // ---------------------------------------------------------------- the import
+
   const run = async (file) => {
     if (busy) return;
     const w = app.editor;
@@ -707,71 +1001,108 @@
       return;
     }
     if (file.size > MAX) { notice(say(cfg.texts.large, Math.round(MAX / 1048576)), true); return; }
+    // an item of an app with fields (a product), a blog post, or a page
+    const form = formFields();
+    const mode = form.size ? 'app' : (document.body.classList.contains('blog-post-editor-parent') ? 'post' : 'page');
     let result;
     try {
-      result = parse(await read(file));
+      result = parse(await read(file), {
+        field: form.size ? (label) => form.has(key(label)) : null,
+        keepTitle: mode === 'page' && (w.document.querySelector('#ba-edit-section h1') ? 2 : 1),
+      });
     } catch (e) {
       notice(cfg.texts.fail, true);
 
       return;
     }
-    const given = Object.keys(FIELD_NAMES).filter((field) => result[field]);
-    if (!result.blocks.length && !given.length) { notice(cfg.texts.empty, true); return; }
-    const column = target(w.document);
-    if (!column) { notice(cfg.texts.fail, true); return; }
+    // what goes into the fields: the page's own (title, alias, intro text, keywords), then the item's by their labels
+    const plan = [];
+    const used = new Set();
+    Object.keys(FIELD_NAMES).forEach((field) => {
+      const f = result[field] ? pageField(field) : null;
+      if (f) plan.push({ f, e: { value: result[field] } });
+    });
+    [...result.extra, ...result.sections].forEach((e) => {
+      const f = form.get(key(e.label));
+      if (f && !used.has(f)) { used.add(f); plan.push({ f, e }); }
+    });
+    if (!result.blocks.length && !plan.length) { notice(cfg.texts.empty, true); return; }
 
-    busy = overlay();
-    w.app.copyAction = null; // a module added from a text of the post would go after that text
-    const old = [...column.querySelectorAll(':scope > .ba-item-text')].filter(emptyText);
-    // a new post: nothing in all of it (any column, any section) but the empty text Gridbox begins a post with
-    const fresh = [...w.document.querySelectorAll('#ba-edit-section .ba-item')].every((el) => old.includes(el));
-    const items = () => [...column.querySelectorAll(':scope > .ba-item')].map((el) => el.id);
-    const known = new Set(items());
-    const base = app.hIndex;
-    let done = 0;
-    try {
-      for (const block of result.blocks) {
-        busy.textContent = say(cfg.texts.working, done + 1, result.blocks.length);
-        const plugin = block.type === 'headline' ? 'headline' : 'text';
-        let key;
-        if (!w.app.pluginLoader) {
-          // Gridbox loads the module that adds modules with the first one it adds: let it, then close the panel it opens
-          w.app.edit = column.id;
-          w.app.checkModule('loadPlugin', { data: plugin, selector: 0 });
-          key = await until(() => items().find((id) => !known.has(id)), 15000);
-          await sleep(500);
-          if (typeof window.$g === 'function') window.$g('.ba-modal-cp.draggable-modal-cp.in:not(#page-structure-dialog)').modal('hide');
-        } else {
-          key = await w.app.pluginLoader.load(w.$g(column), plugin, 0);
-        }
-        await fill(w, key, block);
-        done++;
-      }
-    } catch (e) {
-      notice(cfg.texts.fail, true);
-    } finally {
-      busy.remove();
-      busy = null;
-    }
-    // the fields of the post (the panel and the settings window have one each: Gridbox saves the window's)
+    const col = target(w.document);
+    const empty = col ? [...col.querySelectorAll(':scope > .ba-item-text')].filter(emptyText) : [];
+    // a new post or page: nothing in all of it (any column, any section) but the empty text Gridbox begins a post with
+    const fresh = [...w.document.querySelectorAll('#ba-edit-section .ba-item')].every((el) => empty.includes(el));
+    if (mode === 'post' && result.blocks.length && !col) { notice(cfg.texts.fail, true); return; }
+    // the texts of a post go where its texts are; of a page or an item into a section of their own, but for a new one
+    let column = mode === 'post' || fresh ? col : null;
+    const old = column ? empty : [];
+
+    // in a new post or page in place of what the fields have, else only into the empty ones; an item asks
     const filled = [];
     const kept = [];
-    if (done || !result.blocks.length) {
-      given.forEach((field) => {
-        const els = [...document.querySelectorAll('.page-settings-input-trigger[name="' + FIELD_NAMES[field] + '"]')];
-        if (!els.length) return;
-        const now = els[0].value.trim();
-        if (now === result[field]) return;
-        if (!fresh && now !== '') { kept.push(cfg.texts.names[field]); return; }
-        els.forEach((el) => { el.value = result[field]; });
-        els[0].dispatchEvent(new Event('input', { bubbles: true }));
-        filled.push(cfg.texts.names[field]);
-      });
+    const failed = [];
+    const differs = plan.filter(({ f, e }) => !blank(f.get()) && f.get() !== (f.rich ? asHtml(e) : asText(e)));
+    const overwrite = mode === 'app'
+      ? !differs.length || window.confirm(say(cfg.texts.overwrite, differs.map(({ f }) => f.label).join(', ')).replace(/\\n/g, '\n'))
+      : fresh;
+    const fillFields = () => plan.forEach(({ f, e }) => {
+      const now = f.get();
+      if (now === (f.rich ? asHtml(e) : asText(e))) return;
+      if (!blank(now) && !overwrite) { kept.push(f.label); return; }
+      try {
+        (f.set(e) ? filled : failed).push(f.label);
+      } catch (err) {
+        failed.push(f.label);
+      }
+    });
+    // an item's fields at once (they are not the modules); a post's or a page's once its modules are in
+    if (mode === 'app') fillFields();
+
+    let done = 0;
+    const base = app.hIndex;
+    if (result.blocks.length) {
+      busy = overlay();
+      w.app.copyAction = null; // a module added from a text of the post would go after that text
+      try {
+        if (!column) column = await newColumn(w);
+        const items = () => [...column.querySelectorAll(':scope > .ba-item')].map((el) => el.id);
+        const known = new Set(items());
+        for (const block of result.blocks) {
+          busy.textContent = say(cfg.texts.working, done + 1, result.blocks.length);
+          const plugin = block.type === 'headline' ? 'headline' : 'text';
+          let id;
+          if (!w.app.pluginLoader) {
+            // Gridbox loads the module that adds modules with the first one it adds: let it, then close the panel it opens
+            w.app.edit = column.id;
+            w.app.checkModule('loadPlugin', { data: plugin, selector: 0 });
+            id = await until(() => items().find((i) => !known.has(i)), 15000);
+            await sleep(500);
+            closePanels();
+          } else {
+            id = await w.app.pluginLoader.load(w.$g(column), plugin, 0);
+          }
+          known.add(id);
+          await fill(w, id, block);
+          done++;
+        }
+      } catch (e) {
+        notice(cfg.texts.fail, true);
+      } finally {
+        busy.remove();
+        busy = null;
+      }
     }
-    const said = [filled.length ? say(cfg.texts.filled, filled.join(', ')) : '', kept.length ? say(cfg.texts.kept, kept.join(', ')) : '']
-      .filter(Boolean).join(' ');
+    if (mode !== 'app' && (done || !result.blocks.length)) fillFields();
+
+    const said = [
+      filled.length ? say(cfg.texts.filled, filled.join(', ')) : '',
+      kept.length ? say(cfg.texts.kept, kept.join(', ')) : '',
+      failed.length ? say(cfg.texts.failed, failed.join(', ')) : '',
+    ].filter(Boolean).join(' ');
     if (!done) {
-      if (!result.blocks.length) notice(said || cfg.texts.empty, !said);
+      if (!result.blocks.length) notice(said || cfg.texts.empty, !filled.length);
+      else if (said) notice(said, !filled.length);
+
       return;
     }
     // as Gridbox's own delete of a module does it
@@ -779,11 +1110,11 @@
     try { app.setRowWithIntro(); } catch (e) { /* only the intro of a post */ }
     if (typeof w.app.setMarginBox === 'function') w.app.setMarginBox();
     if (app.pageStructure && app.pageStructure.visible) app.pageStructure.updateStructure(true);
-    // the step Gridbox made for the first module is part of the one step of the import
+    // the steps Gridbox made for the section and the first module are part of the one step of the import
     if (Array.isArray(app.history) && app.hIndex > base) { app.history.length = base; app.hIndex = base; }
     app.addHistory();
     const headlines = result.blocks.filter((b) => b.type === 'headline').length;
-    notice(say(cfg.texts.done, headlines, done - headlines) + (said ? ' ' + said : ''));
+    notice(say(mode === 'app' ? cfg.texts.rest : cfg.texts.done, headlines, done - headlines) + (said ? ' ' + said : ''));
   };
 
   input.addEventListener('change', () => {
@@ -792,31 +1123,50 @@
     if (file) run(file);
   });
 
+  // the button: in a post next to Gridbox's Advanced Editor switch, in a page or an item in the editor's left bar
   const style = '.mt-md-import{display:inline-flex;align-items:center;gap:6px;height:32px;margin:0 18px 0 0;padding:0 12px;border:1px solid #c9cad1;'
     + 'border-radius:16px;background:#fff;color:#55565e;font:500 12px Roboto,Arial,sans-serif;letter-spacing:.3px;cursor:pointer;transition:all .2s}'
     + '.mt-md-import:hover,.mt-md-import:focus-visible{border-color:#1da6f4;color:#1da6f4;outline:0}'
     + '.mt-md-import i{font-size:18px;line-height:1}';
+  const open = (e) => { e.preventDefault(); e.stopPropagation(); if (!busy) input.click(); };
   const button = () => {
     try {
       const doc = document.querySelector('iframe.editor-iframe')?.contentDocument;
       const bar = doc && doc.querySelector('.blog-post-editor-header-panel .post-editor-right-icons');
-      if (!bar || bar.querySelector('.mt-md-import')) return;
-      if (!doc.getElementById('mt-md-import-style')) {
-        const css = doc.createElement('style');
-        css.id = 'mt-md-import-style';
-        css.textContent = style;
-        doc.head.append(css);
+      if (bar && !bar.querySelector('.mt-md-import')) {
+        if (!doc.getElementById('mt-md-import-style')) {
+          const css = doc.createElement('style');
+          css.id = 'mt-md-import-style';
+          css.textContent = style;
+          doc.head.append(css);
+        }
+        const b = doc.createElement('button');
+        b.type = 'button';
+        b.className = 'mt-md-import';
+        b.title = cfg.texts.button;
+        b.setAttribute('aria-label', cfg.texts.button);
+        b.innerHTML = '<i class="zmdi zmdi-file-text"></i><span>MD</span>';
+        b.addEventListener('click', open);
+        bar.prepend(b);
       }
-      const b = doc.createElement('button');
-      b.type = 'button';
-      b.className = 'mt-md-import';
-      b.title = cfg.texts.button;
-      b.setAttribute('aria-label', cfg.texts.button);
-      b.innerHTML = '<i class="zmdi zmdi-file-text"></i><span>MD</span>';
-      b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); if (!busy) input.click(); });
-      bar.prepend(b);
     } catch (e) {
       // the editor is not there yet
+    }
+    const icons = document.querySelector('.ba-sidebar .top-icons');
+    if (icons && !icons.querySelector('.mt-md-import-side')) {
+      // Gridbox dims the icons of the bar and takes their clicks away in the form of an item with fields: not this one
+      const css = document.createElement('style');
+      css.textContent = '.com_gridbox .top-icons > span.mt-md-import-side{pointer-events:auto;opacity:1}';
+      document.head.append(css);
+      const span = document.createElement('span');
+      span.className = 'mt-md-import-side';
+      span.innerHTML = '<a href="#" role="button"><span class="zmdi zmdi-file-text"></span></a><span class="ba-tooltip ba-right"></span>';
+      span.querySelector('a').setAttribute('aria-label', cfg.texts.side);
+      span.querySelector('.ba-tooltip').textContent = cfg.texts.side;
+      span.querySelector('a').addEventListener('click', open);
+      // with the icons that add content (Library ends their group with a line)
+      const library = icons.querySelector('.add-library-block');
+      if (library) library.before(span); else icons.append(span);
     }
   };
   setInterval(button, 1000);

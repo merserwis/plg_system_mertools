@@ -17,6 +17,7 @@
  *  - a YouTube video in a section background starts after the first interaction or a few seconds
  *    after the page has loaded, not while the page is still loading; on phones it can be left out
  *    or replaced by a still picture;
+ *  - a YouTube film in a frame loads nothing of YouTube until it is played: its picture and a play button;
  *  - marketing scripts (Tag Manager, Facebook, Clarity…) start at the first interaction.
  *
  * Every function takes the HTML and returns it changed; nothing else is touched.
@@ -658,6 +659,119 @@ final class Speedup
         $end = $m[0][1] + \strlen($m[0][0]);
 
         return substr_replace($html, self::nonced($js, $nonce), $end, 0);
+    }
+
+    // ---------------------------------------------------------------- YouTube films
+
+    /** the look of a film before it is played: its picture and a play button, in the frame's own document */
+    private const YT_CSS = '*{margin:0;padding:0}html,body{height:100%;overflow:hidden;background:#000}'
+        . 'a{position:absolute;inset:0;display:block;cursor:pointer}img{width:100%;height:100%;object-fit:cover}'
+        . 'b{position:absolute;left:50%;top:50%;width:68px;height:48px;margin:-24px 0 0 -34px;border-radius:14px;'
+        . 'background:rgba(23,23,23,.8);transition:background .2s}'
+        . 'b::after{content:"";position:absolute;left:27px;top:14px;border-style:solid;border-width:10px 0 10px 17px;'
+        . 'border-color:transparent transparent transparent #fff}'
+        . 'a:hover b,a:focus-visible b{background:#f00}a:focus-visible{outline:3px solid #fff;outline-offset:-3px}';
+
+    /**
+     * A YouTube film in a frame (one pasted in a text or a product's description, Gridbox's Video element)
+     * loads nothing of YouTube until it is played: the frame shows the film's picture and a play button
+     * (srcdoc: a document of its own, so the frame keeps its place, size and the site's CSS for frames);
+     * a click opens the player in that same frame, playing at once. An embedded film otherwise costs about
+     * 1 MB and 10 requests of YouTube's scripts each, also when nobody plays it.
+     *
+     * Left as they are: frames a script drives (enablejsapi=1: Gridbox's video backgrounds), films that
+     * play by themselves (autoplay=1), playlists, sandboxed frames and frames that already have a srcdoc.
+     * The player keeps the host of the frame's address (youtube-nocookie.com when Consent changed it). The frame's
+     * document has the page's Content Security Policy: its style carries the nonce (the kept page's is put back for
+     * each visitor, see PageCache). A frame written in a script, a style or a textarea is their text: not touched.
+     */
+    public static function youtubeFacade(string $html, string $label = 'Play', string $nonce = ''): string
+    {
+        if (stripos($html, '/embed/') === false || stripos($html, '<iframe') === false) {
+            return $html;
+        }
+        $parts = preg_split('#(<(script|style|textarea)\b[^>]*>.*?</\2\s*>)#is', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
+        if (!\is_array($parts)) {
+            return $html;
+        }
+        $out = '';
+        // [text, a whole script/style/textarea, its tag name, text, …]
+        for ($i = 0, $n = \count($parts); $i < $n; $i++) {
+            if ($i % 3 === 0) {
+                $out .= self::facadeFrames($parts[$i], $label, $nonce);
+            } elseif ($i % 3 === 1) {
+                $out .= $parts[$i];
+            }
+        }
+
+        return $out;
+    }
+
+    private static function facadeFrames(string $html, string $label, string $nonce): string
+    {
+        if (stripos($html, '<iframe') === false) {
+            return $html;
+        }
+
+        // the tag to its real end: a ">" inside a quoted value (title="A > B") is not it
+        return (string) preg_replace_callback('#<iframe\b(?:[^>"\']++|"[^"]*+"|\'[^\']*+\')*+>#i', function (array $m) use ($label, $nonce): string {
+            $tag   = $m[0];
+            $attrs = self::attributes($tag);
+            if (isset($attrs['srcdoc']) || isset($attrs['sandbox']) || !isset($attrs['src'])) {
+                return $tag;
+            }
+            $src = html_entity_decode($attrs['src'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if (!preg_match('#^\s*(?:https?:)?//(?:www\.)?(youtube(?:-nocookie)?\.com)/embed/([A-Za-z0-9_-]{11})(?:\?([^\#]*))?(?:\#.*)?\s*$#i', $src, $u)) {
+                return $tag;
+            }
+            parse_str($u[3] ?? '', $query);
+            if (!empty($query['enablejsapi']) || !empty($query['autoplay']) || isset($query['list']) || isset($query['playlist'])) {
+                return $tag;
+            }
+            unset($query['autoplay']);
+            $query['autoplay'] = 1;
+            $play  = 'https://www.' . strtolower($u[1]) . '/embed/' . $u[2] . '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+            $thumb = 'https://i.ytimg.com/vi/' . $u[2] . '/hqdefault.jpg';
+            $doc   = '<!DOCTYPE html><meta charset="utf-8">' . self::nonced('<style>' . self::YT_CSS . '</style>', $nonce)
+                . '<a href="' . self::h($play) . '" aria-label="' . self::h($label) . '"><img src="' . self::h($thumb) . '" alt="" decoding="async"><b></b></a>';
+
+            $add = ' srcdoc="' . self::h($doc) . '" data-mt-yt="' . $u[2] . '"';
+            if (!isset($attrs['loading'])) {
+                $add .= ' loading="lazy"';
+            }
+            if (!isset($attrs['title']) || trim($attrs['title']) === '') {
+                $add .= ' title="' . self::h($label) . '"';
+            }
+            // the player starts on the click in the frame: the frame may play it
+            if (!isset($attrs['allow'])) {
+                $add .= ' allow="autoplay; encrypted-media; picture-in-picture; fullscreen"';
+            } elseif (!preg_match('#(^|;)\s*autoplay\b#i', html_entity_decode($attrs['allow'], ENT_QUOTES | ENT_HTML5, 'UTF-8'))) {
+                $tag = (string) preg_replace_callback('#(\sallow\s*=\s*)(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'=<>`]+))#i',
+                    fn (array $a) => $a[1] . '"' . self::h(rtrim(html_entity_decode($a[2] . ($a[3] ?? '') . ($a[4] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8'), '; ') . '; autoplay') . '"', $tag, 1);
+            }
+
+            return (string) preg_replace('#\s*/?>$#', $add . '>', $tag, 1);
+        }, $html);
+    }
+
+    /** the attributes of a tag: lower-case name => value as written (entities not decoded); a bare one => '' */
+    private static function attributes(string $tag): array
+    {
+        preg_match_all('#\s([a-zA-Z_:][-a-zA-Z0-9_:.]*)(?:\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'=<>`]+)))?#', preg_replace('#^<\w+|/?>$#', '', $tag), $m, PREG_SET_ORDER);
+        $out = [];
+        foreach ($m as $a) {
+            $name = strtolower($a[1]);
+            if (!isset($out[$name])) {
+                $out[$name] = ($a[2] ?? '') . ($a[3] ?? '') . ($a[4] ?? '');
+            }
+        }
+
+        return $out;
+    }
+
+    private static function h(string $s): string
+    {
+        return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
     // ---------------------------------------------------------------- marketing scripts

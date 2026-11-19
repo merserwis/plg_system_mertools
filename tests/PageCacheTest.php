@@ -88,6 +88,10 @@ $check('kept page: no token or nonce of the first visitor', !str_contains($kept,
 $served = PageCache::forServe($kept, 'c9fd22df85d44793f04e1824a14a3ea8', 'TkVX');
 $check('served: next visitor\'s token and nonce', $served, '<script nonce="TkVX" type="application/json">{"csrf.token":"c9fd22df85d44793f04e1824a14a3ea8"}</script><input type="hidden" name="c9fd22df85d44793f04e1824a14a3ea8" value="1">');
 $check('served: no nonce now', PageCache::forServe($kept, $token, null), str_replace('nonce="' . $nonce . '"', 'nonce=""', $html));
+$yt     = '<iframe src="https://www.youtube.com/embed/abcdefghijk" srcdoc="&lt;style nonce=&quot;' . $nonce . '&quot;&gt;a{}&lt;/style&gt;"></iframe>';
+$keptYt = PageCache::forStore($yt, $token, $nonce);
+$check('kept page: the nonce in a frame\'s own document (a YouTube film) taken out too', str_contains($keptYt, $nonce), false);
+$check('served: the next visitor\'s nonce in that document', PageCache::forServe($keptYt, $token, 'TkVX'), str_replace($nonce, 'TkVX', $yt));
 $check('not a token: left alone', PageCache::forStore('abc', 'abc', null), 'abc');
 
 // ---------------------------------------------------------------- what empties the cache

@@ -879,7 +879,7 @@ final class PageSpeed extends Feature
                 }
                 $defaults = ['url_collapse_slashes' => 1, 'notfound_redirect' => 0, 'layout_clip_x' => 1, 'shop_option_links' => 1,
                     'cart_enabled' => 1, 'tel_enabled' => 1, 'dark_enabled' => 0, 'speed_show' => 1, 'speed_images' => 1, 'speed_mainphoto' => 1, 'speed_slideimg' => 1,
-                    'speed_video' => 1, 'speed_video_phone' => 'none', 'speed_scripts' => 0, 'speed_cache' => 0, 'speed_cache_data' => 1,
+                    'speed_video' => 1, 'speed_video_phone' => 'none', 'speed_youtube' => 1, 'speed_scripts' => 0, 'speed_cache' => 0, 'speed_cache_data' => 1,
                     'speed_icons' => 1, 'speed_webp' => 1, 'speed_avif' => 0, 'speed_jxl' => 0, 'speed_gif' => 1, 'speed_popups' => 1, 'layout_post_rows' => 1, 'tabs_accordion' => 1, 'db_indexes' => 1, 'layout_menu_fit' => 0];
                 $speed->save($m, MerTools::VERSION, Speed::enabledTools($this->plugin->params->toArray(), $defaults), time());
             } elseif ($action === 'speed_baseline') {
@@ -956,6 +956,10 @@ final class PageSpeed extends Feature
                 }
                 $html = Speedup::delayVideoBackground($html, (int) $p->get('speed_video_delay', 3), (string) $p->get('speed_video_phone', 'none'),
                     (int) $p->get('speed_video_phone_width', 768), $image, (string) $p->get('speed_video_phone_color', '#1a1a1a'), $nonce);
+            }
+            if ((int) $p->get('speed_youtube', 1) && stripos($html, '/embed/') !== false) {
+                $this->plugin->loadLanguage();
+                $html = Speedup::youtubeFacade($html, Text::_('PLG_SYSTEM_MERTOOLS_SPEED_YOUTUBE_PLAY'), $nonce);
             }
             if ((int) $p->get('speed_popups', 1)) {
                 $html = Speedup::delayPopups($html, $nonce);

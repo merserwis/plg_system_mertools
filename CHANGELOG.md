@@ -2,6 +2,31 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.19.0 — 2026-11-19
+
+### ▶️ YouTube films loaded only when played
+
+Every YouTube film embedded in a page loads YouTube's player at once — about 0.5–1 MB and a dozen requests of scripts each, also when nobody plays it. On a product page with four films in its description that doubled the page: about 45 requests and 1.7–2.4 MB more, and the page finished loading half a second later. A YouTube film in a frame (pasted in a text or a product's description, Gridbox's *Video* element) now shows only its picture with a play button; YouTube's player loads, and plays at once, only when it is clicked, in the same place.
+
+- The frame stays a frame: its place, size and the theme's styles for it do not change. No script is added to the page.
+- Nothing of YouTube is asked for before the click (only the film's picture), so it also sets no cookies before then.
+- Left as they are: video backgrounds of sections, films that play by themselves, playlists and sandboxed frames, and a frame written inside a script.
+- On a site with a Content Security Policy of style nonces the picture and button carry the page's nonce, also on pages served from MerTools' page cache. Such a site must allow pictures from `i.ytimg.com`.
+- On an iPhone or iPad a film may need a second tap to play with sound (Safari's rule for sound).
+
+Search engines lose nothing here: Google indexes a film only on a page whose main subject is that film, and does not index films embedded in product or article pages anyway (Search Console, *Video pages*: “Video isn't on a watch page”). New setting *YouTube films loaded only when played* (tab *Speed*), on by default.
+
+### 📝 Markdown import — into pages and products too
+
+The Markdown import worked only in blog posts. It now works in every Gridbox editor:
+
+- **Pages**: a document icon in the editor's left bar, with the icons that add content. In a new, empty page the document goes where its empty text is; in a page with content, into a new section of one column at its end. The document's `# heading` stays a headline h1 (h2 when the page has an h1 already), since nothing else shows a page's title.
+- **Products, and the items of any app with fields**: the same icon. A line `Label: value` at the top of the document fills the field of that label in the item's form — `SKU:`, `Price:`/`Cena:`, `Manufacturer:`/`Producent:` (a link as `[Sonel](/sonel)`), or any field of the app — and a heading named as a field (`## Technical data`, `## Accessories`) fills it with everything under it, sub-headings, tables and lists too, up to the next heading of its level. The labels are read from the form itself, so it works with any set of fields, in any language; SKU, price, stock and minimum quantity are also found by their common Polish and English names. What is in no field goes into the content of the item's page, and the notice says so.
+- When fields have content already, the editor asks whether to replace it; *Cancel* fills only the empty ones.
+- Amounts are read exactly (`6 950,00 zł` → 6950.00, `0.125` stays 0.125); one that can be read two ways (`6.950`) or has other figures around it (`100 zł + 23% VAT`) is not filled in, and the notice names the field.
+- A new label without an address does not keep the address of the old one.
+- Gridbox writes the fields into the page and into its editor as they are, so nothing in a document can become HTML there: the characters `< > "` go into fields as `‹ › ”`, and an address goes in only when it leads to the web, an e-mail, a phone or the site (no `javascript:`, also not written with character references).
+
 ## 1.18.2 — 2026-11-18
 
 ### 🍪 Cookie consent — the cookie button with the light/dark toggle, or both in one gear
