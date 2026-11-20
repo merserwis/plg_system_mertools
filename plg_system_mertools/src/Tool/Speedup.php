@@ -679,8 +679,10 @@ final class Speedup
      * a click opens the player in that same frame, playing at once. An embedded film otherwise costs about
      * 1 MB and 10 requests of YouTube's scripts each, also when nobody plays it.
      *
-     * Left as they are: frames a script drives (enablejsapi=1: Gridbox's video backgrounds), films that
-     * play by themselves (autoplay=1), playlists, sandboxed frames and frames that already have a srcdoc.
+     * A playlist given with its first film (/embed/ID?list=…) the same: that film's picture, the player with the list
+     * on a click. Left as they are: frames a script drives (enablejsapi=1: Gridbox's video backgrounds), films that
+     * play by themselves (autoplay=1), a playlist without a film (/embed/videoseries?list=…: no picture to show), a live
+     * stream of a channel (/embed/live_stream), sandboxed frames and frames that already have a srcdoc.
      * The player keeps the host of the frame's address (youtube-nocookie.com when Consent changed it). The frame's
      * document has the page's Content Security Policy: its style carries the nonce (the kept page's is put back for
      * each visitor, see PageCache). A frame written in a script, a style or a textarea is their text: not touched.
@@ -724,8 +726,12 @@ final class Speedup
             if (!preg_match('#^\s*(?:https?:)?//(?:www\.)?(youtube(?:-nocookie)?\.com)/embed/([A-Za-z0-9_-]{11})(?:\?([^\#]*))?(?:\#.*)?\s*$#i', $src, $u)) {
                 return $tag;
             }
+            // these two are not a film's id, though of its length
+            if (\in_array(strtolower($u[2]), ['videoseries', 'live_stream'], true)) {
+                return $tag;
+            }
             parse_str($u[3] ?? '', $query);
-            if (!empty($query['enablejsapi']) || !empty($query['autoplay']) || isset($query['list']) || isset($query['playlist'])) {
+            if (!empty($query['enablejsapi']) || !empty($query['autoplay'])) {
                 return $tag;
             }
             unset($query['autoplay']);

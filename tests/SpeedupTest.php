@@ -358,11 +358,21 @@ $check('yt: no allow → one that lets it play', $has($f, ' allow="autoplay; enc
 $f = Speedup::youtubeFacade('<iframe allowfullscreen="allowfullscreen" height="450" src="//www.youtube.com/embed/abcdefghijk" width="800" title="Film &quot;A&quot;" allow="encrypted-media"></iframe>', 'Play');
 $check('yt: a protocol-relative address played over https', $has(html_entity_decode($f), 'https://www.youtube.com/embed/abcdefghijk?autoplay=1'), true);
 $check('yt: its title kept, autoplay added to its allow', [$has($f, 'title="Film &quot;A&quot;"'), substr_count($f, ' title='), $has($f, 'allow="encrypted-media; autoplay"')], [true, 1, true]);
+// a playlist given with its first film: that film's picture, the list kept for the player
+$f = Speedup::youtubeFacade('<iframe src="https://www.youtube.com/embed/bHYXIThpjgA?list=PLUZoa45E6Xug&amp;index=2" title="Nasze filmy" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen=""></iframe>', 'Odtwórz film');
+$doc = preg_match('#srcdoc="([^"]*)"#', $f, $sm) ? html_entity_decode($sm[1], ENT_QUOTES | ENT_HTML5, 'UTF-8') : '';
+$check('yt list: the first film\'s picture', $has($doc, '<img src="https://i.ytimg.com/vi/bHYXIThpjgA/hqdefault.jpg"'), true);
+$check('yt list: the player on a click with the list, playing', $has($doc, '<a href="https://www.youtube.com/embed/bHYXIThpjgA?list=PLUZoa45E6Xug&amp;index=2&amp;autoplay=1" aria-label="Odtwórz film">'), true);
+$check('yt list: its title, loading and allow kept, none added', [substr_count($f, ' title='), substr_count($f, ' loading='), substr_count($f, ' allow='), $has($f, ' data-mt-yt="bHYXIThpjgA"')], [1, 1, 1, true]);
+$f = Speedup::youtubeFacade('<iframe src="https://www.youtube-nocookie.com/embed/abcdefghijk?playlist=bHYXIThpjgA,yiqbq_-v0RM&amp;loop=1"></iframe>', 'P');
+$check('yt list: a list of films (playlist=) the same', $has(html_entity_decode($f), 'href="https://www.youtube-nocookie.com/embed/abcdefghijk?playlist=bHYXIThpjgA%2Cyiqbq_-v0RM&amp;loop=1&amp;autoplay=1"'), true);
 foreach ([
     'a video background (enablejsapi)' => '<iframe src="https://www.youtube.com/embed/AZvIC1iEfYw?controls=0&amp;loop=1&amp;enablejsapi=1&amp;widgetid=1"></iframe>',
     'autoplay=1' => '<iframe src="https://www.youtube.com/embed/abcdefghijk?autoplay=1&amp;mute=1"></iframe>',
-    'a playlist' => '<iframe src="https://www.youtube.com/embed/videoseries?list=PL9qelGYjhWdQ9qljGK"></iframe>',
-    'a list with a film' => '<iframe src="https://www.youtube.com/embed/abcdefghijk?list=PL9qelGYjhWdQ9qljGK"></iframe>',
+    'a playlist without a film' => '<iframe src="https://www.youtube.com/embed/videoseries?list=PL9qelGYjhWdQ9qljGK"></iframe>',
+    'VIDEOSERIES' => '<iframe src="https://www.youtube-nocookie.com/embed/VideoSeries?si=x&amp;list=PL9qelGYjhWdQ9qljGK"></iframe>',
+    'a channel\'s live stream' => '<iframe src="https://www.youtube.com/embed/live_stream?channel=UCabcdefghijklmnopqrstuv"></iframe>',
+    'a list played by itself' => '<iframe src="https://www.youtube.com/embed/abcdefghijk?list=PL9qelGYjhWdQ9qljGK&amp;autoplay=1"></iframe>',
     'sandbox' => '<iframe sandbox="" src="//www.youtube.com/embed/CclovtQTWQc"></iframe>',
     'its own srcdoc' => '<iframe srcdoc="x" src="https://www.youtube.com/embed/abcdefghijk"></iframe>',
     'another site' => '<iframe src="https://player.vimeo.com/video/123/embed/x"></iframe>',

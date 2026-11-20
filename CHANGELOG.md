@@ -2,6 +2,16 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.19.1 — 2026-11-20
+
+### ▶️ YouTube playlists loaded only when played
+
+A YouTube playlist embedded with its first film (`https://www.youtube.com/embed/FILM_ID?list=PLAYLIST_ID`, e.g. in a *Custom HTML* element) now shows only that film's picture with a play button, as single films do since 1.19.0. YouTube's player loads only on a click, in the same frame, with the whole list. Before, every playlist loaded YouTube's player at once (about 1 MB and a dozen requests), also when nobody played it.
+
+- A playlist embedded without a film (`/embed/videoseries?list=…`) stays as it is: there is no picture to show for it. To have it loaded on a click, put the ID of its first film in place of `videoseries`.
+- A list of films given with `playlist=` is handled the same way.
+- A channel's live stream (`/embed/live_stream?channel=…`) stays as it is; before, it was shown with a picture that does not exist.
+
 ## 1.19.0 — 2026-11-19
 
 ### ▶️ YouTube films loaded only when played

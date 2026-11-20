@@ -5,6 +5,8 @@
  *    of the same size as without it, its picture and play button there; a click opens YouTube's player in that
  *    frame with autoplay=1 (whether it then plays needs a real browser: see below); the next frame still not loaded;
  *  - off: the frames as they were, YouTube's player loading at once;
+ *  - a playlist given with its first film (/embed/ID?list=…): that film's picture, nothing of YouTube before a click,
+ *    the player with the list on a click; a playlist without a film (videoseries) loading as before;
  *  - a page with a Content Security Policy of style nonces: the frame's own document (it has the page's policy) styled
  *    with the nonce, and its style refused without it (the check sees the difference).
  *
@@ -25,9 +27,9 @@ const ID = Number(sql(`SELECT f.page_id FROM #__gridbox_page_fields f JOIN #__gr
 const PAGE = URL_ + '/index.php?option=com_gridbox&view=page&id=' + ID;
 const YT = /(^|\.)(youtube(-nocookie)?\.com|googlevideo\.com|ggpht\.com)$/;
 // a film's frame as Speedup makes it, with the page's nonce (the plugin's own code, in the container)
-const facade = (nonce) => execFileSync('docker', ['exec', '-i', C, 'php', '-r', 'define("_JEXEC", 1); require "/var/www/html/plugins/system/mertools/src/Tool/Speedup.php";'
+const facade = (nonce, input = '<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/yiqbq_-v0RM"></iframe>') => execFileSync('docker', ['exec', '-i', C, 'php', '-r', 'define("_JEXEC", 1); require "/var/www/html/plugins/system/mertools/src/Tool/Speedup.php";'
   + ' echo Merserwis\\Plugin\\System\\MerTools\\Tool\\Speedup::youtubeFacade(stream_get_contents(STDIN), "Play", $argv[1]);', '--', nonce],
-  { input: '<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/yiqbq_-v0RM"></iframe>', encoding: 'utf8' });
+  { input, encoding: 'utf8' });
 
 run(async ({ login }) => {
   const admin = await login('light');
@@ -102,6 +104,30 @@ run(async ({ login }) => {
     const without = await button(facade(''));
     check('CSP: without it the browser refuses the style (so the check above means it)', without.w !== '68px', JSON.stringify(without));
     await csp.close();
+
+    // a playlist pasted as in a Custom HTML element: the frame of a list with its first film, and one without a film
+    const list = await ctx.newPage();
+    const listHosts = [];
+    list.on('request', (r) => listHosts.push(new URL(r.url()).hostname));
+    const body = facade('', '<div style="width:800px"><iframe style="display:block;width:100%;aspect-ratio:16/9;border:0" src="https://www.youtube.com/embed/bHYXIThpjgA?list=PLUZoa45E6Xug" title="Nasze filmy" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen=""></iframe></div>'
+      + '<iframe id="series" src="https://www.youtube.com/embed/videoseries?list=PLUZoa45E6Xug"></iframe>');
+    check('list: the frame of a list with a film made a picture, the one without left', (body.match(/srcdoc=/g) || []).length === 1
+      && body.endsWith('</div><iframe id="series" src="https://www.youtube.com/embed/videoseries?list=PLUZoa45E6Xug"></iframe>'), body.slice(-200));
+    await list.route('https://mt-list.test/', (r) => r.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: '<!DOCTYPE html><body>' + body.replace(/<iframe id="series"[^]*$/, '') + '</body>' }));
+    await list.goto('https://mt-list.test/', { waitUntil: 'load' });
+    await list.waitForTimeout(2000);
+    const lf = await list.$('iframe[data-mt-yt]');
+    const lbox = await lf.boundingBox();
+    check('list: the frame as large as written (800×450)', Math.round(lbox.width) === 800 && Math.round(lbox.height) === 450, JSON.stringify(lbox));
+    check('list: nothing of YouTube before a click', !listHosts.some((h) => YT.test(h)), JSON.stringify([...new Set(listHosts)]));
+    const ldoc = await lf.contentFrame();
+    const limg = await ldoc.evaluate(() => { const i = document.querySelector('img'); return i && i.complete && i.naturalWidth > 0 ? i.src : ''; });
+    check('list: the first film\'s picture', /i\.ytimg\.com\/vi\/bHYXIThpjgA\/hqdefault\.jpg$/.test(limg), limg);
+    await ldoc.click('a');
+    await list.waitForTimeout(6000);
+    const lp = (await lf.contentFrame()).url();
+    check('list: a click: the player with the list, autoplay', /\/embed\/bHYXIThpjgA\?list=PLUZoa45E6Xug&autoplay=1$/.test(lp) && listHosts.some((h) => YT.test(h)), lp);
+    await list.close();
   } finally {
     sql(`UPDATE #__extensions SET params = ${q(params)} WHERE ${PLUGIN}`);
   }
