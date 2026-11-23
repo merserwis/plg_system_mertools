@@ -61,7 +61,7 @@ final class Catalog
         'tel'     => ['icon' => 'phone',          'on' => ['tel_enabled']],
         'consent' => ['icon' => 'shield-alt',     'on' => ['consent_enabled']],
         'dark'    => ['icon' => 'paint-brush',    'on' => ['dark_enabled']],
-        'lists'   => ['icon' => 'list',           'on' => ['list_columns', 'list_pins', 'list_ghosts', 'media_drop', 'dash_range', 'list_dark']],
+        'lists'   => ['icon' => 'list',           'on' => ['list_columns', 'list_pins', 'list_ghosts', 'media_drop', 'media_resize', 'dash_range', 'list_dark']],
         'lock'    => ['icon' => 'lock',           'on' => ['lock_enabled']],
         'editor'  => ['icon' => 'save',           'on' => ['editor_unsaved_warn', 'editor_autosave', 'editor_fill']],
     ];

@@ -74,6 +74,7 @@ use Merserwis\Plugin\System\MerTools\Tool\CheckoutLogic;
 use Merserwis\Plugin\System\MerTools\Tool\Consent;
 use Merserwis\Plugin\System\MerTools\Tool\DarkMode;
 use Merserwis\Plugin\System\MerTools\Tool\Feed;
+use Merserwis\Plugin\System\MerTools\Tool\GridboxReads;
 use Merserwis\Plugin\System\MerTools\Tool\GridboxStamp;
 use Merserwis\Plugin\System\MerTools\Tool\IntroText;
 use Merserwis\Plugin\System\MerTools\Tool\Layout;
@@ -93,7 +94,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.19.1';
+    public const VERSION = '1.19.2';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -274,6 +275,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $this->apps()->appDeleteGuard();
         }
         if ($app->isClient('site')) {
+            $input = $app->getInput();
+            // Gridbox's panel reading the calendar from the site with the panel's token (GridboxReads)
+            if (GridboxReads::needsToken($input->getCmd('option', ''), $input->getCmd('task', ''), (string) $input->getMethod())) {
+                $input->post->set(Session::getFormToken(), '1');
+            }
             $this->locks()->editLock();
             $this->soft(fn () => $this->shop()->foldEndpoint());
         }
@@ -825,12 +831,21 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
     }
 
+    /**
+     * Gridbox's editor and the windows it opens in frames on the site (media manager, icons, fonts, menu,
+     * modules, the pick of a page, ...): pages for the one editing, not the visitor's, so none of the
+     * visitor's tools (cookie consent, light/dark toggle, speed-up). Its public views (page, blog,
+     * account, system) are the site.
+     */
     public function inBuilder(): bool
     {
         $input = $this->getApplication()->getInput();
 
-        return $input->getCmd('option') === 'com_gridbox' && \in_array($input->getCmd('view'), ['editor', 'gridbox'], true);
+        return $input->getCmd('option') === 'com_gridbox' && \in_array($input->getCmd('view'), self::BUILDER_VIEWS, true);
     }
+
+    public const BUILDER_VIEWS = ['editor', 'gridbox', 'uploader', 'icons', 'fonts', 'menu', 'modules', 'pages',
+        'associations', 'baforms', 'bagallery', 'create'];
 
     /** The visitor gets the page now; the work after it goes on without them waiting (where PHP allows it). */
     public function finishResponse(): bool

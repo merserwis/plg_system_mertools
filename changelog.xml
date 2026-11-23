@@ -3,6 +3,24 @@
     <changelog>
         <element>pkg_mertools</element>
         <type>package</type>
+        <version>1.19.2</version>
+        <fix>
+            <item>The calendar of dates in Gridbox's panel works again</item>
+            <item>Media manager: resizable, without the visitor's buttons</item>
+            <item>1.19.1: YouTube playlists loaded only when played</item>
+        </fix>
+        <addition>
+            <item>1.19.0: YouTube films loaded only when played</item>
+            <item>1.19.0: Markdown import: into pages and products too</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.19.2" target="_blank" rel="noopener noreferrer">The full list of changes of 1.19.2 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
         <version>1.19.1</version>
         <fix>
             <item>YouTube playlists loaded only when played</item>

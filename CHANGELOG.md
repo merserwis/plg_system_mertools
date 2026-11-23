@@ -2,6 +2,17 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.19.2 — 2026-11-23
+
+### 🗓️ The calendar of dates in Gridbox's panel works again
+
+In Gridbox 2.20.5 the calendar of a date field in the panel (the settings of a page, tab *Publication*: *Start publishing*, *Finish publishing*) showed an error page “403 Invalid Token” in place of the days of a month. The panel asks the site for the calendar with the panel's token, and the site, which has a session of its own, refused it. MerTools now gives such a request the site's own token — only for the calendar of a month and a product's free booking hours, which only read and which any visitor of the site may ask for. The panel's other requests to the site, which change something, keep Gridbox's check.
+
+### 🖼️ Media manager: resizable, without the visitor's buttons
+
+- Gridbox's media manager (in the panel and in the editor) is made larger or smaller by dragging its edges and corners. The size and place are kept in the browser for the next time and fitted into a smaller screen; a double click on an edge gives Gridbox's own size back. Its full-screen button works as before. New setting *Resize the media manager* (tab *Gridbox lists*), on by default.
+- The cookie button and the light/dark toggle are no longer shown inside the media manager and the other windows Gridbox's editor opens in frames (icons, fonts, menu, modules, the pick of a page); none of the tools for visitors run there.
+
 ## 1.19.1 — 2026-11-20
 
 ### ▶️ YouTube playlists loaded only when played

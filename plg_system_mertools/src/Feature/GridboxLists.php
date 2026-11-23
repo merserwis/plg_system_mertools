@@ -528,14 +528,15 @@ final class GridboxLists extends Feature
      * Gridbox's media manager (in the panel and in the editor): files dropped on it from the computer
      * are uploaded to the folder open in it, through Gridbox's own upload field; with Size on upload on,
      * its uploads say the page they came from (mt_ref: the address of the editor or panel it is open in),
-     * also where the site sends no Referer.
+     * also where the site sends no Referer; its window resized by dragging its edges (media_resize).
      */
     public function mediaDropScript(): void
     {
         $app  = $this->plugin->app();
         $drop = (bool) (int) $this->plugin->params->get('media_drop', 1);
         $ref  = $this->plugin->compress()->boxes() !== [];
-        if ((!$drop && !$ref) || $app->getInput()->getCmd('option') !== 'com_gridbox') {
+        $size = (bool) (int) $this->plugin->params->get('media_resize', 1);
+        if ((!$drop && !$ref && !$size) ||$app->getInput()->getCmd('option') !== 'com_gridbox') {
             return;
         }
         $user = $app->getIdentity();
@@ -544,7 +545,7 @@ final class GridboxLists extends Feature
             return;
         }
         $this->plugin->loadLanguage();
-        $cfg  = ['drop' => $drop, 'ref' => $ref,
+        $cfg  = ['drop' => $drop, 'ref' => $ref, 'resize' => $size,
             'texts' => ['DROP' => Text::_('PLG_SYSTEM_MERTOOLS_MEDIA_DROP'), 'FOLDER' => Text::_('PLG_SYSTEM_MERTOOLS_MEDIA_DROP_FOLDER')]];
         $tail = '<script type="application/json" id="mertools-media-config">' . json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP)
             . '</script><script src="' . Uri::root(true) . '/media/plg_system_mertools/js/mertools-media' . (JDEBUG ? '' : '.min') . '.js?' . MerTools::VERSION . '" defer></script>';
