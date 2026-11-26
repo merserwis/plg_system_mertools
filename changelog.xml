@@ -3,6 +3,24 @@
     <changelog>
         <element>pkg_mertools</element>
         <type>package</type>
+        <version>1.20.0</version>
+        <addition>
+            <item>Markdown export of pages, posts and products</item>
+            <item>Many Markdown documents as products at once</item>
+            <item>AI bots: robots.txt and llms.txt</item>
+            <item>Vimeo films loaded only when played</item>
+            <item>Gridbox's video picture when YouTube has no large one</item>
+            <item>Tables of the site: character set, leftover permission rows, free space</item>
+            <item>With Gridbox's *Compress JavaScript*</item>
+        </addition>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.20.0" target="_blank" rel="noopener noreferrer">The full list of changes of 1.20.0 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
         <version>1.19.3</version>
         <fix>
             <item>Gridbox's Video element with *Lazy load* plays at the first click</item>

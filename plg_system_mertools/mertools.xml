@@ -6,7 +6,7 @@
     <creationDate>2026-10-28</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.19.3</version>
+    <version>1.20.0</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -283,6 +283,38 @@
                     label="PLG_SYSTEM_MERTOOLS_SITEMAP_TTL_LABEL" description="PLG_SYSTEM_MERTOOLS_SITEMAP_TTL_DESC" />
             </fieldset>
 
+            <fieldset name="aibots" label="PLG_SYSTEM_MERTOOLS_FIELDSET_AIBOTS" page="sitemap">
+                <field name="aibots_status" type="mtaibots" parentclass="stack"
+                    label="PLG_SYSTEM_MERTOOLS_AIBOTS_STATUS_LABEL" description="PLG_SYSTEM_MERTOOLS_AIBOTS_STATUS_DESC" />
+                <field name="aibots_block" type="checkboxes" multiple="true"
+                    label="PLG_SYSTEM_MERTOOLS_AIBOTS_BLOCK_LABEL" description="PLG_SYSTEM_MERTOOLS_AIBOTS_BLOCK_DESC">
+                    <option value="GPTBot">GPTBot (OpenAI)</option>
+                    <option value="OAI-SearchBot">OAI-SearchBot (OpenAI)</option>
+                    <option value="ChatGPT-User">ChatGPT-User (OpenAI)</option>
+                    <option value="ClaudeBot">ClaudeBot (Anthropic)</option>
+                    <option value="Claude-SearchBot">Claude-SearchBot (Anthropic)</option>
+                    <option value="Claude-User">Claude-User (Anthropic)</option>
+                    <option value="PerplexityBot">PerplexityBot (Perplexity)</option>
+                    <option value="Perplexity-User">Perplexity-User (Perplexity)</option>
+                    <option value="Google-Extended">Google-Extended (Google)</option>
+                    <option value="Applebot-Extended">Applebot-Extended (Apple)</option>
+                    <option value="meta-externalagent">meta-externalagent (Meta)</option>
+                    <option value="Amazonbot">Amazonbot (Amazon)</option>
+                    <option value="CCBot">CCBot (Common Crawl)</option>
+                    <option value="Bytespider">Bytespider (ByteDance)</option>
+                    <option value="MistralAI-User">MistralAI-User (Mistral)</option>
+                    <option value="DuckAssistBot">DuckAssistBot (DuckDuckGo)</option>
+                </field>
+                <field name="llms_enabled" type="radio" layout="joomla.form.field.radio.switcher" default="0"
+                    label="PLG_SYSTEM_MERTOOLS_LLMS_ENABLED_LABEL" description="PLG_SYSTEM_MERTOOLS_LLMS_ENABLED_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="llms_text" type="textarea" default="" rows="10" filter="raw" showon="llms_enabled:1"
+                    hint="# Nazwa strony&#10;&#10;&gt; Opis&#10;&#10;## Strony&#10;&#10;- [Oferta](https://example.com/oferta)"
+                    label="PLG_SYSTEM_MERTOOLS_LLMS_TEXT_LABEL" description="PLG_SYSTEM_MERTOOLS_LLMS_TEXT_DESC" />
+            </fieldset>
+
             <fieldset name="notfound_panel" label="PLG_SYSTEM_MERTOOLS_FIELDSET_OVERVIEW" page="notfound">
                 <field name="notfound_panel" type="mtnotfound" parentclass="stack"
                     label="PLG_SYSTEM_MERTOOLS_NOTFOUND_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_NOTFOUND_PANEL_DESC" />
@@ -521,6 +553,8 @@
             <fieldset name="database_panel" label="PLG_SYSTEM_MERTOOLS_FIELDSET_OVERVIEW" page="database">
                 <field name="db_indexes_panel" type="mtdbindexes"
                     label="PLG_SYSTEM_MERTOOLS_DB_INDEXES_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_DB_INDEXES_PANEL_DESC" />
+                <field name="db_health_panel" type="mtdbhealth" parentclass="stack"
+                    label="PLG_SYSTEM_MERTOOLS_DBH_PANEL_LABEL" description="PLG_SYSTEM_MERTOOLS_DBH_PANEL_DESC" />
             </fieldset>
 
             <fieldset name="database" label="PLG_SYSTEM_MERTOOLS_FIELDSET_DB" page="database">
@@ -894,6 +928,11 @@
                 </field>
                 <field name="speed_youtube" type="radio" layout="joomla.form.field.radio.switcher" default="1"
                     label="PLG_SYSTEM_MERTOOLS_SPEED_YOUTUBE_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_YOUTUBE_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="speed_vimeo" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIMEO_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIMEO_DESC">
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>

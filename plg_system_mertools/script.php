@@ -275,6 +275,16 @@ class PlgSystemMertoolsInstallerScript extends InstallerScript
             } catch (\Throwable $e) {
                 // created later, at the first use
             }
+            // 1.20.0: MerTools' own tables made before took the server's default collation (utf8mb4_general_ci on many
+            // servers, next to Joomla's utf8mb4_unicode_ci): the same as Joomla's now
+            try {
+                if (!class_exists(\Merserwis\Plugin\System\MerTools\Tool\DbHealth::class) && is_file(__DIR__ . '/src/Tool/DbHealth.php')) {
+                    require_once __DIR__ . '/src/Tool/DbHealth.php';
+                }
+                (new \Merserwis\Plugin\System\MerTools\Tool\DbHealth(Factory::getContainer()->get(DatabaseInterface::class)))->ownTables();
+            } catch (\Throwable $e) {
+                // the tables keep working as they are
+            }
             // the indexes of Gridbox's tables (also checked daily and after Gridbox updates)
             try {
                 // the aliases of Gridbox's pages and categories noted at once (and the alias changes of the edit history taken over),

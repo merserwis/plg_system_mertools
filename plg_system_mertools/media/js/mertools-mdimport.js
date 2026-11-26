@@ -674,6 +674,12 @@
       sections.push({ label: section.label, html: body, text: stripTags(body.replace(/<\/(p|h\d|li|tr|blockquote|pre)>|<br>/g, '\n')).replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim() });
       section = null;
     };
+    // of several headings named as one field the last is the field's section, the ones before it headlines of the page
+    // (the export writes the fields after the page, whose own headline may have a field's name)
+    const lastOf = new Map();
+    nodes.forEach((node, k) => {
+      if (node.type === 'h') { const label = stripTags(inline(node.text, refs)).trim(); if (label && known(label)) lastOf.set(label.replace(/\s+/g, ' ').toLowerCase(), k); }
+    });
     nodes.forEach((node, k) => {
       if (node.type === 'h' && section && node.level > section.level) { section.html.push(render(node, refs)); return; }
       if (node.type !== 'h') { (section ? section.html : html).push(render(node, refs)); return; }
@@ -689,7 +695,7 @@
         return;
       }
       heading = true;
-      if (known(label) && !sections.some((s) => same(s.label, label))) {
+      if (known(label) && !sections.some((s) => same(s.label, label)) && lastOf.get(label.replace(/\s+/g, ' ').toLowerCase()) === k) {
         close();
         section = { label, level: node.level, html: [] };
         return;
@@ -714,7 +720,132 @@
   // the same for the HTML of a field with a text editor: CKEditor is given its <textarea>'s text, entities read
   const safeHtml = (html) => String(html).replace(/&lt;/g, '‹').replace(/&gt;/g, '›');
 
-  const api = { parse, amount, fieldUrl, safeText, safeHtml };
+  // ------------------------------------------------------------------ export: HTML back into Markdown
+
+  // what Markdown would read as formatting in a text; at a line's start also what begins a heading, a list, a quote
+  // (and "<": a text "<!-- x -->" or "<br>" would be read as HTML's comment or line break)
+  const mdEscape = (s) => s.replace(/[\\`*_[\]~|<]/g, '\\$&');
+  // a bare address (https://… not after a letter or digit) is a link to the parser, read as it is: not escaped, or its
+  // "\_" would be part of the address
+  const mdText = (s) => s.split(/((?:^|(?<=[^\p{L}\p{N}]))https?:\/\/[^\s<>]+)/iu).map((part, i) => (i % 2 ? part : mdEscape(part))).join('');
+  // a heading's text: a "#" at its end after a space would be read as the heading's closing sequence
+  const headingText = (s) => s.replace(/(^|\s)(#+)(\s*)$/, '$1\\$2$3');
+  // (also a line of three or more "-", which would be a rule; "*" and "_" are escaped everywhere)
+  const lineStart = (s) => s.replace(/^(\s*)(#|>|[-+=](?=\s|$)|-(?=(?:[ \t]*-){2,}[ \t]*$))/gm, '$1\\$2').replace(/^(\s*\d+)([.)])(?=\s|$)/gm, '$1\\$2');
+  const BLOCK = /^(P|DIV|SECTION|ARTICLE|HEADER|FOOTER|MAIN|ASIDE|NAV|FIGURE|FIGCAPTION|UL|OL|LI|BLOCKQUOTE|PRE|TABLE|THEAD|TBODY|TFOOT|TR|TD|TH|HR|H[1-6]|DL|DT|DD|ADDRESS)$/;
+
+  /**
+   * The Markdown of a part of a page (a Text module's content, a field's HTML) in the form parse() reads back:
+   * paragraphs, headings (level at least minLevel), bold, italics, strike, code, links, images, lists, quotes,
+   * code blocks, tables, rules. What Markdown has no form for (colours, fonts, a module's style) is left out; its
+   * text stays. node: a DOM element; nothing else of the page is read.
+   */
+  const toMarkdown = (node, options = {}) => {
+    const minLevel = Math.min(6, Math.max(1, options.minLevel || 1));
+    // inLink: the text of a link, where an address must not become a link of its own ("https\://" keeps it text)
+    const inlineMd = (el, inLink = false) => {
+      let out = '';
+      el.childNodes.forEach((n) => {
+        if (n.nodeType === 3) {
+          const t = n.nodeValue.replace(/\s+/g, ' ');
+          out += inLink ? mdEscape(t).replace(/(https?):\/\//gi, '$1\\://') : mdText(t);
+          return;
+        }
+        if (n.nodeType !== 1) return;
+        const tag = n.tagName;
+        const inner = () => inlineMd(n, inLink);
+        const wrap = (mark) => { const t = inner(); const m = /^(\s*)([\s\S]*?)(\s*)$/.exec(t); out += m[2] ? m[1] + mark + m[2] + mark + m[3] : t; };
+        if (tag === 'BR') out += '\\\n';
+        else if (tag === 'STRONG' || tag === 'B') wrap('**');
+        else if (tag === 'EM' || tag === 'I') wrap('*');
+        else if (tag === 'S' || tag === 'DEL' || tag === 'STRIKE') wrap('~~');
+        else if (tag === 'CODE') {
+          const t = n.textContent;
+          const tick = '`'.repeat(Math.max(0, ...(t.match(/`+/g) || []).map((r) => r.length)) + 1);
+          const pad = /^`|`$/.test(t) ? ' ' : '';
+          out += tick + pad + t + pad + tick;
+        }
+        else if (tag === 'IMG') out += image(n);
+        else if (tag === 'A' && n.getAttribute('href')) {
+          const title = n.getAttribute('title');
+          const url = n.getAttribute('href').trim();
+          // always as [text](address): a bare address would lose a "_" or "." at its end (the import leaves those out of a link)
+          out += '[' + inlineMd(n, true).trim() + '](' + dest(url) + (title ? ' "' + title.replace(/"/g, '\\"') + '"' : '') + ')';
+        } else if (/^(SCRIPT|STYLE|TEMPLATE|NOSCRIPT|IFRAME|BUTTON|INPUT|SELECT|TEXTAREA)$/.test(tag)) { /* nothing of it */ }
+        else out += inner();
+      });
+
+      return out;
+    };
+    const dest = (url) => { const u = String(url).trim(); return /[\s()<>]/.test(u) ? '<' + u.replace(/[<>\n]/g, encodeURIComponent) + '>' : u; };
+    const image = (n) => { const src = n.getAttribute('src'); return src ? '![' + mdText((n.getAttribute('alt') || '').replace(/\s+/g, ' ')) + '](' + dest(src) + ')' : ''; };
+    const para = (text) => lineStart(text.replace(/^[ \t]+|[ \t]+$/gm, '').replace(/\\\n$/, '').trim());
+    const blocksOf = (el, out) => {
+      let run = '';
+      const flush = () => { const t = para(run); if (t) out.push(t); run = ''; };
+      el.childNodes.forEach((n) => {
+        if (n.nodeType === 3) { run += mdText(n.nodeValue.replace(/\s+/g, ' ')); return; }
+        if (n.nodeType !== 1) return;
+        const tag = n.tagName;
+        if (!BLOCK.test(tag)) { const wrapper = n.ownerDocument.createElement('span'); wrapper.append(n.cloneNode(true)); run += inlineMd(wrapper); return; }
+        flush();
+        if (/^H[1-6]$/.test(tag)) {
+          const t = headingText(inlineMd(n).replace(/\\\n/g, ' ').trim());
+          if (t) out.push('#'.repeat(Math.max(minLevel, +tag[1])) + ' ' + t);
+        } else if (tag === 'P' || tag === 'DT' || tag === 'DD' || tag === 'ADDRESS' || tag === 'FIGCAPTION') {
+          if ([...n.children].some((c) => BLOCK.test(c.tagName))) blocksOf(n, out);
+          else { const t = para(inlineMd(n)); if (t) out.push(t); }
+        } else if (tag === 'UL' || tag === 'OL') out.push(list(n));
+        else if (tag === 'BLOCKQUOTE') { const inner = []; blocksOf(n, inner); if (inner.length) out.push(inner.join('\n\n').replace(/^/gm, '> ').replace(/^> $/gm, '>')); }
+        else if (tag === 'PRE') {
+          // a fence longer than any run of backticks in the code: no line of it closes the block
+          const t = n.textContent.replace(/\n$/, '');
+          const fence = '`'.repeat(Math.max(3, ...(t.match(/`+/g) || []).map((r) => r.length + 1)));
+          out.push(fence + '\n' + t + '\n' + fence);
+        }
+        else if (tag === 'HR') out.push('---');
+        else if (tag === 'TABLE') out.push(table(n));
+        else blocksOf(n, out);
+      });
+      flush();
+
+      return out;
+    };
+    const list = (el) => {
+      const ordered = el.tagName === 'OL';
+      let k = Number(el.getAttribute('start')) || 1;
+      return [...el.children].filter((li) => li.tagName === 'LI').map((li) => {
+        const mark = ordered ? (k++) + '. ' : '- ';
+        const parts = blocksOf(li, []);
+        const body = (parts.length ? parts.join('\n\n') : '').replace(/\n/g, '\n' + ' '.repeat(mark.length));
+
+        return mark + body;
+      }).join('\n');
+    };
+    const table = (el) => {
+      const rows = [...el.querySelectorAll('tr')].filter((tr) => tr.closest('table') === el);
+      if (!rows.length) return '';
+      const cells = rows.map((tr) => [...tr.children].filter((c) => /^T[DH]$/.test(c.tagName)).map((c) => inlineMd(c).replace(/\\\n/g, ' ').replace(/\s+/g, ' ').trim()));
+      const width = Math.max(...cells.map((r) => r.length));
+      const line = (r) => '| ' + Array.from({ length: width }, (_, i) => r[i] || '').join(' | ') + ' |';
+
+      return [line(cells[0]), '|' + ' --- |'.repeat(width), ...cells.slice(1).map(line)].join('\n');
+    };
+
+    return blocksOf(node, []).join('\n\n');
+  };
+
+  // a document's text: UTF-8, else Windows-1250 (a .md saved by Notepad on a Polish Windows)
+  const readFile = async (file) => {
+    const bytes = await file.arrayBuffer();
+    try {
+      return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch (e) {
+      return new TextDecoder('windows-1250').decode(bytes);
+    }
+  };
+
+  const api = { parse, amount, fieldUrl, safeText, safeHtml, toMarkdown, readFile };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (typeof document === 'undefined') return;
   window.MerToolsMarkdown = api;
@@ -763,14 +894,7 @@
   };
 
   // a file saved by Notepad as "ANSI" is Windows-1250, not UTF-8
-  const read = async (file) => {
-    const bytes = await file.arrayBuffer();
-    try {
-      return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-    } catch (e) {
-      return new TextDecoder('windows-1250').decode(bytes);
-    }
-  };
+  const read = readFile;
 
   const emptyText = (el) => {
     const content = el.querySelector('.content-text');
@@ -851,7 +975,10 @@
       if (!el) return null;
       const money = type === 'price' || type === 'number';
 
-      return { label, snap: snapValue(el), get: () => el.value.trim(), set: (e) => {
+      // "1.234" would be read back as thousands or as a fraction, so neither: "1.2340" is one number
+      const out = () => { const v = el.value.trim(); return money && /^-?\d+\.\d{3}$/.test(v) ? v + '0' : v; };
+
+      return { label, snap: snapValue(el), get: () => el.value.trim(), out, set: (e) => {
         const text = asText(e).replace(/\s*\n\s*/g, ' ');
         const v = money ? amount(text) : safeText(text);
         if (v === '') return false;
@@ -898,7 +1025,7 @@
         return { label, rich: true, snap, get: () => window.WFEditor.getContent(id), set: (e) => { window.WFEditor.setContent(id, safeHtml(asHtml(e))); return true; } };
       }
 
-      return { label, snap: snapValue(el), get: () => el.value.trim(), set: (e) => { el.value = safeText(asText(e)); fire(el); return true; } };
+      return { label, snap: snapValue(el), get: () => el.value.trim(), out: () => el.value.trim(), set: (e) => { el.value = safeText(asText(e)); fire(el); return true; } };
     }
     if (type === 'url' || type === 'field-button') {
       const text = g.querySelector('input[type="text"][data-name="label"]');
@@ -908,7 +1035,14 @@
       const snap = () => { const back = [text, link].filter(Boolean).map((el) => snapValue(el)()); return () => back.forEach((f) => f()); };
 
       // state: text and address apart, so "Sonel" + "/sonel" is not the same as "Sonel /sonel" typed into the text
-      return { label, snap, state: () => JSON.stringify([text ? text.value : '', link.value]), get: () => [text ? text.value : '', link.value].filter(Boolean).join(' ').trim(), set: (e) => {
+      const out = () => {
+        const t = text ? text.value.trim() : '';
+        const u = link.value.trim();
+
+        return { md: t && u ? '[' + mdText(t) + '](' + u.replace(/[\s()<>]/g, encodeURIComponent) + ')' : (u || mdText(t)) };
+      };
+
+      return { label, snap, out, state: () => JSON.stringify([text ? text.value : '', link.value]), get: () => [text ? text.value : '', link.value].filter(Boolean).join(' ').trim(), set: (e) => {
         // a line gives its link; a section its first link, with the text of that link
         const a = e.html ? new DOMParser().parseFromString(e.html, 'text/html').querySelector('a[href]') : null;
         const value = (a ? a.textContent : asText(e).split('\n')[0]).replace(/\s+/g, ' ').trim();
@@ -932,7 +1066,7 @@
       const el = g.querySelector('select[name]');
       if (!el) return null;
 
-      return { label, snap: snapValue(el), get: () => el.value, set: (e) => {
+      return { label, snap: snapValue(el), get: () => el.value, out: () => (el.value !== '' && el.selectedIndex >= 0 ? el.options[el.selectedIndex].textContent.trim() : ''), set: (e) => {
         const want = key(asText(e));
         const option = [...el.options].find((o) => o.value !== '' && (key(o.textContent) === want || key(o.value) === want));
         if (!option) return false;
@@ -953,7 +1087,9 @@
         return () => { boxes.forEach((b, i) => { b.checked = was[i]; }); fire(boxes[0]); };
       };
 
-      return { label, snap, get: () => boxes.filter((b) => b.checked).map((b) => b.value).join(','), set: (e) => {
+      const name = (b) => (((b.closest('.ba-checkbox-wrapper') || b).querySelector('span') || b).textContent || b.value).replace(/\s+/g, ' ').trim();
+
+      return { label, snap, get: () => boxes.filter((b) => b.checked).map((b) => b.value).join(','), out: () => boxes.filter((b) => b.checked).map(name).join(', '), set: (e) => {
         const want = asText(e).split(type === 'radio' ? /\n/ : /[,;\n]/).map(key).filter(Boolean);
         const hit = boxes.filter((b) => want.includes(title(b)) || want.includes(key(b.value)));
         if (!hit.length) return false;
@@ -1217,6 +1353,75 @@
     notice(say(mode === 'app' ? cfg.texts.rest : cfg.texts.done, headlines, done - headlines) + (said ? ' ' + said : ''));
   };
 
+  // ---------------------------------------------------------------- the export
+
+  // the page (its fields, the fields of an item, its headlines, texts and images) as a document the import reads back:
+  // "Label: value" lines at the top, the modules of the page, a field with formatting or of many lines as a section
+  // named as the field (## Label) at the end
+  const exportDoc = () => {
+    const w = app.editor;
+    if (!w || !w.document) { notice(cfg.texts.fail, true); return; }
+    const top = [];
+    const tail = [];
+    const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+    const line = (label, md) => top.push('**' + mdText(label) + ':** ' + md);
+    let fields = 0;
+    Object.keys(FIELD_NAMES).forEach((field) => {
+      const f = pageField(field);
+      const v = f ? f.get().replace(/\s+/g, ' ').trim() : '';
+      if (v) { line(cap(cfg.texts.names[field]), lineStart(mdText(v))); fields++; }
+    });
+    new Set(formFields().values()).forEach((f) => {
+      let v;
+      try { v = f.rich ? f.get() : f.out(); } catch (e) { return; }
+      if (f.rich) {
+        const div = w.document.createElement('div');
+        div.innerHTML = v || '';
+        const body = toMarkdown(div, { minLevel: 3 });
+        if (body) { tail.push('## ' + headingText(mdText(f.label)) + '\n\n' + body); fields++; }
+      } else if (v && typeof v === 'object') {
+        if (v.md) { line(f.label, v.md); fields++; }
+      } else if (v && /\n/.test(v)) {
+        tail.push('## ' + headingText(mdText(f.label)) + '\n\n' + v.split(/\n+/).map((l) => lineStart(mdText(l.trim()))).filter(Boolean).join('\n\n'));
+        fields++;
+      } else if (v) { line(f.label, lineStart(mdText(v))); fields++; }
+    });
+    const body = [];
+    let headlines = 0;
+    let texts = 0;
+    let skipped = 0;
+    const root = w.document.getElementById('ba-edit-section');
+    (root ? [...root.querySelectorAll('.ba-item')] : []).forEach((el) => {
+      if (el.parentElement && el.parentElement.closest('.ba-item')) return; // a module inside another one: with it
+      if (el.classList.contains('ba-item-headline')) {
+        const h = el.querySelector('.headline-wrapper h1, .headline-wrapper h2, .headline-wrapper h3, .headline-wrapper h4, .headline-wrapper h5, .headline-wrapper h6');
+        const t = h ? h.textContent.replace(/\s+/g, ' ').trim() : '';
+        if (t) { body.push('#'.repeat(+h.tagName[1]) + ' ' + headingText(mdText(t))); headlines++; }
+      } else if (el.classList.contains('ba-item-text')) {
+        const content = el.querySelector('.content-text');
+        const md = content && !emptyText(el) ? toMarkdown(content) : '';
+        if (md) { body.push(md); texts++; }
+      } else if (el.classList.contains('ba-item-image') && el.querySelector('img[src]')) {
+        const img = el.querySelector('img[src]');
+        body.push('![' + mdText((img.getAttribute('alt') || '').trim()) + '](' + img.getAttribute('src').replace(/[\s()<>]/g, encodeURIComponent) + ')');
+        texts++;
+      } else {
+        skipped++;
+      }
+    });
+    const doc = [top.join('\n'), top.length ? '---' : '', ...body, ...tail].filter(Boolean).join('\n\n') + '\n';
+    const alias = (pageField('alias') || { get: () => '' }).get();
+    const name = (alias || 'gridbox-' + (new URLSearchParams(window.location.search).get('id') || 'page')).replace(/[^\p{L}\p{N}._-]+/gu, '-') + '.md';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([doc], { type: 'text/markdown;charset=utf-8' }));
+    a.download = name;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    notice(say(cfg.texts.exported, name, fields, headlines, texts) + (skipped ? ' ' + say(cfg.texts.skipped, skipped) : ''));
+  };
+
   input.addEventListener('change', () => {
     const file = input.files && input.files[0];
     input.value = '';
@@ -1229,6 +1434,7 @@
     + '.mt-md-import:hover,.mt-md-import:focus-visible{border-color:#1da6f4;color:#1da6f4;outline:0}'
     + '.mt-md-import i{font-size:18px;line-height:1}';
   const open = (e) => { e.preventDefault(); e.stopPropagation(); if (!busy) input.click(); };
+  const save = (e) => { e.preventDefault(); e.stopPropagation(); if (!busy) exportDoc(); };
   const button = () => {
     try {
       const doc = document.querySelector('iframe.editor-iframe')?.contentDocument;
@@ -1247,7 +1453,14 @@
         b.setAttribute('aria-label', cfg.texts.button);
         b.innerHTML = '<i class="zmdi zmdi-file-text"></i><span>MD</span>';
         b.addEventListener('click', open);
-        bar.prepend(b);
+        const x = doc.createElement('button');
+        x.type = 'button';
+        x.className = 'mt-md-import mt-md-export';
+        x.title = cfg.texts.export;
+        x.setAttribute('aria-label', cfg.texts.export);
+        x.innerHTML = '<i class="zmdi zmdi-download"></i><span>MD</span>';
+        x.addEventListener('click', save);
+        bar.prepend(b, x);
       }
     } catch (e) {
       // the editor is not there yet
@@ -1264,9 +1477,15 @@
       span.querySelector('a').setAttribute('aria-label', cfg.texts.side);
       span.querySelector('.ba-tooltip').textContent = cfg.texts.side;
       span.querySelector('a').addEventListener('click', open);
+      const out = document.createElement('span');
+      out.className = 'mt-md-import-side mt-md-export-side';
+      out.innerHTML = '<a href="#" role="button"><span class="zmdi zmdi-download"></span></a><span class="ba-tooltip ba-right"></span>';
+      out.querySelector('a').setAttribute('aria-label', cfg.texts.export);
+      out.querySelector('.ba-tooltip').textContent = cfg.texts.export;
+      out.querySelector('a').addEventListener('click', save);
       // with the icons that add content (Library ends their group with a line)
       const library = icons.querySelector('.add-library-block');
-      if (library) library.before(span); else icons.append(span);
+      if (library) library.before(span, out); else icons.append(span, out);
     }
   };
   setInterval(button, 1000);

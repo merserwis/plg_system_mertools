@@ -15,6 +15,11 @@ const html = (md) => parse(md, { firstTitle: false }).blocks.map((b) => (b.type 
 const inline = (md) => html(md).replace(/^<p>|<\/p>$/g, '');
 
 // ---- the split into modules
+// a headline of the page named as a field, and the field's section after it (as the export writes them): the last is the field
+const twice = parse('Tytuł: P\nSKU: X\n\n## Dane techniczne\n\nTreść strony\n\n## Dane techniczne\n\npole', { field: (l) => /dane techniczne|sku/i.test(l) });
+check('of two headings named as a field the last is the field, the first a headline of the page',
+  [twice.sections.map((x) => x.html), twice.blocks], [['<p>pole</p>'], [{ type: 'headline', level: 2, text: 'Dane techniczne' }, { type: 'text', html: '<p>Treść strony</p>' }]]);
+check('an amount as the export writes it is read back the same', [amount('1.2340'), amount('1.234')], ['1.2340', '']);
 let r = parse('# Title\n\nIntro.\n\n## One\n\nText one.\n\nMore.\n\n### Two\n\n- a\n- b\n');
 check('first # heading is the title, not a module', r.title, 'Title');
 check('headlines and the texts between them', r.blocks, [

@@ -616,7 +616,8 @@ final class Speedup
     /**
      * Video backgrounds start after the first interaction, or $seconds after the page has loaded
      * (Gridbox starts them while the page is still loading). Wraps app.checkVideoBackground right
-     * after Gridbox's own script; the Gridbox file is not changed.
+     * after Gridbox's own script (also its compress_js file; Gridbox calls it on DOMContentLoaded);
+     * the Gridbox file is not changed.
      *
      * On phones (screens up to $phoneWidth px, or with the browser's data saver on) $phone decides:
      * 'video' the same as elsewhere, 'none' no video, 'image' a still picture instead ($phoneImage,
@@ -627,7 +628,7 @@ final class Speedup
     public static function delayVideoBackground(string $html, int $seconds, string $phone = 'video', int $phoneWidth = 768,
         string $phoneImage = '', string $phoneColor = '#1a1a1a', string $nonce = ''): string
     {
-        if (!preg_match('#<script\b[^>]*\bsrc="[^"]*templates/gridbox/js/gridbox\.js[^"]*"[^>]*>\s*</script>#i', $html, $m, PREG_OFFSET_CAPTURE)) {
+        if (!preg_match(self::GRIDBOX_JS, $html, $m, PREG_OFFSET_CAPTURE)) {
             return $html;
         }
         $ms    = max(0, min(60, $seconds)) * 1000;
@@ -711,7 +712,19 @@ final class Speedup
      */
     public static function youtubeFacade(string $html, string $label = 'Play', string $nonce = ''): string
     {
-        if (stripos($html, '/embed/') === false || stripos($html, '<iframe') === false) {
+        return self::videoFacade($html, $label, $nonce);
+    }
+
+    /**
+     * youtubeFacade for YouTube ($youtube) and for Vimeo films ($vimeo: id, the h= of an unlisted film => the
+     * address of its picture or null; null: Vimeo left as it is). A Vimeo film (player.vimeo.com/video/ID) the same
+     * way: its picture, the player with autoplay=1 on a click. Left as they are: background=1 (a film playing silently
+     * as a background), autoplay=1, a film whose picture is not known (private, refused: $vimeo gives null).
+     */
+    public static function videoFacade(string $html, string $label = 'Play', string $nonce = '', bool $youtube = true, ?callable $vimeo = null): string
+    {
+        if (stripos($html, '<iframe') === false
+            || !(($youtube && stripos($html, '/embed/') !== false) || ($vimeo && stripos($html, 'player.vimeo.com/video/') !== false))) {
             return $html;
         }
         $parts = preg_split('#(<(script|style|textarea)\b[^>]*>.*?</\2\s*>)#is', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
@@ -722,7 +735,7 @@ final class Speedup
         // [text, a whole script/style/textarea, its tag name, text, …]
         for ($i = 0, $n = \count($parts); $i < $n; $i++) {
             if ($i % 3 === 0) {
-                $out .= self::facadeFrames($parts[$i], $label, $nonce);
+                $out .= self::facadeFrames($parts[$i], $label, $nonce, $youtube, $vimeo);
             } elseif ($i % 3 === 1) {
                 $out .= $parts[$i];
             }
@@ -731,39 +744,29 @@ final class Speedup
         return $out;
     }
 
-    private static function facadeFrames(string $html, string $label, string $nonce): string
+    private static function facadeFrames(string $html, string $label, string $nonce, bool $youtube, ?callable $vimeo): string
     {
         if (stripos($html, '<iframe') === false) {
             return $html;
         }
 
         // the tag to its real end: a ">" inside a quoted value (title="A > B") is not it
-        return (string) preg_replace_callback('#<iframe\b(?:[^>"\']++|"[^"]*+"|\'[^\']*+\')*+>#i', function (array $m) use ($label, $nonce): string {
+        return (string) preg_replace_callback('#<iframe\b(?:[^>"\']++|"[^"]*+"|\'[^\']*+\')*+>#i', function (array $m) use ($label, $nonce, $youtube, $vimeo): string {
             $tag   = $m[0];
             $attrs = self::attributes($tag);
             if (isset($attrs['srcdoc']) || isset($attrs['sandbox']) || !isset($attrs['src'])) {
                 return $tag;
             }
-            $src = html_entity_decode($attrs['src'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            if (!preg_match('#^\s*(?:https?:)?//(?:www\.)?(youtube(?:-nocookie)?\.com)/embed/([A-Za-z0-9_-]{11})(?:\?([^\#]*))?(?:\#.*)?\s*$#i', $src, $u)) {
+            $src  = html_entity_decode($attrs['src'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $film = ($youtube ? self::youtubeFilm($src) : null) ?? ($vimeo ? self::vimeoFilm($src, $vimeo) : null);
+            if ($film === null) {
                 return $tag;
             }
-            // these two are not a film's id, though of its length
-            if (\in_array(strtolower($u[2]), ['videoseries', 'live_stream'], true)) {
-                return $tag;
-            }
-            parse_str($u[3] ?? '', $query);
-            if (!empty($query['enablejsapi']) || !empty($query['autoplay'])) {
-                return $tag;
-            }
-            unset($query['autoplay']);
-            $query['autoplay'] = 1;
-            $play  = 'https://www.' . strtolower($u[1]) . '/embed/' . $u[2] . '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
-            $thumb = 'https://i.ytimg.com/vi/' . $u[2] . '/hqdefault.jpg';
+            [$play, $thumb, $mark] = $film;
             $doc   = '<!DOCTYPE html><meta charset="utf-8">' . self::nonced('<style>' . self::YT_CSS . '</style>', $nonce)
                 . '<a href="' . self::h($play) . '" aria-label="' . self::h($label) . '"><img src="' . self::h($thumb) . '" alt="" decoding="async"><b></b></a>';
 
-            $add = ' srcdoc="' . self::h($doc) . '" data-mt-yt="' . $u[2] . '"';
+            $add = ' srcdoc="' . self::h($doc) . '" ' . $mark;
             if (!isset($attrs['loading'])) {
                 $add .= ' loading="lazy"';
             }
@@ -782,6 +785,55 @@ final class Speedup
         }, $html);
     }
 
+    /** a YouTube film's [player with autoplay=1, its picture, the frame's mark], or null: not one to show as a picture */
+    private static function youtubeFilm(string $src): ?array
+    {
+        if (!preg_match('#^\s*(?:https?:)?//(?:www\.)?(youtube(?:-nocookie)?\.com)/embed/([A-Za-z0-9_-]{11})(?:\?([^\#]*))?(?:\#.*)?\s*$#i', $src, $u)) {
+            return null;
+        }
+        // these two are not a film's id, though of its length
+        if (\in_array(strtolower($u[2]), ['videoseries', 'live_stream'], true)) {
+            return null;
+        }
+        parse_str($u[3] ?? '', $query);
+        if (!empty($query['enablejsapi']) || !empty($query['autoplay'])) {
+            return null;
+        }
+        $query['autoplay'] = 1;
+
+        return ['https://www.' . strtolower($u[1]) . '/embed/' . $u[2] . '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986),
+            'https://i.ytimg.com/vi/' . $u[2] . '/hqdefault.jpg', 'data-mt-yt="' . $u[2] . '"'];
+    }
+
+    /** the same for a Vimeo film, its picture from $thumb(id, h) */
+    private static function vimeoFilm(string $src, callable $thumb): ?array
+    {
+        if (!preg_match('#^\s*(?:https?:)?//player\.vimeo\.com/video/(\d{1,12})(?:/([0-9a-f]{6,20}))?/?(?:\?([^\#]*))?(?:\#.*)?\s*$#i', $src, $u)) {
+            return null;
+        }
+        parse_str($u[3] ?? '', $query);
+        if (!empty($query['autoplay']) || !empty($query['background']) || !empty($query['api'])) {
+            return null;
+        }
+        $hash = $u[2] !== '' ? $u[2] : (\is_string($query['h'] ?? null) && preg_match('#^[0-9a-f]{6,20}$#i', $query['h']) ? $query['h'] : '');
+        $pic  = $thumb($u[1], strtolower($hash));
+        if (!\is_string($pic) || !self::vimeoPicture($pic)) {
+            return null;
+        }
+        if ($hash !== '') {
+            $query['h'] = $hash;
+        }
+        $query['autoplay'] = 1;
+
+        return ['https://player.vimeo.com/video/' . $u[1] . '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986), $pic, 'data-mt-vimeo="' . $u[1] . '"'];
+    }
+
+    /** a picture of Vimeo's own server: nothing else is shown in place of a film */
+    public static function vimeoPicture(string $url): bool
+    {
+        return (bool) preg_match('#^https://i\.vimeocdn\.com/[A-Za-z0-9_./%-]+(?:\?[A-Za-z0-9_=&.%-]*)?$#', $url);
+    }
+
     /**
      * Gridbox's Video element with lazy loading shows its own picture of the film (.video-lazy-load-thumbnail) and
      * writes the frame of YouTube on a click (initvideo.js, jQuery's replaceWith) — with autoplay=0 but in an overlay
@@ -789,7 +841,8 @@ final class Speedup
      * written for that picture gets autoplay=1: the click that asked for the film plays it. The wrap goes on as soon
      * as jQuery is there, at the latest when the first click reaches the document (before Gridbox's handler of the
      * picture); the flag on $.fn keeps it one, also when Consent's YouTube without cookies wraps replaceWith too.
-     * Only on a page with such a picture.
+     * Gridbox takes the picture from maxresdefault.jpg, which YouTube has not for every film (a grey 120 × 90 one
+     * instead): such a picture is replaced by the film's hqdefault.jpg. Only on a page with such a picture.
      */
     public static function youtubeLazyPlay(string $html, string $nonce = ''): string
     {
@@ -806,6 +859,12 @@ final class Speedup
         . 'arguments[0]=v.replace(/(<iframe\b[^>]*?\ssrc=")([^"]*)"/i,function(a,b,u){var r=/([?&])autoplay=[^&#]*/;'
         . 'return b+(r.test(u)?u.replace(r,"$1autoplay=1"):u+(u.indexOf("?")<0?"?":"&")+"autoplay=1")+\'"\'})}'
         . 'return o.apply(this,arguments)}}'
+        // YouTube has no maxresdefault.jpg for every film: a 120 × 90 grey picture (or an error) → its hqdefault.jpg
+        . 'function thumbs(){d.querySelectorAll(".video-lazy-load-thumbnail").forEach(function(e){'
+        . 'var m=/\/vi\/([\w-]{11})\/maxresdefault\.jpg/.exec(e.style.backgroundImage),i;if(!m)return;i=new Image();'
+        . 'i.onload=i.onerror=function(){if(!(i.naturalWidth>120))e.style.backgroundImage=\'url("https://img.youtube.com/vi/\'+m[1]+\'/hqdefault.jpg")\'};'
+        . 'i.src="https://img.youtube.com/vi/"+m[1]+"/maxresdefault.jpg"})}'
+        . 'd.readyState==="loading"?d.addEventListener("DOMContentLoaded",thumbs):thumbs();'
         . 'hook();d.addEventListener("DOMContentLoaded",hook);w.addEventListener("load",hook);d.addEventListener("click",hook,true)})(window,document);';
 
     /** the attributes of a tag: lower-case name => value as written (entities not decoded); a bare one => '' */
@@ -841,7 +900,7 @@ final class Speedup
     public static function delayPopups(string $html, string $nonce = ''): string
     {
         if (stripos($html, 'ba-lightbox-backdrop') === false
-            || !preg_match('#<script\b[^>]*\bsrc="[^"]*templates/gridbox/js/gridbox\.js[^"]*"[^>]*>\s*</script>#i', $html, $m, PREG_OFFSET_CAPTURE)) {
+            || !preg_match(self::GRIDBOX_JS, $html, $m, PREG_OFFSET_CAPTURE)) {
             return $html;
         }
         if (str_contains($html, 'mtPopup')) {
@@ -918,6 +977,9 @@ final class Speedup
     }
 
     /** a type attribute of a tag: "…", '…' or bare */
+    /** Gridbox's script: gridbox.js, or with Gridbox's compress_js the one file of templates/gridbox/js/min/ that holds it */
+    private const GRIDBOX_JS = '#<script\b[^>]*\bsrc="[^"]*templates/gridbox/js/(?:gridbox\.js|min/[0-9a-f]+\.min\.js)[^"]*"[^>]*>\s*</script>#i';
+
     private const TYPE_ATTR = '#\stype\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'=<>`]+))#i';
 
     /**

@@ -8,10 +8,12 @@ define('_JEXEC', 1);
 require __DIR__ . '/../plg_system_mertools/src/Tool/Speedup.php';
 require __DIR__ . '/../plg_system_mertools/src/Tool/ImageSize.php';
 require __DIR__ . '/../plg_system_mertools/src/Tool/PostRows.php';
+require __DIR__ . '/../plg_system_mertools/src/Tool/VimeoThumbs.php';
 
 use Merserwis\Plugin\System\MerTools\Tool\ImageSize;
 use Merserwis\Plugin\System\MerTools\Tool\Speedup;
 use Merserwis\Plugin\System\MerTools\Tool\PostRows;
+use Merserwis\Plugin\System\MerTools\Tool\VimeoThumbs;
 
 $fail = 0;
 $check = function (string $label, $got, $exp) use (&$fail) {
@@ -230,6 +232,10 @@ $check('phone picture: YouTube thumbnail fallback', $has($i, 'https://i.ytimg.co
 $check('bad colour dropped', $has(Speedup::delayVideoBackground($g, 3, 'none', 768, '', 'red;}</script>'), 'var col="",'), true);
 $check('unknown phone mode = video', Speedup::delayVideoBackground($g, 3, 'x'), $v);
 $check('width clamped', $has(Speedup::delayVideoBackground($g, 3, 'none', 5), 'max-width:320px'), true);
+$gz = '<script src="/templates/gridbox/js/min/0d3b2c1a9f8e7d6c5b4a39281706f5e4.min.js?2.20.5"></script><script src="/x.js"></script>';
+$check('video delay: also right after Gridbox\'s compressed scripts (compress_js)', str_starts_with(Speedup::delayVideoBackground($gz, 3), '<script src="/templates/gridbox/js/min/0d3b2c1a9f8e7d6c5b4a39281706f5e4.min.js?2.20.5"></script><script>(function(w,d){var a=w.app;'), true);
+$check('video delay: another file of js/min is not Gridbox\'s', Speedup::delayVideoBackground('<script src="/templates/gridbox/js/min/index.js"></script>', 3), '<script src="/templates/gridbox/js/min/index.js"></script>');
+$check('popups: also after the compressed scripts', str_contains(Speedup::delayPopups('<div class="ba-lightbox-backdrop"></div>' . $gz), '.min.js?2.20.5"></script><script>(function(w){var o=w.initLightbox;'), true);
 
 // ---------------------------------------------------------------- marketing scripts
 $s = '<head><script type="application/json" class="joomla-script-options new">{"googletagmanager.com":1}</script>'
@@ -392,6 +398,75 @@ $check('yt: without a nonce none', $has(Speedup::youtubeFacade('<iframe src="htt
 $check('yt: a ">" in a quoted value is not the end of the tag', $has(Speedup::youtubeFacade('<iframe title="A > B" src="https://www.youtube.com/embed/abcdefghijk"></iframe>', 'P'), 'title="A > B" src="https://www.youtube.com/embed/abcdefghijk" srcdoc="'), true);
 $check('yt: a quote in the label cannot leave the attribute', $has(Speedup::youtubeFacade('<iframe src="https://www.youtube.com/embed/abcdefghijk"></iframe>', 'a"b<c'), 'title="a&quot;b&lt;c"'), true);
 
+// ---------------------------------------------------------------- Vimeo films: the same, the picture asked from Vimeo once
+$pic   = 'https://i.vimeocdn.com/video/452001751-8216e0571c-d_1280?region=us';
+$asked = [];
+$known = function (string $id, string $h) use ($pic, &$asked): ?string {
+    $asked[] = $id . '/' . $h;
+
+    return $id === '404' ? null : ($id === '666' ? 'https://evil.example/x.jpg' : $pic);
+};
+$vm  = '<iframe src="https://player.vimeo.com/video/76979871?autoplay=0&amp;loop=0" frameborder="0" allowfullscreen></iframe>';
+$f   = Speedup::videoFacade($vm, 'Odtwórz film Vimeo', '', false, $known);
+$doc = preg_match('#srcdoc="([^"]*)"#', $f, $sm) ? html_entity_decode($sm[1], ENT_QUOTES | ENT_HTML5, 'UTF-8') : '';
+$check('vimeo: Gridbox\'s Video frame: the player on a click, playing', $has($doc, '<a href="https://player.vimeo.com/video/76979871?autoplay=1&amp;loop=0" aria-label="Odtwórz film Vimeo">'), true);
+$check('vimeo: the picture Vimeo gave', $has($doc, '<img src="https://i.vimeocdn.com/video/452001751-8216e0571c-d_1280?region=us"'), true);
+$check('vimeo: marked, lazy, allowed to play', [$has($f, ' data-mt-vimeo="76979871"'), $has($f, ' loading="lazy"'), $has($f, ' allow="autoplay;')], [true, true, true]);
+$check('vimeo: idempotent', Speedup::videoFacade($f, 'P', '', false, $known), $f);
+$asked = [];
+$f   = Speedup::videoFacade('<iframe src="https://player.vimeo.com/video/123456?h=ab12cd34ef&amp;badge=0"></iframe>', 'P', '', false, $known);
+$doc = preg_match('#srcdoc="([^"]*)"#', $f, $sm) ? html_entity_decode($sm[1], ENT_QUOTES | ENT_HTML5, 'UTF-8') : '';
+$check('vimeo: an unlisted film asked with its h=, the player keeps it', [$asked, $has($doc, 'href="https://player.vimeo.com/video/123456?h=ab12cd34ef&amp;badge=0&amp;autoplay=1"')], [['123456/ab12cd34ef'], true]);
+$check('vimeo: YouTube not touched when only Vimeo is asked', Speedup::videoFacade($yt, 'P', '', false, $known), $yt);
+$check('vimeo: Vimeo not touched by the YouTube facade', Speedup::youtubeFacade($vm, 'P'), $vm);
+$asked = [];
+foreach ([
+    'a background' => '<iframe src="https://player.vimeo.com/video/76979871?background=1"></iframe>',
+    'autoplay=1' => '<iframe src="https://player.vimeo.com/video/76979871?autoplay=1&amp;muted=1"></iframe>',
+    'no picture (private, refused)' => '<iframe src="https://player.vimeo.com/video/404"></iframe>',
+    'a picture not of Vimeo' => '<iframe src="https://player.vimeo.com/video/666"></iframe>',
+    'vimeo.com.evil' => '<iframe src="https://player.vimeo.com.evil.pl/video/76979871"></iframe>',
+    'not a film\'s number' => '<iframe src="https://player.vimeo.com/video/abc"></iframe>',
+    'sandbox' => '<iframe sandbox src="https://player.vimeo.com/video/76979871"></iframe>',
+] as $what => $in) {
+    $check('vimeo: left as it is: ' . $what, Speedup::videoFacade($in, 'P', '', false, $known), $in);
+}
+$check('vimeo: a background or autoplay film not even asked for', \in_array('76979871/', $asked, true), false);
+$check('vimeo: a picture of Vimeo only', [Speedup::vimeoPicture($pic), Speedup::vimeoPicture('https://i.vimeocdn.com/x.jpg" onerror="x'), Speedup::vimeoPicture('http://i.vimeocdn.com/x.jpg')], [true, false, false]);
+
+$vfile = sys_get_temp_dir() . '/mt-vimeo-' . getmypid() . '.json';
+@unlink($vfile);
+$urls  = [];
+$fetch = function (string $url) use (&$urls): ?string {
+    $urls[] = $url;
+
+    return str_contains($url, '%2F404') ? null : json_encode(['thumbnail_url' => 'https://i.vimeocdn.com/video/1-a-d_1280?region=us']);
+};
+$t = new VimeoThumbs($vfile, $fetch, 1000000, 2);
+$check('thumbs: asked from oEmbed', [$t->get('76979871'), $urls], ['https://i.vimeocdn.com/video/1-a-d_1280?region=us', ['https://vimeo.com/api/oembed.json?width=1280&url=https%3A%2F%2Fvimeo.com%2F76979871']]);
+$check('thumbs: a refused one null', $t->get('404'), null);
+$check('thumbs: at most 2 asked per page', [$t->get('5'), \count($urls)], [null, 2]);
+$check('thumbs: a known one from memory', [$t->get('76979871'), \count($urls)], ['https://i.vimeocdn.com/video/1-a-d_1280?region=us', 2]);
+$check('thumbs: a bad id or h never asked', [$t->get('1/../x'), $t->get('1', 'zz'), \count($urls)], [null, null, 2]);
+$t->save();
+$t = new VimeoThumbs($vfile, $fetch, 1000000 + VimeoThumbs::FAILED - 1, 5);
+$check('thumbs: kept in the file, a refusal too for a day', [$t->get('76979871'), $t->get('404'), \count($urls)], ['https://i.vimeocdn.com/video/1-a-d_1280?region=us', null, 2]);
+$t = new VimeoThumbs($vfile, $fetch, 1000000 + VimeoThumbs::FAILED + 1, 5);
+$check('thumbs: a refusal asked again after a day, a known one not', [$t->get('404'), $t->get('76979871'), \count($urls)], [null, 'https://i.vimeocdn.com/video/1-a-d_1280?region=us', 3]);
+// two requests at once: each keeps what it asked, neither loses the other's
+@unlink($vfile);
+$one = new VimeoThumbs($vfile, $fetch, 2000000, 5);
+$two = new VimeoThumbs($vfile, $fetch, 2000000, 5);
+$one->get('111');
+$two->get('222');
+$one->save();
+$two->save();
+$urls = [];
+$t = new VimeoThumbs($vfile, $fetch, 2000001, 5);
+$check('thumbs: two requests at once, both films kept', [$t->get('111') !== null, $t->get('222') !== null, \count($urls)], [true, true, 0]);
+$check('thumbs: only a picture of Vimeo from the answer', [VimeoThumbs::picture('{"thumbnail_url":"https://evil.example/a.jpg"}'), VimeoThumbs::picture('nonsense'), VimeoThumbs::picture(null)], [null, null, null]);
+@unlink($vfile);
+
 // ---------------------------------------------------------------- Gridbox's Video with its own picture: one click plays
 $thumb = '<body><div class="ba-video-wrapper"><div class="video-lazy-load-thumbnail" style="background-image: url(https://img.youtube.com/vi/abcdefghijk/maxresdefault.jpg);"><i class="ba-icons ba-icon-play-circle"></i></div></div></body>';
 $lp = Speedup::youtubeLazyPlay($thumb, 'AbCdEf0123456789+/==');
@@ -401,6 +476,7 @@ $check('lazy play: once', Speedup::youtubeLazyPlay($lp), $lp);
 $check('lazy play: no picture of Gridbox, no script', Speedup::youtubeLazyPlay('<body><iframe src="https://www.youtube.com/embed/abcdefghijk"></iframe></body>'), '<body><iframe src="https://www.youtube.com/embed/abcdefghijk"></iframe></body>');
 $check('lazy play: the class only in CSS is no picture', Speedup::youtubeLazyPlay('<style>.video-lazy-load-thumbnail{x:1}</style><body></body>'), '<style>.video-lazy-load-thumbnail{x:1}</style><body></body>');
 $check('lazy play: without a nonce none', str_contains(Speedup::youtubeLazyPlay($thumb), 'nonce'), false);
+$check('lazy play: a missing maxresdefault.jpg replaced by hqdefault.jpg', str_contains($lp, 'function thumbs(){') && str_contains($lp, '/hqdefault.jpg'), true);
 
 // ---------------------------------------------------------------- background video fills its section
 $gb = '<head><title>t</title></head><body><script src="/templates/gridbox/js/gridbox.js?1"></script></body>';

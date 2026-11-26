@@ -18,6 +18,7 @@ use Joomla\CMS\Event\PageCache\IsExcludedEvent;
 use Joomla\CMS\Event\PageCache\SetCachingEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
+use Joomla\CMS\Http\HttpFactory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Session\Session;
@@ -31,6 +32,7 @@ use Merserwis\Plugin\System\MerTools\Tool\PageCache;
 use Merserwis\Plugin\System\MerTools\Tool\Speed;
 use Merserwis\Plugin\System\MerTools\Tool\Speedup;
 use Merserwis\Plugin\System\MerTools\Tool\Tick;
+use Merserwis\Plugin\System\MerTools\Tool\VimeoThumbs;
 use Merserwis\Plugin\System\MerTools\Tool\Warmup;
 
 final class PageSpeed extends Feature
@@ -879,7 +881,7 @@ final class PageSpeed extends Feature
                 }
                 $defaults = ['url_collapse_slashes' => 1, 'notfound_redirect' => 0, 'layout_clip_x' => 1, 'shop_option_links' => 1,
                     'cart_enabled' => 1, 'tel_enabled' => 1, 'dark_enabled' => 0, 'speed_show' => 1, 'speed_images' => 1, 'speed_mainphoto' => 1, 'speed_slideimg' => 1,
-                    'speed_video' => 1, 'speed_video_phone' => 'none', 'speed_youtube' => 1, 'speed_scripts' => 0, 'speed_cache' => 0, 'speed_cache_data' => 1,
+                    'speed_video' => 1, 'speed_video_phone' => 'none', 'speed_video_cover' => 1, 'speed_youtube' => 1, 'speed_vimeo' => 1, 'speed_scripts' => 0, 'speed_cache' => 0, 'speed_cache_data' => 1,
                     'speed_icons' => 1, 'speed_webp' => 1, 'speed_avif' => 0, 'speed_jxl' => 0, 'speed_gif' => 1, 'speed_popups' => 1, 'layout_post_rows' => 1, 'tabs_accordion' => 1, 'db_indexes' => 1, 'layout_menu_fit' => 0];
                 $speed->save($m, MerTools::VERSION, Speed::enabledTools($this->plugin->params->toArray(), $defaults), time());
             } elseif ($action === 'speed_baseline') {
@@ -966,6 +968,20 @@ final class PageSpeed extends Feature
             }
             if ((int) $p->get('speed_youtube', 1)) {
                 $html = Speedup::youtubeLazyPlay($html, $nonce);
+            }
+            if ((int) $p->get('speed_vimeo', 1) && stripos($html, 'player.vimeo.com/video/') !== false) {
+                $this->plugin->loadLanguage();
+                $thumbs = new VimeoThumbs(MerTools::cacheBase() . '/mertools-vimeo.json', static function (string $url): ?string {
+                    try {
+                        $r = HttpFactory::getHttp()->get($url, ['User-Agent' => 'MerTools'], 3);
+
+                        return $r->getStatusCode() === 200 ? (string) $r->getBody() : null;
+                    } catch (\Throwable) {
+                        return null;
+                    }
+                }, time());
+                $html = Speedup::videoFacade($html, Text::_('PLG_SYSTEM_MERTOOLS_SPEED_VIMEO_PLAY'), $nonce, false, [$thumbs, 'get']);
+                $thumbs->save();
             }
             if ((int) $p->get('speed_popups', 1)) {
                 $html = Speedup::delayPopups($html, $nonce);

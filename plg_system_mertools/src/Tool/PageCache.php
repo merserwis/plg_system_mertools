@@ -253,7 +253,7 @@ final class PageCache
         }
         if ($nonce !== null && $nonce !== '' && \strlen($nonce) >= 16) {
             $html = str_replace('nonce="' . $nonce . '"', 'nonce="' . self::NONCE . '"', $html);
-            // also in a frame's own document (srcdoc="…": the YouTube films of Speedup::youtubeFacade)
+            // also in a frame's own document (srcdoc="…": the YouTube and Vimeo films of Speedup::videoFacade)
             $esc  = htmlspecialchars($nonce, ENT_QUOTES);
             $html = str_replace('nonce=&quot;' . $esc . '&quot;', 'nonce=&quot;' . self::NONCE . '&quot;', $html);
         }

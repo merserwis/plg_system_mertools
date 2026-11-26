@@ -4,8 +4,9 @@
  * @package     Merserwis.Plugin
  * @subpackage  System.mertools
  *
- * Database: the indexes of Gridbox's tables (checked daily and after Gridbox is installed or updated) and a "<"
- * in introductions kept as &lt; (after saves in Gridbox and daily).
+ * Database: the indexes of Gridbox's tables (checked daily and after Gridbox is installed or updated), a "<"
+ * in introductions kept as &lt; (after saves in Gridbox and daily), and the state of the tables audits report
+ * (Tool\DbHealth: character sets, leftover asset rows, free space) with their repair from the panel.
  */
 
 namespace Merserwis\Plugin\System\MerTools\Feature;
@@ -15,6 +16,7 @@ namespace Merserwis\Plugin\System\MerTools\Feature;
 use Joomla\CMS\Factory;
 use Joomla\Database\DatabaseInterface;
 use Merserwis\Plugin\System\MerTools\Extension\MerTools;
+use Merserwis\Plugin\System\MerTools\Tool\DbHealth;
 use Merserwis\Plugin\System\MerTools\Tool\DbIndexes;
 use Merserwis\Plugin\System\MerTools\Tool\IntroText;
 
@@ -153,6 +155,48 @@ final class Database extends Feature
             }
         } catch (\Throwable $e) {
             // the daily check creates them
+        }
+    }
+
+    /**
+     * The panel of the tables (dbh_…): their state for whoever may edit the settings; a change of the database
+     * (a conversion, the leftover assets deleted, OPTIMIZE) only for a Super User.
+     */
+    public function handleHealthAction(string $action): void
+    {
+        $health = new DbHealth(Factory::getContainer()->get(DatabaseInterface::class));
+        $user   = $this->plugin->app()->getIdentity();
+        try {
+            if ($action !== 'dbh_status' && (!$user || !$user->authorise('core.admin'))) {
+                $this->plugin->sendJson(['success' => false, 'message' => \Joomla\CMS\Language\Text::_('JERROR_ALERTNOAUTHOR')], 403);
+            }
+            $input = $this->plugin->app()->getInput();
+            @set_time_limit(300);
+            $result = [];
+            if ($action === 'dbh_convert') {
+                $table  = $input->getString('table', '');
+                $result = ['table' => $table, 'error' => $health->convert($table)];
+            } elseif ($action === 'dbh_optimize') {
+                $table  = $input->getString('table', '');
+                $result = ['table' => $table] + $health->optimize($table);
+            } elseif ($action === 'dbh_assets') {
+                $result = $health->deleteOrphans(200);
+            }
+            $tables = $health->tables();
+            $sizes  = $tables;
+            uasort($sizes, static fn (array $a, array $b): int => ($b['data'] + $b['index']) <=> ($a['data'] + $a['index']));
+            $big = [];
+            foreach ($sizes as $name => $t) {
+                // the ten largest, and any other with free space worth giving back
+                if (\count($big) < 10 || $t['free'] >= DbHealth::FREE_WORTH) {
+                    $big[] = ['table' => $name, 'rows' => $t['rows'], 'size' => $t['data'] + $t['index'], 'free' => $t['free'], 'engine' => $t['engine']];
+                }
+            }
+            $this->plugin->sendJson(['success' => true, 'result' => $result, 'collations' => $health->collations($tables), 'orphans' => $health->orphans(),
+                'tables' => $big, 'total' => array_sum(array_map(static fn (array $t): int => $t['data'] + $t['index'], $tables)), 'count' => \count($tables),
+                'admin' => $user && $user->authorise('core.admin'), 'worth' => DbHealth::FREE_WORTH]);
+        } catch (\Throwable $e) {
+            $this->plugin->sendJson(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 

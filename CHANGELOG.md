@@ -2,6 +2,47 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.20.0 — 2026-11-26
+
+### 📤 Markdown export of pages, posts and products
+
+Next to the Markdown import, the editor has an **export** (a download icon in the editor's left bar, and a second **MD** button next to *Advanced Editor* in a blog post). It saves the page as a `.md` file named by its alias. The file has the title, alias, intro and keywords, then the item's fields as `**Label:** value` lines (a link field as `[text](address)`), then the headlines, texts and images of the page, and at the end each field with a text editor (or of many lines) as a section named after the field, keeping its lists, tables, sub-headings, bold, links and images. The import reads such a file back into the same fields and content, so a product can be copied to another site, edited in any text editor, or kept as a plain text copy. Modules Markdown has no form for (buttons, galleries, films and the like) are left out, and the notice says how many.
+
+### 📥 Many Markdown documents as products at once
+
+Gridbox's own CSV import of a store (*Import/Export CSV* in the list of products) can now take **Markdown documents** instead of a CSV file: choose any number of `.md` files, one per product. Each is read as the import into a single product reads it: `SKU:`, `Cena:`, `Stan:` and the other label lines, a `Kategoria:` line, the app's fields by their labels, and sections named after a field. Choose a category for documents without one, and a text field for everything that belongs to no field (or leave it out). Before anything is saved, a short report lists each file with the fields it fills and any value that does not fit its field. The documents become one CSV file in Gridbox's own format, given to Gridbox's dialog: Gridbox checks it (new, updated, errors), makes its backup when asked and creates the products. They are saved as unpublished unless *Publish at once* is ticked. HTML in a document stays text, and only safe addresses become links, as in the single import.
+
+### 🤖 AI bots: robots.txt and llms.txt
+
+New part of the tab *Sitemap*: a table of the bots of AI services (OpenAI, Anthropic, Perplexity, Google, Apple, Meta, Amazon, Common Crawl, ByteDance, Mistral, DuckDuckGo). For each bot it shows what the site's robots.txt says to it now: allowed, blocked or partly blocked, and whether the bot has its own rules or follows those for all bots. Bots ticked in *Block in robots.txt* get `Disallow: /` in a block MerTools keeps at the start of robots.txt, between two comment lines. The rest of the file is not changed, and unticking them all gives the file back byte for byte. The file is written only when the settings are saved and the block changes; a copy of the old file goes to Joomla's tmp folder first. A file that cannot be written is reported and left as it is. The table also notes that Cloudflare and other firewalls may refuse AI bots before they read robots.txt.
+
+**llms.txt** (setting, off by default): the site answers at `/llms.txt` with a Markdown description for AI models: your own text, or the site's name and description, the first level of the home page's menu and the sitemap. An `llms.txt` file uploaded to the server takes priority.
+
+### ▶️ Vimeo films loaded only when played
+
+As YouTube films since 1.19.0: a Vimeo film in a frame (pasted in a text, Gridbox's *Video* element) first shows its picture and a play button. Vimeo's player loads, and plays at once, only on a click, in the same frame and at the same size. Vimeo has no fixed address for a film's picture, so the site asks Vimeo for it once and keeps it for 30 days (at most three films per page view, three seconds each). Films playing as a background or by themselves, and private films Vimeo gives no picture of, are left as they are. New setting *Vimeo films loaded only when played* (tab *Speed*), on by default.
+
+### 🖼️ Gridbox's video picture when YouTube has no large one
+
+Gridbox's *Video* element with *Lazy load* shows YouTube's largest picture of a film, which YouTube does not have for every film: such films showed a small grey box. The film's standard picture now takes its place.
+
+### 🗄️ Tables of the site: character set, leftover permission rows, free space
+
+New panel *Tables of the site* in the tab *Database*. It covers what audits such as mySites.guru report:
+
+- **Character set**: the tables not in `utf8mb4_unicode_ci`, Joomla's own. A table in utf8/utf8mb3 cannot store emoji or some scripts, and two collations in one query stop it with *Illegal mix of collations*. *Convert* (one table or all) changes tables in utf8, utf8mb3 or another utf8mb4 collation: nothing is lost, and the database converts the whole table or leaves it as it was. Tables in latin1 and the like are only shown (their text may be stored wrongly, and a conversion would garble it), as are binary and case-sensitive collations, which extensions choose on purpose.
+- **Permission rows of deleted items**: the assets of modules, articles and categories that no longer exist, and of Gridbox's pages, categories and apps. Gridbox deletes those from its trash without their rows: on the copy of merserwis.pl there were 387 of pages alone. They are deleted through Joomla, so the tree of permissions stays right, and rows under a deleted one move to its parent.
+- **Size and free space**: the ten largest tables and any with free space after deletes, with *Optimize* (OPTIMIZE TABLE) giving that space back. It does not make the data smaller: Gridbox's tables are large because they keep the styles of every element of a page.
+
+Changes of the database are offered to a Super User only, after a question; the state is shown to whoever may edit the settings.
+
+MerTools' own five tables (speed measurements, cart clean-up, state) were created in the server's default collation, `utf8mb4_general_ci` on many servers, next to Joomla's `utf8mb4_unicode_ci`. They are now created in Joomla's, and the update converts the existing ones.
+
+### 🧩 With Gridbox's *Compress JavaScript*
+
+- *Start the video background later* and *Timed popups after the first interaction* did nothing when Gridbox's *Compress JavaScript* was on: Gridbox then joins its scripts into one file, and MerTools looked only for the separate file. Both now work either way.
+- The speed measurements recorded *Background video fills its section* as off on sites that never saved that setting, though it is on by default.
+
 ## 1.19.3 — 2026-11-24
 
 ### ▶️ Gridbox's Video element with *Lazy load* plays at the first click

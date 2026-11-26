@@ -31,7 +31,7 @@ final class Speed
     /** the MerTools settings that switch a tool on: snapshot kept with every measurement */
     public const TOOLS = ['url_collapse_slashes' => 'url', 'notfound_redirect' => 'notfound', 'layout_clip_x' => 'layout',
         'shop_option_links' => 'optionlinks', 'cart_enabled' => 'carts', 'tel_enabled' => 'tel', 'dark_enabled' => 'dark',
-        'speed_show' => 'showatonce', 'speed_images' => 'images', 'speed_mainphoto' => 'mainphoto', 'speed_slideimg' => 'slideimg', 'speed_video' => 'videodelay', 'speed_video_phone' => 'videophone', 'speed_video_cover' => 'videocover', 'speed_youtube' => 'ytfacade',
+        'speed_show' => 'showatonce', 'speed_images' => 'images', 'speed_mainphoto' => 'mainphoto', 'speed_slideimg' => 'slideimg', 'speed_video' => 'videodelay', 'speed_video_phone' => 'videophone', 'speed_video_cover' => 'videocover', 'speed_youtube' => 'ytfacade', 'speed_vimeo' => 'vimeofacade',
         'speed_scripts' => 'scriptdelay', 'speed_cache' => 'pagecache', 'speed_cache_data' => 'gridboxdata', 'speed_icons' => 'icons',
         'speed_webp' => 'webp', 'speed_avif' => 'avif', 'speed_jxl' => 'jxl', 'speed_gif' => 'gif', 'speed_popups' => 'popups', 'layout_post_rows' => 'postrows', 'tabs_accordion' => 'tabs',
         'db_indexes' => 'dbindexes', 'layout_menu_fit' => 'menufit'];
@@ -162,7 +162,7 @@ final class Speed
             . ' `score` TINYINT UNSIGNED NOT NULL, `fcp` INT UNSIGNED NOT NULL, `lcp` INT UNSIGNED NOT NULL, `tbt` INT UNSIGNED NOT NULL,'
             . ' `cls` DECIMAL(6,3) NOT NULL, `si` INT UNSIGNED NOT NULL, `ttfb` INT UNSIGNED NOT NULL, `doc` INT UNSIGNED NULL, `field` MEDIUMTEXT NOT NULL,'
             . ' `audits` MEDIUMTEXT NOT NULL, `version` VARCHAR(16) NOT NULL, `tools` VARCHAR(512) NOT NULL, `baseline` TINYINT NOT NULL DEFAULT 0,'
-            . ' PRIMARY KEY (`id`), KEY `idx_page` (`url`(191), `strategy`, `measured`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4')->execute();
+            . ' PRIMARY KEY (`id`), KEY `idx_page` (`url`(191), `strategy`, `measured`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci')->execute();
         // 0.0.23: the time until the whole HTML arrived (the server time Lighthouse reports can be far too low behind Cloudflare)
         if (!$this->db->setQuery("SHOW COLUMNS FROM `#__mertools_speed` LIKE 'doc'")->loadResult()) {
             $this->db->setQuery('ALTER TABLE `#__mertools_speed` ADD `doc` INT UNSIGNED NULL AFTER `ttfb`')->execute();

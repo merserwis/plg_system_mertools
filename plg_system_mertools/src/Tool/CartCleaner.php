@@ -108,13 +108,13 @@ final class CartCleaner
     {
         foreach ([
             'CREATE TABLE IF NOT EXISTS `#__mertools_cart_seen` (`cart_id` INT UNSIGNED NOT NULL, `seen` DATETIME NOT NULL,'
-                . ' PRIMARY KEY (`cart_id`), KEY `idx_seen` (`seen`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
+                . ' PRIMARY KEY (`cart_id`), KEY `idx_seen` (`seen`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `#__mertools_cart_marks` (`at` DATETIME NOT NULL, `cart_max` INT UNSIGNED NOT NULL,'
-                . ' PRIMARY KEY (`at`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
+                . ' PRIMARY KEY (`at`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `#__mertools_cart_queue` (`id` INT UNSIGNED NOT NULL, `items` TINYINT NOT NULL DEFAULT 0,'
-                . ' `attach` TINYINT NOT NULL DEFAULT 0, `seen` DATETIME NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
+                . ' `attach` TINYINT NOT NULL DEFAULT 0, `seen` DATETIME NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
             'CREATE TABLE IF NOT EXISTS `#__mertools_state` (`name` VARCHAR(64) NOT NULL, `value` MEDIUMTEXT NOT NULL,'
-                . ' PRIMARY KEY (`name`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
+                . ' PRIMARY KEY (`name`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
         ] as $sql) {
             $this->db->setQuery($sql)->execute();
         }

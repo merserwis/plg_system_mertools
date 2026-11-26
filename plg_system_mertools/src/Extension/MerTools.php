@@ -60,6 +60,7 @@ use Merserwis\Plugin\System\MerTools\Feature\EditorSave;
 use Merserwis\Plugin\System\MerTools\Feature\Feeds;
 use Merserwis\Plugin\System\MerTools\Feature\GridboxLists;
 use Merserwis\Plugin\System\MerTools\Feature\Hygiene;
+use Merserwis\Plugin\System\MerTools\Feature\AiBotsFeature;
 use Merserwis\Plugin\System\MerTools\Feature\ListPages;
 use Merserwis\Plugin\System\MerTools\Feature\MissingPages;
 use Merserwis\Plugin\System\MerTools\Feature\PageSpeed;
@@ -94,7 +95,7 @@ use Merserwis\Plugin\System\MerTools\Tool\UrlNormalizer;
 
 final class MerTools extends CMSPlugin implements SubscriberInterface
 {
-    public const VERSION = '1.19.3';
+    public const VERSION = '1.20.0';
 
     /** the language file (60 KB) is loaded only where texts are needed, not on every page view */
     protected $autoloadLanguage = false;
@@ -238,6 +239,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         if ($app->isClient('site')) {
             // the sitemaps: answered before the router, from the kept files
             $this->sitemaps()->serveSitemap();
+            $this->soft(fn () => $this->aiBots()->serveLlms());
             $this->carts()->trackCart();
         }
 
@@ -327,6 +329,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             $this->soft(fn () => $this->lists()->ordersBulkScript(), true);
             $this->soft(fn () => $this->history()->historyInLists(), true);
             $this->soft(fn () => $this->apps()->appsScript(), true);
+            $this->soft(fn () => $this->editorImport()->csvScript(), true);
             $this->soft(fn () => $this->stampGridbox(), true);
 
             return;
@@ -652,6 +655,8 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
             return;
         }
         self::cleanPageCache();
+        // the AI bots refused in robots.txt
+        $this->soft(fn () => $this->aiBots()->afterSave(new Registry((string) ($table->params ?? ''))));
         // the site's address as the administrator reaches it: the warm-up of the page cache works on it
         $this->speed()->rememberSite();
         // the words of the finished items or where they are left out changed: the end dates follow at once
@@ -682,7 +687,7 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         $input  = $app->getInput();
         $action = $input->getCmd('mertools_action', '');
         if (!\in_array($action, ['cart_stats', 'cart_check', 'cart_clean', 'speed_list', 'speed_save', 'speed_baseline', 'speed_delete',
-            'pcache_stats', 'pcache_clear', 'dbidx_status', 'dbidx_fix', 'img_stats', 'img_run', 'img_clear', 'cache_clear_all', 'history_list',
+            'pcache_stats', 'pcache_clear', 'dbidx_status', 'dbidx_fix', 'dbh_status', 'dbh_convert', 'dbh_optimize', 'dbh_assets', 'img_stats', 'img_run', 'img_clear', 'cache_clear_all', 'history_list',
             'cmp_stats', 'cmp_test', 'cmp_start', 'cmp_run', 'cmp_cancel', 'cmp_list', 'cmp_restore', 'cmp_restore_all',
             'list_columns', 'list_edit', 'list_badges', 'list_pin', 'list_sort', 'orders_unread', 'orders_read_all', 'apps_list', 'apps_backup', 'apps_restore', 'apps_delete', 'apps_download',
             'nf_list', 'nf_target', 'nf_delete', 'nf_clear', 'nf_moved', 'nf_moved_delete',
@@ -751,6 +756,9 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
         }
         if (str_starts_with($action, 'dbidx_')) {
             $this->database()->handleAction($action);
+        }
+        if (str_starts_with($action, 'dbh_')) {
+            $this->database()->handleHealthAction($action);
         }
         if (str_starts_with($action, 'img_') || str_starts_with($action, 'pcache_')) {
             $this->speed()->handleAction($action);
@@ -1052,6 +1060,11 @@ final class MerTools extends CMSPlugin implements SubscriberInterface
     public function pages(): ListPages
     {
         return $this->features[ListPages::class] ??= new ListPages($this);
+    }
+
+    public function aiBots(): AiBotsFeature
+    {
+        return $this->features[AiBotsFeature::class] ??= new AiBotsFeature($this);
     }
 
     public function sitemaps(): Sitemaps
