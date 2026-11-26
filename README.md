@@ -32,7 +32,7 @@ The settings are still the parameters of the plugin, so nothing changes for the 
 | Canonical URL, guard of the sorting, pages of the lists | *Configuration → Addresses (URL)* |
 | Site hygiene, Content-Security-Policy | *Configuration → Site hygiene* |
 | Structured data of the site | *Configuration → Structured data* |
-| Blog feeds, article data, even grid of the lists of posts, import of a Markdown document into a post | *Configuration → Blog* |
+| Blog feeds, article data, even grid of the lists of posts, import of a Markdown document into a post, a page or a product | *Configuration → Blog* |
 | Product option links, discount %, price on request, product data | *Configuration → Shop* |
 | Omnibus | *Omnibus* |
 | Product badges (corner, colours, style, on the product page) | *Badges* |
@@ -204,6 +204,42 @@ Lines at the top of the document fill the fields of the post — the way an arti
 
 *Tytuł / Title* → Title, *Adres / URL / Slug / Alias* → Alias (an address gives its last part), *Opis meta / Wstęp / Description / Intro* → Intro text, *Słowa kluczowe / Keywords* → Meta keywords; the same keys work in a front matter. Without them the `# heading` the document begins with is the title. A new post — nothing in it but Gridbox's *click here and start typing* — takes them in place of the title and alias of the *New Page* window, and that empty text is removed; a post with content gets them only in its empty fields. The modules go to the end of the post, *Undo* takes them back in one step and nothing is saved before *Save*. HTML in the document is shown as text, never added to the page.
 
+### 📝 Pages and products — importing a Markdown document (1.19.0)
+
+The same import works in every Gridbox editor, not only in a blog post: a **document icon** in the editor's left bar, with the icons that add content (*Library* follows it). The same switch turns it on and off (*Configuration → Blog*).
+
+- **A page**: a new, empty page takes the document where its *click here and start typing* is; a page with content gets it in a new section of one column at its end. The `# heading` of the document stays a **Headline h1** — nothing else shows the title of a page — or `h2` when the page has an `h1` already.
+- **A product, or an item of any app with fields**: the document also fills the fields of the item's form, found by their labels — the labels of that app, in any language, so it works with any set of fields.
+
+A line `Label: value` at the top of the document (also right under its `# heading`, also a single one) fills the field of that label; a heading named as a field fills it with everything under it — sub-headings, lists and tables too — up to the next heading of its level:
+
+```
+# Sonel MI-3155 EurotestXD
+
+SKU: WMPLMI3155
+Cena: 6 950,00 zł
+Producent: [Sonel](/sonel)
+
+## Dane techniczne
+
+| Pomiar | Zakres |
+|---|---|
+| Rezystancja izolacji | 0,12 kΩ … 10 GΩ |
+
+## Opis
+
+Everything under a heading that is no field goes into the content of the item's page.
+```
+
+- The store's own fields of a product are also found by their common names: *SKU / Kod / Kod produktu / Symbol / Indeks / Numer katalogowy / MPN* → SKU, *Cena / Price* → Price, *Cena promocyjna / Sale price* → Sale price, *Stan / Stan magazynowy / Stock* → Stock, *Minimalna ilość / Min. qty* → Minimum quantity.
+- Fields filled: text, number, price, date, text area (with CKEditor or JCE), URL and button (the address and text of a link: `[Sonel](/sonel)`, or the first link of a section), select and radio (by the name of an option), checkbox (several options separated by commas).
+- Amounts are read exactly — `6 950,00 zł` is 6950.00, `0.125` stays 0.125. One that can be read two ways (`6.950`) or has other figures around it (`100 zł + 23% VAT`) is not filled in, and the notice names the field.
+- When fields have content already, the editor asks before replacing it; *Cancel* fills only the empty ones. A new link text without an address does not keep the address of the old one.
+- What fits no field goes into the content of the item's page, and the notice says how much.
+- Nothing in a document can become HTML: Gridbox writes fields into the page and its editor as they are, so `< > "` go into a field as `‹ › ”`, and an address goes in only when it leads to the web, an e-mail, a phone or the site itself (no `javascript:`, also not written with character references).
+
+Nothing is saved before *Save*. *Undo* takes back, in one step, what the import added to the content of the page; the fields of the form are not in Gridbox's history, so after an import that filled fields a bar at the bottom of the editor names them, with the button **Restore the fields** (1.19.3): it puts back what they held before the import. A field changed by hand since the import is left as it is, and the notice names it. The bar stays until it is closed (×) or the next import.
+
 ### 📰 Blog feeds — RSS and Atom
 
 Gridbox has no feeds. MerTools gives every Gridbox blog an **RSS 2.0** and an **Atom 1.0** feed of its newest posts, for feed readers, RSS-to-email newsletters and aggregators: the address of a blog page with Joomla's usual feed parameters.
@@ -320,7 +356,7 @@ At the top of the tab, **Recommended settings** shows how Gridbox (Deferred Load
 
 Tab *Page speed*: measure chosen pages with PageSpeed Insights (phone and desktop, median of 1–5 tests) and compare every result with a baseline taken before the changes — score and LCP, TBT, CLS, FCP, Speed Index and server time, with the change in green or red; the server column is the time until Google’s test had the whole HTML (Lighthouse’s own server time can be far too low behind Cloudflare). The history keeps the MerTools version and the tools that were on, and the real-user figures of Chrome (CrUX) show how fast the site is for its visitors. Needs a free PageSpeed Insights API key.
 
-The same tab has the **faster pages** tools, done on the finished page (Gridbox files untouched): the page shown at once with Gridbox’s Deferred Loading (its style sheets back in the head instead of a page hidden until all scripts have run), images with their proportions at once, the first section loaded at once and the rest lazily (no layout jumps, Gridbox’s sizing kept), **lighter WebP copies in the size of the screen** made by PHP after the page has been sent (`srcset`, also for slideshow backgrounds; copies no picture uses any more — those of a changed or removed picture — removed a week later), optionally also in **AVIF and JPEG XL** offered in a `<picture>` before WebP (made by GD, Imagick, avifenc or cjxl, whichever the server has, only after the page has been sent; kept only when lighter than the WebP copies; behind Cloudflare nothing has to be set, as each format has an address of its own — Cloudflare keeps `.webp` and `.avif` files by default but not `.jxl`: a Cache Rule *URI Path starts with `/media/mertools-img/`* → *Eligible for cache* keeps them too), the **first frame of a heavy animated GIF** at once and its animation later, **icon style sheets that do not hold up the page**, **timed Gridbox popups opened not before the first interaction**, the main product photo shown and fetched first, **product photos as real pictures with the product's name as alt** laid on Gridbox's backgrounds (for image search; same look, same requests, Gridbox's zoom and dots untouched), a YouTube section background started after the first interaction or a few seconds after loading (on phones left out, with a dark section colour, or replaced by a picture), Gridbox’s own page data requests kept, and — optionally — marketing scripts (Tag Manager, Facebook, Clarity…) started at the first interaction and a **page cache for guests**: the finished page is kept and the next guests get it at once (their own form token and nonce put in; never for logged-in users, carts, checkout or pages with parameters; emptied on every save, order or comment; **warmed up** in the background, a few pages a minute from the sitemap, so that the first visitor after an emptying does not wait for a page to be built).
+The same tab has the **faster pages** tools, done on the finished page (Gridbox files untouched): the page shown at once with Gridbox’s Deferred Loading (its style sheets back in the head instead of a page hidden until all scripts have run), images with their proportions at once, the first section loaded at once and the rest lazily (no layout jumps, Gridbox’s sizing kept), **lighter WebP copies in the size of the screen** made by PHP after the page has been sent (`srcset`, also for slideshow backgrounds; copies no picture uses any more — those of a changed or removed picture — removed a week later), optionally also in **AVIF and JPEG XL** offered in a `<picture>` before WebP (made by GD, Imagick, avifenc or cjxl, whichever the server has, only after the page has been sent; kept only when lighter than the WebP copies; behind Cloudflare nothing has to be set, as each format has an address of its own — Cloudflare keeps `.webp` and `.avif` files by default but not `.jxl`: a Cache Rule *URI Path starts with `/media/mertools-img/`* → *Eligible for cache* keeps them too), the **first frame of a heavy animated GIF** at once and its animation later, **icon style sheets that do not hold up the page**, **timed Gridbox popups opened not before the first interaction**, the main product photo shown and fetched first, **product photos as real pictures with the product's name as alt** laid on Gridbox's backgrounds (for image search; same look, same requests, Gridbox's zoom and dots untouched), a YouTube section background started after the first interaction or a few seconds after loading (on phones left out, with a dark section colour, or replaced by a picture), **background videos filling their section** (no bands above and below on narrower screens), **YouTube films loaded only when played** (a film or a playlist with its first film, in a frame of a text, a product's description or a Custom HTML: its picture and a play button in that frame, YouTube's player only on a click, playing at once; Gridbox's *Video* element with *Lazy load* plays at the first click too, where Gridbox's own frame needs a second one outside popups), Gridbox’s own page data requests kept, and — optionally — marketing scripts (Tag Manager, Facebook, Clarity…) started at the first interaction and a **page cache for guests**: the finished page is kept and the next guests get it at once (their own form token and nonce put in; never for logged-in users, carts, checkout or pages with parameters; emptied on every save, order or comment; **warmed up** in the background, a few pages a minute from the sitemap, so that the first visitor after an emptying does not wait for a page to be built).
 
 **Clear cache button in the top bar:** the administrator's top bar (next to the Joomla version) gets a **Clear cache** button. One click empties the pages kept by MerTools and the whole Joomla cache — as *System → Clear Cache* — from any screen of the administrator, and a message says what was removed. Shown to users who may clear the cache in Joomla; can be turned off in tab *Page speed*.
 

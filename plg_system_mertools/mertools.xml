@@ -6,7 +6,7 @@
     <creationDate>2026-10-28</creationDate>
     <copyright>Copyright (C) 2026 Merserwis. All rights reserved.</copyright>
     <license>GNU General Public License version 3</license>
-    <version>1.19.2</version>
+    <version>1.19.3</version>
     <description>PLG_SYSTEM_MERTOOLS_XML_DESCRIPTION</description>
     <namespace path="src">Merserwis\Plugin\System\MerTools</namespace>
     <files>
@@ -887,6 +887,11 @@
                     label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_COLOR_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_COLOR_DESC" />
                 <field name="speed_video_phone_image" type="media" types="images" preview="tooltip" showon="speed_video:1[AND]speed_video_phone:image"
                     label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_PIC_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_PHONE_PIC_DESC" />
+                <field name="speed_video_cover" type="radio" layout="joomla.form.field.radio.switcher" default="1"
+                    label="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_COVER_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_VIDEO_COVER_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
                 <field name="speed_youtube" type="radio" layout="joomla.form.field.radio.switcher" default="1"
                     label="PLG_SYSTEM_MERTOOLS_SPEED_YOUTUBE_LABEL" description="PLG_SYSTEM_MERTOOLS_SPEED_YOUTUBE_DESC">
                     <option value="0">JNO</option>

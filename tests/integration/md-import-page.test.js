@@ -124,6 +124,90 @@ run(async ({ login, editor }) => {
     check('Cancel: the field kept', /Moje akcesoria/.test(acc) && !/EVSE/.test(acc), acc);
     page.removeAllListeners('dialog');
 
+    // the fields are not in Gridbox's history: the bar after an import puts back what they held before it, but a field
+    // changed since the import; the bar goes with its ×, and with the next import
+    const fields = () => page.evaluate(() => {
+      const group = (label) => [...document.querySelectorAll('#blog-post-editor-fields-options [data-field-type]')]
+        .find((g) => (g.querySelector('.ba-field-editor-label') || {}).textContent?.replace('*', '').trim() === label);
+      const maker = [...document.querySelectorAll('#blog-post-editor-fields-options [data-field-type="url"]')].find((g) => /Producent/.test(g.textContent));
+      return {
+        sku: document.querySelector('#ba-group-product-pricing [data-field-key="sku"] input').value,
+        price: document.querySelector('#ba-group-product-pricing [data-field-key="price"] input').value,
+        title: document.querySelector('#blog-post-editor-general-options [name="page_title"]').value,
+        maker: [maker.querySelector('[data-name="label"]').value, maker.querySelector('[data-name="link"]').value],
+        kit: app.fieldsCKE[group('Wyposażenie').dataset.id].getData(),
+        acc: app.fieldsCKE[group('Akcesoria').dataset.id].getData(),
+      };
+    });
+    await page.evaluate(() => {
+      const set = (el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); };
+      set(document.querySelector('#ba-group-product-pricing [data-field-key="sku"] input'), 'MT/STARY');
+      set(document.querySelector('#ba-group-product-pricing [data-field-key="price"] input'), '99.00');
+      const maker = [...document.querySelectorAll('#blog-post-editor-fields-options [data-field-type="url"]')].find((g) => /Producent/.test(g.textContent));
+      set(maker.querySelector('[data-name="label"]'), 'Stary producent');
+      set(maker.querySelector('[data-name="link"]'), '/stary');
+      const kit = [...document.querySelectorAll('#blog-post-editor-fields-options [data-field-type="textarea"]')].find((x) => /Wyposażenie/.test(x.textContent));
+      app.fieldsCKE[kit.dataset.id].setData('<p>Stare wyposażenie</p>');
+    });
+    await page.waitForTimeout(500);
+    const was = await fields();
+    page.on('dialog', (d) => d.accept());
+    await importFile(page, PRODUCT);
+    page.removeAllListeners('dialog');
+    const now = await fields();
+    check('restore: the import replaced the fields', now.sku === 'MT/XY100' && now.price === '1234.50' && now.maker[0] === 'Sonel' && /futerał/.test(now.kit) && /EVSE/.test(now.acc),
+      JSON.stringify(now));
+    const bar = await page.evaluate(() => {
+      const b = document.querySelector('.mertools-md-restore');
+      return b && { text: b.textContent, button: !!b.querySelector('button.mertools-md-restore-button'), role: b.getAttribute('role') };
+    });
+    check('restore: the bar with the fields filled and its button', !!bar && bar.button && bar.role === 'status' && /SKU/.test(bar.text) && /Akcesoria/.test(bar.text), JSON.stringify(bar));
+    // one field changed by hand after the import: left as it is
+    await page.evaluate(() => {
+      const el = document.querySelector('#ba-group-product-pricing [data-field-key="price"] input');
+      el.value = '777.00';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.evaluate(() => { window.__mtN = []; const o = app.showNotice; app.showNotice = function (m) { window.__mtN.push(m); return o.apply(this, arguments); }; });
+    await page.click('.mertools-md-restore-button');
+    await page.waitForTimeout(800);
+    const back = await fields();
+    check('restore: SKU, title, Producent (label and link) as before the import', back.sku === was.sku && back.title === was.title
+      && JSON.stringify(back.maker) === JSON.stringify(was.maker), JSON.stringify([back, was]));
+    check('restore: the text editor fields as before', back.kit === was.kit && back.acc === was.acc && /Stare wyposażenie/.test(back.kit) && /Moje akcesoria/.test(back.acc),
+      JSON.stringify([back.kit, back.acc]));
+    check('restore: the price changed since, left as it is', back.price === '777.00', back.price);
+    check('restore: the bar gone', !(await page.$('.mertools-md-restore')));
+    const restoredSaid = await page.evaluate(() => window.__mtN);
+    check('restore: the notice names what came back and what was left', restoredSaid.length === 1 && /SKU/.test(restoredSaid[0].split(/Zmienione|Changed/)[0])
+      && /(Cena|Price)/.test(restoredSaid[0].split(/Zmienione|Changed/)[1] || ''),
+      JSON.stringify(restoredSaid));
+    // a link changed by hand into text + address in its label: the same words as the import's, but not the same field
+    page.on('dialog', (d) => d.accept());
+    await importFile(page, PRODUCT);
+    page.removeAllListeners('dialog');
+    await page.evaluate(() => {
+      const g = [...document.querySelectorAll('#blog-post-editor-fields-options [data-field-type="url"]')]
+        .find((x) => (x.querySelector('.ba-field-editor-label') || {}).textContent?.replace('*', '').trim() === 'Producent');
+      const label = g.querySelector('[data-name="label"]');
+      const link = g.querySelector('[data-name="link"]');
+      label.value = label.value + ' ' + link.value; // "Sonel index.php?…": the same words joined as before
+      link.value = '';
+    });
+    const moved = (await fields()).maker;
+    await page.click('.mertools-md-restore-button');
+    await page.waitForTimeout(800);
+    check('restore: a link moved by hand from its address into its label, left as it is', /^Sonel \S+/.test(moved[0]) && moved[1] === ''
+      && JSON.stringify((await fields()).maker) === JSON.stringify(moved),
+      JSON.stringify((await fields()).maker));
+    // the × closes the bar, nothing changed
+    page.on('dialog', (d) => d.accept());
+    await importFile(page, PRODUCT);
+    page.removeAllListeners('dialog');
+    const filledAgain = await fields();
+    await page.click('.mertools-md-restore-close');
+    check('×: the bar gone, the fields as the import left them', !(await page.$('.mertools-md-restore')) && JSON.stringify(await fields()) === JSON.stringify(filledAgain));
+
     // what the document holds goes into the form as Gridbox can show it safely, also after the product is saved and its
     // editor opened again (Gridbox writes the fields into value="…" and <textarea> unescaped): no ", < or > in a
     // field, no javascript: address (also not as &colon;; a button of a fixed label: only its address), a new label
@@ -137,6 +221,9 @@ run(async ({ login, editor }) => {
     await page.evaluate(() => document.getElementById('blog-post-editor-fields-options').insertAdjacentHTML('beforeend',
       '<div class="blog-post-editor-options-group mt-fake" data-field-type="field-button" data-id="999"><div class="blog-post-editor-group-element">'
       + '<label class="ba-field-editor-label">MT Przycisk</label></div><input type="text" name="999" data-name="link" value=""></div>'));
+    // the notices asked of Gridbox: a notice asked for while others wait may be written over by an older one on the screen
+    // (Gridbox's queue of notices), after the imports before this one
+    await page.evaluate(() => { window.__mtN = []; });
     await importFile(page, EDGE);
     const edge = await page.evaluate(() => {
       const group = (label) => [...document.querySelectorAll('#blog-post-editor-fields-options [data-field-type]')]
@@ -156,9 +243,7 @@ run(async ({ login, editor }) => {
       document.querySelector('.mt-fake').remove();
       return out;
     });
-    // Gridbox shows a notice after the one before it is gone
-    await page.waitForFunction(() => [...document.querySelectorAll('#ba-notification p, .ba-notification-message p')].some((n) => /MT Przycisk/.test(n.textContent)), null, { timeout: 15000 }).catch(() => {});
-    const edgeSaid = await notices(page);
+    const edgeSaid = await page.evaluate(() => window.__mtN);
     page.removeAllListeners('dialog');
     check('a link\'s label: no quote, no tag', edge.maker[0] === 'x” onmouseover=”window.__mtx=1” ‹img src=x onerror=window.__mtx=2›' && edge.maker[1] === '/sonel', JSON.stringify(edge.maker));
     check('no javascript&colon; address', edge.delivery[1] === '', JSON.stringify(edge.delivery));

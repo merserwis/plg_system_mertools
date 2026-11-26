@@ -661,6 +661,28 @@ final class Speedup
         return substr_replace($html, self::nonced($js, $nonce), $end, 0);
     }
 
+    /**
+     * A background video fills its section like a picture with "cover": Gridbox sizes the frame 100vw × 56.25vw
+     * (16:9 of the window's width), so a section taller than that — a narrower screen, a tall section — shows
+     * bands above and below. The frame now takes the larger of the section's width and 16/9 of its height,
+     * centred and cut at the edges; a video file gets object-fit:cover. Container units (cqw/cqh); a browser
+     * without them keeps Gridbox's size. Only on a Gridbox page: its gridbox.js, or with Gridbox's compress_js the
+     * one file of templates/gridbox/js/min/ that replaces it.
+     */
+    public static function videoCover(string $html, string $nonce = ''): string
+    {
+        $pos = stripos($html, '</head>');
+        if ($pos === false || stripos($html, 'templates/gridbox/js/') === false || str_contains($html, 'id="mertools-vcover"')) {
+            return $html;
+        }
+
+        return substr_replace($html, self::nonced('<style id="mertools-vcover">' . self::VIDEO_COVER_CSS . '</style>', $nonce), $pos, 0);
+    }
+
+    private const VIDEO_COVER_CSS = '@supports (width:1cqw){div.ba-video-background{container-type:size}'
+        . 'div.ba-video-background iframe{width:max(100cqw,177.78cqh);height:max(56.25cqw,100cqh);left:50%;top:50%;transform:translate(-50%,-50%)}'
+        . 'div.ba-video-background video{width:100%;height:100%;left:0;top:0;object-fit:cover}}';
+
     // ---------------------------------------------------------------- YouTube films
 
     /** the look of a film before it is played: its picture and a play button, in the frame's own document */
@@ -759,6 +781,32 @@ final class Speedup
             return (string) preg_replace('#\s*/?>$#', $add . '>', $tag, 1);
         }, $html);
     }
+
+    /**
+     * Gridbox's Video element with lazy loading shows its own picture of the film (.video-lazy-load-thumbnail) and
+     * writes the frame of YouTube on a click (initvideo.js, jQuery's replaceWith) — with autoplay=0 but in an overlay
+     * section or a lightbox, so on a page the click only loads the player and the film needs a second one. The frame
+     * written for that picture gets autoplay=1: the click that asked for the film plays it. The wrap goes on as soon
+     * as jQuery is there, at the latest when the first click reaches the document (before Gridbox's handler of the
+     * picture); the flag on $.fn keeps it one, also when Consent's YouTube without cookies wraps replaceWith too.
+     * Only on a page with such a picture.
+     */
+    public static function youtubeLazyPlay(string $html, string $nonce = ''): string
+    {
+        if (!preg_match('#\sclass="[^"]*\bvideo-lazy-load-thumbnail\b#i', $html) || str_contains($html, 'mtLazyPlay')) {
+            return $html;
+        }
+
+        return self::beforeBodyEnd($html, self::nonced('<script>' . self::LAZY_PLAY_JS . '</script>', $nonce));
+    }
+
+    private const LAZY_PLAY_JS = '(function(w,d){function hook(){var $=w.$g||w.jQuery;if(!$||!$.fn||!$.fn.replaceWith||$.fn.mtLazyPlay)return;'
+        . '$.fn.mtLazyPlay=1;var o=$.fn.replaceWith;$.fn.replaceWith=function(v){'
+        . 'if(typeof v==="string"&&/\/embed\//.test(v)&&this.is&&this.is(".video-lazy-load-thumbnail")){'
+        . 'arguments[0]=v.replace(/(<iframe\b[^>]*?\ssrc=")([^"]*)"/i,function(a,b,u){var r=/([?&])autoplay=[^&#]*/;'
+        . 'return b+(r.test(u)?u.replace(r,"$1autoplay=1"):u+(u.indexOf("?")<0?"?":"&")+"autoplay=1")+\'"\'})}'
+        . 'return o.apply(this,arguments)}}'
+        . 'hook();d.addEventListener("DOMContentLoaded",hook);w.addEventListener("load",hook);d.addEventListener("click",hook,true)})(window,document);';
 
     /** the attributes of a tag: lower-case name => value as written (entities not decoded); a bare one => '' */
     private static function attributes(string $tag): array

@@ -2,6 +2,20 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.19.3 — 2026-11-24
+
+### ▶️ Gridbox's Video element with *Lazy load* plays at the first click
+
+Gridbox's *Video* element with *Lazy load* on shows its own picture of the film. A click on it put YouTube's player in its place without starting it, so the film needed a second click. It started at once only in a popup or an overlay section. Now the first click plays the film on every page. Gridbox's other settings of the film stay as they were, and with the cookie consent's *YouTube without cookies* the player still comes from youtube-nocookie.com. It is part of the setting *YouTube films loaded only when played* (tab *Speed*), on by default; a page without such a picture gets nothing more. On an iPhone or iPad a film may still need a second tap to play with sound (Safari's rule for sound).
+
+### 🎞️ A background video fills its section
+
+A section, row or column with a video background showed bands of its colour above and below the video on a narrower screen or when the section is tall: Gridbox gives the video the width of the window and a height of 16:9 of it. Now the video fills the whole section like a picture set to *cover*: it grows to the section's height, stays centred and its sides are cut off. On a wide screen nothing changes. On tablets and phones Gridbox already covered the section, but with a video about three and a half times as wide as the screen is tall, so little of it showed; now it is just large enough to cover the section. YouTube, Vimeo and video files; new setting *Background video fills its section* (tab *Speed*), on by default. A browser older than 2023 keeps Gridbox's size.
+
+### ↩️ Markdown import: the fields restored with one button
+
+Gridbox's *Undo* takes back the modules an import added to a page, but not the fields of the form: they are not in its history. After an import that filled fields (a product's SKU, price, links, text fields; the title, alias and intro of a post or page), a bar at the bottom of the editor now names them, with the button **Restore the fields**. It puts back what each field held before the import, also the text editor fields and the options of checkboxes. A field changed by hand since the import is left as it is, and the notice names it. The bar stays until it is closed or the next import; nothing is saved before *Save*.
+
 ## 1.19.2 — 2026-11-23
 
 ### 🗓️ The calendar of dates in Gridbox's panel works again

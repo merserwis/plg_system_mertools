@@ -957,9 +957,15 @@ final class PageSpeed extends Feature
                 $html = Speedup::delayVideoBackground($html, (int) $p->get('speed_video_delay', 3), (string) $p->get('speed_video_phone', 'none'),
                     (int) $p->get('speed_video_phone_width', 768), $image, (string) $p->get('speed_video_phone_color', '#1a1a1a'), $nonce);
             }
+            if ((int) $p->get('speed_video_cover', 1)) {
+                $html = Speedup::videoCover($html, $nonce);
+            }
             if ((int) $p->get('speed_youtube', 1) && stripos($html, '/embed/') !== false) {
                 $this->plugin->loadLanguage();
                 $html = Speedup::youtubeFacade($html, Text::_('PLG_SYSTEM_MERTOOLS_SPEED_YOUTUBE_PLAY'), $nonce);
+            }
+            if ((int) $p->get('speed_youtube', 1)) {
+                $html = Speedup::youtubeLazyPlay($html, $nonce);
             }
             if ((int) $p->get('speed_popups', 1)) {
                 $html = Speedup::delayPopups($html, $nonce);

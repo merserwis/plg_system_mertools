@@ -15,7 +15,10 @@ spl_autoload_register(function ($c) {
 });
 require __DIR__ . '/../com_mertools/admin/src/Helper/Catalog.php';
 
+require __DIR__ . '/../plg_system_mertools/src/Tool/Speed.php';
+
 use Merserwis\Component\MerTools\Administrator\Helper\Catalog as C;
+use Merserwis\Plugin\System\MerTools\Tool\Speed;
 
 $fail = 0;
 $check = function (string $label, $got, $exp) use (&$fail) {
@@ -133,6 +136,9 @@ foreach (['en-GB', 'pl-PL'] as $tag) {
         }
     }
     $check("$tag: every tab label of the plugin", array_values(array_diff(array_unique($labels), array_keys($plg))), []);
+    // the names of the tools in the history of speed measurements (MtspeedField: SPEED_TOOL_<code>)
+    $tools = array_map(fn ($c) => 'PLG_SYSTEM_MERTOOLS_SPEED_TOOL_' . strtoupper($c), array_values(Speed::TOOLS));
+    $check("$tag: every tool of the speed measurements named", array_values(array_diff($tools, array_keys($plg))), []);
 }
 
 echo $fail ? "$fail FAILED\n" : "ALL PASS\n";

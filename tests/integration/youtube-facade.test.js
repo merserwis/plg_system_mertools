@@ -35,6 +35,8 @@ run(async ({ login }) => {
   const admin = await login('light');
   if (process.argv.includes('--install')) await install(admin);
   const ctx = admin.context();
+  // the consent's window (when the copy has it on) is not in the way: a choice saved (necessary only)
+  await ctx.addCookies([{ name: 'mertools_consent', value: 'f0t0m0.' + Math.floor(Date.now() / 1000), url: URL_ }]);
   const open = async () => {
     const page = await ctx.newPage();
     const hosts = [];

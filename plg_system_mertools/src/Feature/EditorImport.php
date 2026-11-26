@@ -49,6 +49,11 @@ final class EditorImport extends Feature
                 'failed'  => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_FAILED'),
                 'filled'  => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_FILLED'),
                 'kept'    => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_KEPT'),
+                'restoreBar' => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_RESTORE_BAR'),
+                'restore'  => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_RESTORE'),
+                'restored' => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_RESTORED'),
+                'changed'  => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_CHANGED'),
+                'close'    => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_CLOSE'),
                 'names'   => [
                     'title'    => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_NAME_TITLE'),
                     'alias'    => Text::_('PLG_SYSTEM_MERTOOLS_MDIMPORT_NAME_ALIAS'),

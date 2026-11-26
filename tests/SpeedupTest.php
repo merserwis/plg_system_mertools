@@ -392,5 +392,24 @@ $check('yt: without a nonce none', $has(Speedup::youtubeFacade('<iframe src="htt
 $check('yt: a ">" in a quoted value is not the end of the tag', $has(Speedup::youtubeFacade('<iframe title="A > B" src="https://www.youtube.com/embed/abcdefghijk"></iframe>', 'P'), 'title="A > B" src="https://www.youtube.com/embed/abcdefghijk" srcdoc="'), true);
 $check('yt: a quote in the label cannot leave the attribute', $has(Speedup::youtubeFacade('<iframe src="https://www.youtube.com/embed/abcdefghijk"></iframe>', 'a"b<c'), 'title="a&quot;b&lt;c"'), true);
 
+// ---------------------------------------------------------------- Gridbox's Video with its own picture: one click plays
+$thumb = '<body><div class="ba-video-wrapper"><div class="video-lazy-load-thumbnail" style="background-image: url(https://img.youtube.com/vi/abcdefghijk/maxresdefault.jpg);"><i class="ba-icons ba-icon-play-circle"></i></div></div></body>';
+$lp = Speedup::youtubeLazyPlay($thumb, 'AbCdEf0123456789+/==');
+$check('lazy play: the script before </body>, with the nonce', [str_contains($lp, '<script nonce="AbCdEf0123456789+/==">(function(w,d){'), str_ends_with($lp, '</script></body>')], [true, true]);
+$check('lazy play: the page otherwise as it was', preg_replace('#<script\b.*?</script>#s', '', $lp), $thumb);
+$check('lazy play: once', Speedup::youtubeLazyPlay($lp), $lp);
+$check('lazy play: no picture of Gridbox, no script', Speedup::youtubeLazyPlay('<body><iframe src="https://www.youtube.com/embed/abcdefghijk"></iframe></body>'), '<body><iframe src="https://www.youtube.com/embed/abcdefghijk"></iframe></body>');
+$check('lazy play: the class only in CSS is no picture', Speedup::youtubeLazyPlay('<style>.video-lazy-load-thumbnail{x:1}</style><body></body>'), '<style>.video-lazy-load-thumbnail{x:1}</style><body></body>');
+$check('lazy play: without a nonce none', str_contains(Speedup::youtubeLazyPlay($thumb), 'nonce'), false);
+
+// ---------------------------------------------------------------- background video fills its section
+$gb = '<head><title>t</title></head><body><script src="/templates/gridbox/js/gridbox.js?1"></script></body>';
+$vc = Speedup::videoCover($gb, 'N1');
+$check('cover: a style before </head>, with the nonce', str_contains($vc, '<style nonce="N1" id="mertools-vcover">@supports (width:1cqw){') && str_contains($vc, '}</style></head>'), true);
+$check('cover: the page otherwise as it was', preg_replace('#<style\b.*?</style>#s', '', $vc), $gb);
+$check('cover: once', Speedup::videoCover($vc, 'N1'), $vc);
+$check('cover: also with Gridbox\'s compressed scripts (compress_js)', str_contains(Speedup::videoCover('<head></head><body><script src="/templates/gridbox/js/min/0123abcd.min.js?1"></script></body>'), 'id="mertools-vcover"'), true);
+$check('cover: not a Gridbox page', Speedup::videoCover('<head></head><body></body>'), '<head></head><body></body>');
+
 echo $fail === 0 ? "\nALL PASS\n" : "\n$fail FAILED\n";
 exit($fail === 0 ? 0 : 1);

@@ -833,9 +833,13 @@
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
   };
+  // snap() of a field: what it holds now, and back to that (see restoreBar)
+  const snapValue = (el) => () => { const was = el.value; return () => { el.value = was; fire(el); }; };
   // what a field gets: a section of the document ({html, text}) or the value of a line ({value, link})
   const asHtml = (entry) => (entry.html !== undefined ? entry.html : (entry.value ? '<p>' + esc(entry.value) + '</p>' : ''));
   const asText = (entry) => (entry.text !== undefined ? entry.text : entry.value);
+  // what the restore compares: a field's own state if it has one (a link: text and address apart), else its value
+  const state = (f) => (f.state ? f.state() : f.get());
   const blank = (v) => !/<(img|iframe|table|video|hr)\b/i.test(v) && stripTags(String(v)).replace(/ |&nbsp;/g, ' ').trim() === '';
   const SIMPLE = ['text', 'number', 'price', 'date', 'event-date'];
 
@@ -847,7 +851,7 @@
       if (!el) return null;
       const money = type === 'price' || type === 'number';
 
-      return { label, get: () => el.value.trim(), set: (e) => {
+      return { label, snap: snapValue(el), get: () => el.value.trim(), set: (e) => {
         const text = asText(e).replace(/\s*\n\s*/g, ' ');
         const v = money ? amount(text) : safeText(text);
         if (v === '') return false;
@@ -863,10 +867,25 @@
       if (el.dataset.texteditor && !el.dataset.jce) {
         const cke = () => app.fieldsCKE && app.fieldsCKE[el.name];
 
-        return { label, rich: true, get: () => (cke() ? cke().getData() : el.value), set: (e) => {
+        const snap = () => {
+          const was = el.value;
+          const data = cke() ? cke().getData() : null;
+
+          return () => { el.value = was; if (cke()) cke().setData(data === null ? was : data); };
+        };
+
+        // CKEditor's setData is asynchronous: what the field holds after the import is known at its callback
+        let settled = Promise.resolve();
+
+        return { label, rich: true, snap, settled: () => settled, get: () => (cke() ? cke().getData() : el.value), set: (e) => {
           const html = safeHtml(asHtml(e));
           el.value = html;
-          if (cke()) cke().setData(html);
+          if (cke()) {
+            settled = new Promise((resolve) => {
+              const t = setTimeout(resolve, 3000);
+              cke().setData(html, { callback: () => { clearTimeout(t); resolve(); } });
+            });
+          }
 
           return true;
         } };
@@ -874,17 +893,22 @@
       if (el.dataset.texteditor && window.WFEditor) {
         const id = 'editor' + el.dataset.jce;
 
-        return { label, rich: true, get: () => window.WFEditor.getContent(id), set: (e) => { window.WFEditor.setContent(id, safeHtml(asHtml(e))); return true; } };
+        const snap = () => { const was = window.WFEditor.getContent(id); return () => window.WFEditor.setContent(id, was); };
+
+        return { label, rich: true, snap, get: () => window.WFEditor.getContent(id), set: (e) => { window.WFEditor.setContent(id, safeHtml(asHtml(e))); return true; } };
       }
 
-      return { label, get: () => el.value.trim(), set: (e) => { el.value = safeText(asText(e)); fire(el); return true; } };
+      return { label, snap: snapValue(el), get: () => el.value.trim(), set: (e) => { el.value = safeText(asText(e)); fire(el); return true; } };
     }
     if (type === 'url' || type === 'field-button') {
       const text = g.querySelector('input[type="text"][data-name="label"]');
       const link = g.querySelector('input[type="text"][data-name="link"]');
       if (!link) return null;
 
-      return { label, get: () => [text ? text.value : '', link.value].filter(Boolean).join(' ').trim(), set: (e) => {
+      const snap = () => { const back = [text, link].filter(Boolean).map((el) => snapValue(el)()); return () => back.forEach((f) => f()); };
+
+      // state: text and address apart, so "Sonel" + "/sonel" is not the same as "Sonel /sonel" typed into the text
+      return { label, snap, state: () => JSON.stringify([text ? text.value : '', link.value]), get: () => [text ? text.value : '', link.value].filter(Boolean).join(' ').trim(), set: (e) => {
         // a line gives its link; a section its first link, with the text of that link
         const a = e.html ? new DOMParser().parseFromString(e.html, 'text/html').querySelector('a[href]') : null;
         const value = (a ? a.textContent : asText(e).split('\n')[0]).replace(/\s+/g, ' ').trim();
@@ -908,7 +932,7 @@
       const el = g.querySelector('select[name]');
       if (!el) return null;
 
-      return { label, get: () => el.value, set: (e) => {
+      return { label, snap: snapValue(el), get: () => el.value, set: (e) => {
         const want = key(asText(e));
         const option = [...el.options].find((o) => o.value !== '' && (key(o.textContent) === want || key(o.value) === want));
         if (!option) return false;
@@ -923,7 +947,13 @@
       if (!boxes.length) return null;
       const title = (b) => key(((b.closest('.ba-checkbox-wrapper') || b).querySelector('span') || b).textContent || b.value);
 
-      return { label, get: () => boxes.filter((b) => b.checked).map((b) => b.value).join(','), set: (e) => {
+      const snap = () => {
+        const was = boxes.map((b) => b.checked);
+
+        return () => { boxes.forEach((b, i) => { b.checked = was[i]; }); fire(boxes[0]); };
+      };
+
+      return { label, snap, get: () => boxes.filter((b) => b.checked).map((b) => b.value).join(','), set: (e) => {
         const want = asText(e).split(type === 'radio' ? /\n/ : /[,;\n]/).map(key).filter(Boolean);
         const hit = boxes.filter((b) => want.includes(title(b)) || want.includes(key(b.value)));
         if (!hit.length) return false;
@@ -964,7 +994,13 @@
     const els = [...document.querySelectorAll('.page-settings-input-trigger[name="' + FIELD_NAMES[field] + '"]')];
     if (!els.length) return null;
 
-    return { label: cfg.texts.names[field], get: () => els[0].value.trim(), set: (e) => {
+    const snap = () => {
+      const was = els.map((el) => el.value);
+
+      return () => { els.forEach((el, i) => { el.value = was[i]; }); els[0].dispatchEvent(new Event('input', { bubbles: true })); };
+    };
+
+    return { label: cfg.texts.names[field], snap, get: () => els[0].value.trim(), set: (e) => {
       els.forEach((el) => { el.value = e.value; });
       els[0].dispatchEvent(new Event('input', { bubbles: true }));
 
@@ -990,10 +1026,60 @@
     if (typeof window.$g === 'function') window.$g('.ba-modal-cp.draggable-modal-cp.in:not(#page-structure-dialog)').modal('hide');
   };
 
+  // The fields of the form are not in Gridbox's history (app.addHistory keeps the page in the editor's frame and
+  // its items), so its Undo takes back the modules of an import but never the fields. After an import that filled
+  // fields a bar stays, until it is closed or the next import, with a button that puts back what they held before
+  // it; a field changed since the import is left as it is.
+  let bar = null;
+  const restoreBar = (changes) => {
+    if (bar) { bar.remove(); bar = null; }
+    if (!changes.length) return;
+    bar = document.createElement('div');
+    bar.className = 'mertools-md-restore';
+    bar.setAttribute('role', 'status');
+    bar.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:99998;display:flex;align-items:center;gap:14px;'
+      + 'max-width:min(720px,calc(100vw - 32px));padding:10px 12px 10px 18px;border-radius:6px;background:#2c2c2c;color:#fff;'
+      + 'box-shadow:0 10px 30px rgba(0,0,0,.25);font:400 14px/1.4 Roboto,Arial,sans-serif';
+    const text = document.createElement('span');
+    text.textContent = say(cfg.texts.restoreBar, changes.map(({ f }) => f.label).join(', '));
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'mertools-md-restore-button';
+    button.textContent = cfg.texts.restore;
+    button.style.cssText = 'flex:none;padding:7px 14px;border:0;border-radius:4px;background:#fff;color:#2c2c2c;font:500 14px Roboto,Arial,sans-serif;cursor:pointer';
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'mertools-md-restore-close';
+    close.setAttribute('aria-label', cfg.texts.close);
+    close.title = cfg.texts.close;
+    close.textContent = '×';
+    close.style.cssText = 'flex:none;padding:0 4px;border:0;background:none;color:inherit;font:400 22px/1 Arial,sans-serif;cursor:pointer;opacity:.7';
+    button.addEventListener('click', () => {
+      const restored = [];
+      const changed = [];
+      // in the reverse order: a field filled twice ends with what it held first
+      changes.slice().reverse().forEach(({ f, back, after }) => {
+        let now;
+        try { now = state(f); } catch (e) { now = null; }
+        if (now !== after) { changed.push(f.label); return; }
+        try { back(); restored.push(f.label); } catch (e) { changed.push(f.label); }
+      });
+      restoreBar([]);
+      notice([
+        restored.length ? say(cfg.texts.restored, restored.reverse().join(', ')) : '',
+        changed.length ? say(cfg.texts.changed, changed.reverse().join(', ')) : '',
+      ].filter(Boolean).join(' '), !restored.length);
+    });
+    close.addEventListener('click', () => restoreBar([]));
+    bar.append(text, button, close);
+    document.body.append(bar);
+  };
+
   // ---------------------------------------------------------------- the import
 
   const run = async (file) => {
     if (busy) return;
+    restoreBar([]);
     const w = app.editor;
     if (!w || !w.document || !w.app || typeof w.app.checkModule !== 'function') {
       notice(cfg.texts.fail, true);
@@ -1041,6 +1127,8 @@
     const filled = [];
     const kept = [];
     const failed = [];
+    // each field filled: how to put back what it held, and what the import left in it
+    const changes = [];
     const differs = plan.filter(({ f, e }) => !blank(f.get()) && f.get() !== (f.rich ? asHtml(e) : asText(e)));
     const overwrite = mode === 'app'
       ? !differs.length || window.confirm(say(cfg.texts.overwrite, differs.map(({ f }) => f.label).join(', ')).replace(/\\n/g, '\n'))
@@ -1049,10 +1137,21 @@
       const now = f.get();
       if (now === (f.rich ? asHtml(e) : asText(e))) return;
       if (!blank(now) && !overwrite) { kept.push(f.label); return; }
+      let back = null;
       try {
-        (f.set(e) ? filled : failed).push(f.label);
+        back = f.snap();
+        if (f.set(e)) {
+          filled.push(f.label);
+          const change = { f, back, after: state(f) };
+          if (f.settled) f.settled().then(() => { change.after = state(f); });
+          changes.push(change);
+        } else {
+          failed.push(f.label);
+        }
       } catch (err) {
         failed.push(f.label);
+        // not left half written
+        try { if (back) back(); } catch (e2) { /* as it is */ }
       }
     });
     // an item's fields at once (they are not the modules); a post's or a page's once its modules are in
@@ -1099,6 +1198,7 @@
       kept.length ? say(cfg.texts.kept, kept.join(', ')) : '',
       failed.length ? say(cfg.texts.failed, failed.join(', ')) : '',
     ].filter(Boolean).join(' ');
+    restoreBar(changes);
     if (!done) {
       if (!result.blocks.length) notice(said || cfg.texts.empty, !filled.length);
       else if (said) notice(said, !filled.length);
