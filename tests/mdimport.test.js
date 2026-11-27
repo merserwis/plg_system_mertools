@@ -3,7 +3,7 @@
 // Run: node tests/mdimport.test.js
 'use strict';
 const path = require('path');
-const { parse, amount, fieldUrl, safeText, safeHtml } = require(path.join(__dirname, '../plg_system_mertools/media/js/mertools-mdimport.js'));
+const { parse, amount, fieldUrl, filePath, safeText, safeHtml } = require(path.join(__dirname, '../plg_system_mertools/media/js/mertools-mdimport.js'));
 
 let failed = 0;
 const check = (label, got, expected) => {
@@ -133,7 +133,7 @@ check('horizontal rules', html('a\n\n---\n\n***\n\n___'), '<p>a</p><hr><hr><hr>'
 check('a rule with a text under it is a heading', html('a\n---'), '[h2:a]');
 check('HTML comment is dropped', html('a\n\n<!-- hidden\nmore -->\n\nb'), '<p>a</p><p>b</p>');
 check('table with alignment', html('| A | B | C |\n|---|:-:|--:|\n| 1 | 2 | 3 |\n| x | y |'),
-  '<table style="border-collapse: collapse; width: 100%;" border="1" cellpadding="6"><thead><tr><th>A</th><th style="text-align: center;">B</th><th style="text-align: right;">C</th></tr></thead>'
+  '<table><thead><tr><th>A</th><th style="text-align: center;">B</th><th style="text-align: right;">C</th></tr></thead>'
   + '<tbody><tr><td>1</td><td style="text-align: center;">2</td><td style="text-align: right;">3</td></tr><tr><td>x</td><td style="text-align: center;">y</td><td style="text-align: right;"></td></tr></tbody></table>');
 check('table with no outer pipes, formatting and an escaped pipe in a cell', html('a | b\n--|--\n**x** | 1 \\| 2').includes('<td><strong>x</strong></td><td>1 | 2</td>'), true);
 check('a line with a pipe is no table without its delimiter row', html('a | b\nc'), '<p>a | b\nc</p>');
@@ -190,7 +190,7 @@ check('product: label lines of the fields, a link with its address', r.extra, [
   { label: 'SKU', value: 'SONE/MPI516', link: '' }, { label: 'Cena', value: '6 950,00 zł', link: '' }, { label: 'Producent', value: 'Sonel', link: '/sonel' }]);
 check('product: sections named as fields, a sub-heading inside', r.sections.map((s) => [s.label, s.html]), [
   ['Cechy i funkcje', '<p>Pomiar <strong>pętli</strong>.</p><h3>Pomiary</h3><ul><li>RCD</li></ul>'],
-  ['Dane techniczne', '<table style="border-collapse: collapse; width: 100%;" border="1" cellpadding="6"><thead><tr><th>A</th><th>B</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table>'],
+  ['Dane techniczne', '<table><thead><tr><th>A</th><th>B</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table>'],
   ['Wyposażenie', '<ul><li>Przewód</li></ul>']]);
 check('product: the text of a section', r.sections[0].text, 'Pomiar pętli.\nPomiary\nRCD');
 check('product: what is in no field stays modules, in order', r.blocks, [
@@ -206,6 +206,27 @@ r = parse('Producent: [x](javascript:alert(1))\nSKU: 1', { field });
 check('no javascript: link', r.extra[0].link, '');
 r = parse('## Dane techniczne\n\nA\n\n## Dane techniczne\n\nB', { field });
 check('a field named twice: the first section, the second a headline', [r.sections.length, r.blocks.map((b) => b.type)], [1, ['headline', 'text']]);
+
+// ---- a field under "# Label" holds "## headings"; the next field begins its own section whatever its level
+r = parse('# P\n\nSKU: 1\n\n# Cechy i funkcje\n\nA\n\n## Sekcja\n\nB\n\n### Pod\n\n| x |\n|---|\n| 1 |\n\n## Dane techniczne\n\nC\n\n## Coś innego\n\nD\n\n# Strona\n\nE', { field });
+check('a field under #: its ## and ### headings and table in it, the next field\'s ## its own section',
+  [r.sections.map((s) => [s.label, s.html]), r.blocks],
+  [[['Cechy i funkcje', '<p>A</p><h2>Sekcja</h2><p>B</p><h3>Pod</h3><table><thead><tr><th>x</th></tr></thead><tbody><tr><td>1</td></tr></tbody></table>'],
+    ['Dane techniczne', '<p>C</p>']],
+  [{ type: 'headline', level: 2, text: 'Coś innego' }, { type: 'text', html: '<p>D</p>' }, { type: 'headline', level: 2, text: 'Strona' }, { type: 'text', html: '<p>E</p>' }]]);
+
+// ---- the path a file field keeps
+const ROOT = 'https://x.pl/';
+check('file paths: from the site\'s root, no "/" before it', ['/images/a b.pdf', 'images/a.pdf', 'https://x.pl/images/a.pdf', 'HTTPS://X.PL/images/a.PDF'].map((u) => filePath(u, ROOT, 'pdf')),
+  ['images/a%20b.pdf', 'images/a.pdf', 'images/a.pdf', 'images/a.PDF']);
+check('file paths: a site in a folder', ['/sub/images/a.pdf', 'https://x.pl/sub/images/a.pdf', '/images/a.pdf'].map((u) => filePath(u, 'https://x.pl/sub/', 'pdf')), ['images/a.pdf', 'images/a.pdf', 'images/a.pdf']);
+check('file paths refused: another site, a scheme, out of the folder, another type, a folder, a quote kept in', [
+  'https://y.pl/a.pdf', '//y.pl/a.pdf', 'javascript:alert(1)//a.pdf', '/images/../configuration.php', '../a.pdf', '/images/a.exe', '/images/', ''].map((u) => filePath(u, ROOT, 'pdf, doc')).concat(filePath('/a".pdf', ROOT, '')),
+  ['', '', '', '', '', '', '', '', 'a%22.pdf']);
+check('file paths (review): ".." written as %2e, a folder of the site in another case, a full address out of its folder', [
+  filePath('%2e%2e/private.pdf', 'https://x.pl/sub/', 'pdf'), filePath('/sub/images/%2E./a.pdf', 'https://x.pl/sub/', 'pdf'),
+  filePath('https://x.pl/SUB/images/a.pdf', 'https://x.pl/sub/', 'pdf'), filePath('https://X.PL/sub/images/a.pdf', 'https://x.pl/sub/', 'pdf'),
+  filePath('https://x.pl/images/a.pdf', 'https://x.pl/sub/', 'pdf'), filePath('https://x.pl', 'https://x.pl/', 'pdf')], ['', '', '', 'images/a.pdf', '', '']);
 
 // ---- review: amounts, addresses a field keeps, one line of a field
 check('amounts', ['6 950,00 zł', '1234.5', '0.125', '0,125', '1.234.567', '1.234,50', '1,234.50', '12,3456', '-0.5', ',5', '6950'].map(amount),

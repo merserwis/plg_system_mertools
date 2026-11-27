@@ -211,7 +211,7 @@ The same import works in every Gridbox editor, not only in a blog post: a **docu
 - **A page**: a new, empty page takes the document where its *click here and start typing* is; a page with content gets it in a new section of one column at its end. The `# heading` of the document stays a **Headline h1** — nothing else shows the title of a page — or `h2` when the page has an `h1` already.
 - **A product, or an item of any app with fields**: the document also fills the fields of the item's form, found by their labels — the labels of that app, in any language, so it works with any set of fields.
 
-A line `Label: value` at the top of the document (also right under its `# heading`, also a single one) fills the field of that label; a heading named as a field fills it with everything under it — sub-headings, lists and tables too — up to the next heading of its level:
+A line `Label: value` at the top of the document (also right under its `# heading`, also a single one) fills the field of that label; a heading named as a field fills it with everything under it — sub-headings, lists and tables too — up to the next heading of its level or the next field's heading. A field written as `# Cechy i funkcje` keeps the `## headings` under it as its own `h2`; under `## Field` its sub-headings are `###`:
 
 ```
 # Sonel MI-3155 EurotestXD
@@ -232,7 +232,8 @@ Everything under a heading that is no field goes into the content of the item's 
 ```
 
 - The store's own fields of a product are also found by their common names: *SKU / Kod / Kod produktu / Symbol / Indeks / Numer katalogowy / MPN* → SKU, *Cena / Price* → Price, *Cena promocyjna / Sale price* → Sale price, *Stan / Stan magazynowy / Stock* → Stock, *Minimalna ilość / Min. qty* → Minimum quantity.
-- Fields filled: text, number, price, date, text area (with CKEditor or JCE), URL and button (the address and text of a link: `[Sonel](/sonel)`, or the first link of a section), select and radio (by the name of an option), checkbox (several options separated by commas).
+- Fields filled: text, number, price, date, text area (with CKEditor or JCE), URL and button (the address and text of a link: `[Sonel](/sonel)`, or the first link of a section), select and radio (by the name of an option), checkbox (several options separated by commas), file (1.20.1; a path on the site, such as `/images/karty/x.pdf` or its full address, of a type the field accepts; the file itself is not checked or uploaded).
+- Tables are plain `<table>` elements, styled by the theme.
 - Amounts are read exactly — `6 950,00 zł` is 6950.00, `0.125` stays 0.125. One that can be read two ways (`6.950`) or has other figures around it (`100 zł + 23% VAT`) is not filled in, and the notice names the field.
 - When fields have content already, the editor asks before replacing it; *Cancel* fills only the empty ones. A new link text without an address does not keep the address of the old one.
 - What fits no field goes into the content of the item's page, and the notice says how much.

@@ -2,6 +2,14 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.20.1 — 2026-11-27
+
+### 📝 Markdown import: file fields, headings inside a field, plain tables <!-- addition -->
+
+- **File fields** of a product (such as a datasheet) are filled from the document too. Write the file's path on the site, `Karta katalogowa: /images/karty/x.pdf`, or put it under a heading named as the field. A full address of the same site works as well. The field gets the path the way Gridbox's media manager gives it and shows the file's name. An address of another site, a path out of the site's folder or a file type the field does not accept is not filled in, and the notice names the field. The file itself must already be on the server. The same works when many documents become products through Gridbox's CSV import.
+- **`## headings` inside a field**: a field's section ends at the next heading of its own level or at the next field's heading. Write the field as `# Cechy i funkcje` and the `## headings` under it stay in the field as `h2`, with their tables and lists. Before, a field under `#` took the next field's `## heading` in too.
+- **Tables** go in as plain `<table>`, styled by the theme, without the border and padding the import used to give them.
+
 ## 1.20.0 — 2026-11-26
 
 ### 📤 Markdown export of pages, posts and products

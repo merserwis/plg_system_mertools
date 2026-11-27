@@ -489,7 +489,8 @@
       case 'table': {
         const cell = (tag, text, k) => '<' + tag + (node.align[k] ? ' style="text-align: ' + node.align[k] + ';"' : '') + '>' + inline(text, refs) + '</' + tag + '>';
 
-        return '<table style="border-collapse: collapse; width: 100%;" border="1" cellpadding="6"><thead><tr>' + node.head.map((t, k) => cell('th', t, k)).join('')
+        // a plain table: its look is the theme's (a border of its own the theme could not take away)
+        return '<table><thead><tr>' + node.head.map((t, k) => cell('th', t, k)).join('')
           + '</tr></thead><tbody>' + node.rows.map((row) => '<tr>' + row.map((t, k) => cell('td', t, k)).join('') + '</tr>').join('') + '</tbody></table>';
       }
       default: return '';
@@ -562,6 +563,27 @@
 
     return u.replace(/["'<>`\\ ]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
   };
+  // the path a file field of Gridbox keeps: from the site's root without a "/" before it ("images/a.pdf"; Gridbox
+  // writes Uri::root() before it, and writes it into the page unescaped), of a type the field takes ("pdf, doc");
+  // '' for another site's address, a path out of the site's folder or a type the field does not take
+  const filePath = (raw, root, types = '') => {
+    let u = fieldUrl(raw);
+    const site = /^https?:/i.test(String(root)) ? new URL(root) : null;
+    const dir = site ? site.pathname : String(root || '/');
+    if (/^[a-z][a-z0-9+.-]*:|^\/\//i.test(u)) {
+      // the site's own address: its host in any case, its path as it is (a server may tell /SUB from /sub)
+      const m = /^(https?:\/\/[^/?#]+)(.*)$/i.exec(u);
+      if (!m || !site || m[1].toLowerCase() !== site.origin.toLowerCase() || !(m[2] || '/').startsWith(dir)) return '';
+      u = (m[2] || '/').slice(dir.length);
+    } else if (u.startsWith('/')) u = u.startsWith(dir) ? u.slice(dir.length) : u.slice(1);
+    const path = u.replace(/[?#].*$/, '');
+    // the browser reads %2e as a dot: "%2e%2e/" leaves the site's folder as "../" does
+    if (!path || path.endsWith('/') || /(^|\/)\.\.?(\/|$)/.test(path.replace(/%2e/gi, '.'))) return '';
+    const allowed = String(types).toLowerCase().split(/[\s,]+/).filter(Boolean);
+    const ext = (/\.([^./]+)$/.exec(path) || ['', ''])[1].toLowerCase();
+
+    return !allowed.length || allowed.includes(ext) ? u : '';
+  };
   // the address of a value that is one link and nothing else: "[Sonel](/sonel)", "<https://…>", "https://…"
   const linkOf = (md) => {
     const s = String(md).trim();
@@ -619,7 +641,7 @@
    *
    * Options: field(label) — the label names a field of the page (an app's item: a product's SKU, Producent,
    * Dane techniczne): a "Label: value" line of it at the top is in extra [{label, value, link}], and a heading
-   * of it begins a section of it (up to the next heading of its level or a higher one, its sub-headings in it)
+   * of it begins a section of it (up to the next heading of its level or a higher one, or the next field's heading; its sub-headings in it)
    * in sections [{label, html, text}], not in blocks. keepTitle — the # heading that is the title is also a
    * headline, of the first level (a page, where nothing else shows the title), or of the second (keepTitle: 2,
    * a page with an h1 of its own already).
@@ -681,9 +703,12 @@
       if (node.type === 'h') { const label = stripTags(inline(node.text, refs)).trim(); if (label && known(label)) lastOf.set(label.replace(/\s+/g, ' ').toLowerCase(), k); }
     });
     nodes.forEach((node, k) => {
-      if (node.type === 'h' && section && node.level > section.level) { section.html.push(render(node, refs)); return; }
       if (node.type !== 'h') { (section ? section.html : html).push(render(node, refs)); return; }
       const label = stripTags(inline(node.text, refs)).trim();
+      // a heading that begins the section of a field: its own (the last of its name), not one filled before
+      const opens = !!label && known(label) && !sections.some((s) => same(s.label, label)) && lastOf.get(label.replace(/\s+/g, ' ').toLowerCase()) === k;
+      // under "# Field" a "## heading" is the field's own; the next field begins its section whatever its level
+      if (section && node.level > section.level && !opens) { section.html.push(render(node, refs)); return; }
       if (!label) return;
       end();
       // the title: the first heading, of the first level, when it says the title named above it, else when the
@@ -695,7 +720,7 @@
         return;
       }
       heading = true;
-      if (known(label) && !sections.some((s) => same(s.label, label)) && lastOf.get(label.replace(/\s+/g, ' ').toLowerCase()) === k) {
+      if (opens) {
         close();
         section = { label, level: node.level, html: [] };
         return;
@@ -845,7 +870,7 @@
     }
   };
 
-  const api = { parse, amount, fieldUrl, safeText, safeHtml, toMarkdown, readFile };
+  const api = { parse, amount, fieldUrl, filePath, safeText, safeHtml, toMarkdown, readFile };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (typeof document === 'undefined') return;
   window.MerToolsMarkdown = api;
@@ -964,6 +989,8 @@
   const asText = (entry) => (entry.text !== undefined ? entry.text : entry.value);
   // what the restore compares: a field's own state if it has one (a link: text and address apart), else its value
   const state = (f) => (f.state ? f.state() : f.get());
+  // what a field would hold after the import, to see whether it holds it already
+  const wants = (f, e) => (f.wants ? f.wants(e) : (f.rich ? asHtml(e) : asText(e)));
   const blank = (v) => !/<(img|iframe|table|video|hr)\b/i.test(v) && stripTags(String(v)).replace(/ |&nbsp;/g, ' ').trim() === '';
   const SIMPLE = ['text', 'number', 'price', 'date', 'event-date'];
 
@@ -1100,7 +1127,32 @@
       } };
     }
 
-    return null; // files, galleries, maps and the like: not from a text
+    if (type === 'file') {
+      // Gridbox saves the path in data-value and shows the file's name in the field
+      const el = g.querySelector('input.trigger-attachment-file-field[name]');
+      if (!el) return null;
+      const get = () => el.dataset.value || '';
+      const snap = () => { const was = [el.value, get()]; return () => { el.value = was[0]; el.dataset.value = was[1]; fire(el); }; };
+
+      // a line's link or its text; a section's first link, else its first line
+      const wants = (e) => {
+        const a = e.html ? new DOMParser().parseFromString(e.html, 'text/html').querySelector('a[href]') : null;
+
+        return filePath(e.link || (a ? a.getAttribute('href') : asText(e).split('\n')[0].trim()), window.JUri || location.origin + '/', el.dataset.types);
+      };
+
+      return { label, snap, get, wants, out: get, set: (e) => {
+        const path = wants(e);
+        if (!path) return false;
+        el.dataset.value = path;
+        el.value = path.replace(/[?#].*$/, '').split('/').pop();
+        fire(el);
+
+        return true;
+      } };
+    }
+
+    return null; // images, galleries, maps and the like: not from a text
   };
 
   // the fields of the form of an app's item (a product) by their labels, and the store's own by other names too
@@ -1265,13 +1317,14 @@
     const failed = [];
     // each field filled: how to put back what it held, and what the import left in it
     const changes = [];
-    const differs = plan.filter(({ f, e }) => !blank(f.get()) && f.get() !== (f.rich ? asHtml(e) : asText(e)));
+    const differs = plan.filter(({ f, e }) => !blank(f.get()) && f.get() !== wants(f, e) && !(f.wants && wants(f, e) === ''));
     const overwrite = mode === 'app'
       ? !differs.length || window.confirm(say(cfg.texts.overwrite, differs.map(({ f }) => f.label).join(', ')).replace(/\\n/g, '\n'))
       : fresh;
     const fillFields = () => plan.forEach(({ f, e }) => {
       const now = f.get();
-      if (now === (f.rich ? asHtml(e) : asText(e))) return;
+      // a value a field refuses ('' from its wants) goes on to set(), which names the field as not filled
+      if (now === wants(f, e) && !(f.wants && now === '')) return;
       if (!blank(now) && !overwrite) { kept.push(f.label); return; }
       let back = null;
       try {

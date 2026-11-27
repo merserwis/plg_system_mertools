@@ -78,6 +78,12 @@ run(async ({ login, editor }) => {
         sku: val('#ba-group-product-pricing [data-field-key="sku"] input'), price: val('#ba-group-product-pricing [data-field-key="price"] input'),
         title: val('#blog-post-editor-general-options [name="page_title"]'), intro: val('#blog-post-editor-general-options [name="intro_text"]'),
         maker: [url.querySelector('[data-name="label"]').value, url.querySelector('[data-name="link"]').value],
+        sheet: (() => {
+          const g = [...document.querySelectorAll('#blog-post-editor-fields-options [data-field-type="file"]')]
+            .find((x) => x.querySelector('.ba-field-editor-label').textContent.replace('*', '').trim() === 'Karta katalogowa');
+          const el = g && g.querySelector('input[name]');
+          return el && [el.value, el.dataset.value];
+        })(),
         features: cke('Cechy i funkcje'), tech: cke('Dane techniczne'), kit: cke('Wyposażenie'), acc: cke('Akcesoria'),
       };
     });
@@ -86,6 +92,7 @@ run(async ({ login, editor }) => {
     check('price as a number', form.price === '1234.50', form.price);
     check('title and intro text', form.title === 'MT Miernik testowy XY-100' && form.intro.startsWith('Miernik testowy XY-100 do'), JSON.stringify([form.title, form.intro]));
     check('Producent: label and link', form.maker[0] === 'Sonel' && form.maker[1] === 'index.php?option=com_gridbox&view=page&id=256', JSON.stringify(form.maker));
+    check('Karta katalogowa: the path of the file from the site\'s root, its name shown', JSON.stringify(form.sheet) === JSON.stringify(['karta_XY-100.pdf', 'images/mt-test/karta_XY-100.pdf']), JSON.stringify(form.sheet));
     check('Cechy i funkcje: text with its sub-heading and list', /pętlę zwarcia/.test(form.features) && /<h3>Bezpieczeństwo<\/h3>/.test(form.features) && /IP54/.test(form.features), form.features);
     check('Dane techniczne: the table', /<table/.test(form.tech) && /0(–|&ndash;)10 G(Ω|&Omega;)/.test(form.tech), form.tech);
     check('Wyposażenie and Akcesoria: lists', /futerał/.test(form.kit) && /<li>adapter EVSE-01<\/li>/.test(form.acc), JSON.stringify([form.kit, form.acc]));
@@ -104,6 +111,7 @@ run(async ({ login, editor }) => {
     const value = (label) => (sql(`SELECT value FROM #__gridbox_page_fields WHERE page_id = ${id} AND field_id = ${field(label)}`)[0] || [''])[0];
     check('saved: Dane techniczne, Akcesoria, Producent', /<table/.test(value('Dane techniczne')) && /EVSE/.test(value('Akcesoria')) && /"label":"Sonel"/.test(value('Producent')),
       JSON.stringify([value('Dane techniczne').slice(0, 60), value('Akcesoria'), value('Producent')]));
+    check('saved: Karta katalogowa', value('Karta katalogowa') === 'images/mt-test/karta_XY-100.pdf', value('Karta katalogowa'));
     check('saved: title', sql(`SELECT title FROM #__gridbox_pages WHERE id = ${id}`)[0][0] === 'MT Miernik testowy XY-100');
     // again into the filled product: it asks, and Cancel keeps what is there
     await editor(page, id);
@@ -137,6 +145,7 @@ run(async ({ login, editor }) => {
         maker: [maker.querySelector('[data-name="label"]').value, maker.querySelector('[data-name="link"]').value],
         kit: app.fieldsCKE[group('Wyposażenie').dataset.id].getData(),
         acc: app.fieldsCKE[group('Akcesoria').dataset.id].getData(),
+        sheet: (() => { const el = group('Karta katalogowa').querySelector('input[name]'); return [el.value, el.dataset.value]; })(),
       };
     });
     await page.evaluate(() => {
@@ -148,6 +157,9 @@ run(async ({ login, editor }) => {
       set(maker.querySelector('[data-name="link"]'), '/stary');
       const kit = [...document.querySelectorAll('#blog-post-editor-fields-options [data-field-type="textarea"]')].find((x) => /Wyposażenie/.test(x.textContent));
       app.fieldsCKE[kit.dataset.id].setData('<p>Stare wyposażenie</p>');
+      const sheet = [...document.querySelectorAll('#blog-post-editor-fields-options [data-field-type="file"]')].find((x) => /Karta katalogowa/.test(x.textContent)).querySelector('input[name]');
+      sheet.value = 'stara.pdf';
+      sheet.dataset.value = 'images/stara.pdf';
     });
     await page.waitForTimeout(500);
     const was = await fields();
@@ -174,6 +186,8 @@ run(async ({ login, editor }) => {
     const back = await fields();
     check('restore: SKU, title, Producent (label and link) as before the import', back.sku === was.sku && back.title === was.title
       && JSON.stringify(back.maker) === JSON.stringify(was.maker), JSON.stringify([back, was]));
+    check('restore: the file field, its name and its path, as before', JSON.stringify(now.sheet) === JSON.stringify(['karta_XY-100.pdf', 'images/mt-test/karta_XY-100.pdf'])
+      && JSON.stringify(back.sheet) === JSON.stringify(['stara.pdf', 'images/stara.pdf']), JSON.stringify([now.sheet, back.sheet]));
     check('restore: the text editor fields as before', back.kit === was.kit && back.acc === was.acc && /Stare wyposażenie/.test(back.kit) && /Moje akcesoria/.test(back.acc),
       JSON.stringify([back.kit, back.acc]));
     check('restore: the price changed since, left as it is', back.price === '777.00', back.price);
@@ -239,6 +253,7 @@ run(async ({ login, editor }) => {
         delivery: [v('Dostawa', '[data-name="label"]'), v('Dostawa', '[data-name="link"]')],
         manual: [v('Instrukcja Metrel', '[data-name="label"]'), v('Instrukcja Metrel', '[data-name="link"]')],
         service: app.fieldsCKE[group('Serwis').dataset.id].getData(),
+        table: (() => { const el = group('Tabela porównawcza').querySelector('input[name]'); return [el.value, el.dataset.value]; })(),
       };
       document.querySelector('.mt-fake').remove();
       return out;
@@ -249,6 +264,7 @@ run(async ({ login, editor }) => {
     check('no javascript&colon; address', edge.delivery[1] === '', JSON.stringify(edge.delivery));
     check('a new label without an address: the old address gone', edge.manual[0] === 'Fluke' && edge.manual[1] === '', JSON.stringify(edge.manual));
     check('a text editor field: the document\'s HTML as text that stays text', !/<img/.test(edge.service) && /(‹|&lsaquo;)img src=x onerror=/.test(edge.service), edge.service);
+    check('an empty file field and another site\'s address: left empty, named as not filled', edge.table.join('') === '' && edgeSaid.some((n) => /Tabela porównawcza/.test(n)), JSON.stringify([edge.table, edgeSaid]));
     check('a button of a fixed label: no javascript: address, named as not filled', edge.button === '' && edgeSaid.some((n) => /MT Przycisk/.test(n)), JSON.stringify([edge.button, edgeSaid]));
     check('a price of three decimals kept', edge.price === '0.125', edge.price);
     check('a text field: no tag (Gridbox\'s editor writes it into value="…" as it is)', edge.notes === '‹b›uwaga‹/b› & reszta', edge.notes);

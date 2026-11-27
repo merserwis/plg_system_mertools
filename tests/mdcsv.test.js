@@ -23,7 +23,7 @@ const FIELDS = {
   'item-4': { id: 14, title: 'Promocja', field_type: 'date', params: {} },
   'item-5': { id: 15, title: 'Kolor', field_type: 'select', params: { items: [{ title: 'Czerwony' }, { title: 'Niebieski' }] } },
   'item-6': { id: 16, title: 'Zastosowanie', field_type: 'checkbox', params: { items: [{ title: 'Dom' }, { title: 'Przemysł' }, { title: 'Laboratorium' }] } },
-  'item-7': { id: 17, title: 'Karta katalogowa', field_type: 'file', params: {} },
+  'item-7': { id: 17, title: 'Karta katalogowa', field_type: 'file', params: { types: 'pdf, doc' } },
   'item-8': { id: 18, title: 'Uwagi', field_type: 'text', params: {} },
 };
 
@@ -49,7 +49,8 @@ const FIELDS = {
       'Promocja: 2026-12-31',
       'Kolor: niebieski',
       'Zastosowanie: dom, laboratorium, kosmos',
-      'Karta katalogowa: x.pdf',
+      'Karta katalogowa: /images/karty/x_1.pdf',
+      'Uwagi: zwykła uwaga',
       '',
       '## Cechy i funkcje',
       '',
@@ -75,7 +76,11 @@ const FIELDS = {
     check('a field with an editor: the section\'s HTML, raw HTML of the document as text', r.row['Cechy i funkcje'],
       '<ul><li>pomiar <strong>RCD</strong></li><li>‹script›alert(1)‹/script›</li></ul>');
     check('a field without an editor: its text', r.row['Dostępność'], 'Od ręki ‹b›teraz‹/b›');
-    check('a file field is no text: named as not fitting', r.failed, ['Karta katalogowa']);
+    check('a file field: the path from the site\'s root', [r.row['Karta katalogowa'], r.failed], ['images/karty/x_1.pdf', []]);
+    let other = await row('Karta katalogowa: https://inny.pl/x.pdf\nUwagi: a\n\n## Tekst\n\nb');
+    check('a file field: another site\'s address, named as not fitting', [other.row['Karta katalogowa'], other.failed], [undefined, ['Karta katalogowa']]);
+    other = await row('# Kamera\n\nUwagi: a\n\n## Karta katalogowa\n\nimages/x.exe');
+    check('a file field: a type the field does not take', [other.row['Karta katalogowa'], other.failed], [undefined, ['Karta katalogowa']]);
     check('the rest left out without a field chosen, and said', [r.left, Object.values(r.row).some((v) => String(v).includes('spoza'))], [true, false]);
     r = await row(doc, 'Cechy i funkcje', [], true);
     check('the rest into the chosen field, after its own section', r.row['Cechy i funkcje'],

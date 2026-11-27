@@ -3,6 +3,7 @@
 **Dostawa:** [d](javascript&colon;window.__mtx=3)
 **Instrukcja Metrel:** Fluke
 **Cena:** 0.125
+**Tabela porównawcza:** https://inny.example/tabela.pdf
 **Uwagi:** <b>uwaga</b> & reszta
 
 ## Allegro

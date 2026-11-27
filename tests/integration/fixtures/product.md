@@ -5,6 +5,10 @@
 **Producent:** [Sonel](index.php?option=com_gridbox&view=page&id=256)
 **Opis meta:** Miernik testowy XY-100 do sprawdzania importu produktu.
 
+## Karta katalogowa
+
+/images/mt-test/karta_XY-100.pdf
+
 ## Cechy i funkcje
 
 Miernik mierzy **pętlę zwarcia** i rezystancję izolacji.

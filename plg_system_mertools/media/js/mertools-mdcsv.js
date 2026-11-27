@@ -89,8 +89,14 @@
         const hit = String(textOf(e)).split(/[,;\n]/).map(pick).filter(Boolean);
         return hit.length ? hit.join(' / ') : null;
       }
+      case 'file': {
+        // as the import into one product: a path from the site's root, of a type the field takes (the CSV keeps it as it is)
+        const a = e.html ? firstLink(e.html) : null;
+        const path = md.filePath(e.link || (a ? a.link : String(textOf(e)).split('\n')[0].trim()), window.JUri || location.origin + '/', field.params && field.params.types);
+        return path || null;
+      }
       default:
-        return null; // files, galleries, videos, maps: not from a text
+        return null; // images, galleries, videos, maps: not from a text
     }
   };
 
