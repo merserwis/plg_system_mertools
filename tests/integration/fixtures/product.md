@@ -13,6 +13,8 @@
 
 Miernik mierzy **pętlę zwarcia** i rezystancję izolacji.
 
+[/images/mt-test/xy-100-widok-z-przodu.jpg]
+
 ### Bezpieczeństwo
 
 - kategoria CAT IV 300 V

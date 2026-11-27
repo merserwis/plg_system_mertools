@@ -2,6 +2,20 @@
 
 All changes of **MerTools for Gridbox**, newest first. Versions 0.0.x were beta versions; 1.0.0 is the first stable release. Each version is also published as a [GitHub release](https://github.com/merserwis/plg_system_mertools/releases) with its installation package.
 
+## 1.20.2 — 2026-11-27
+
+### 👁 Hidden fields out of sight in the product editor <!-- change -->
+
+A field hidden with the eye next to its name in the editor of a product (or a post) is no longer shown as a greyed name in the form. The form shows only the fields in use. To see the hidden ones, click Gridbox's *Show hidden elements* (the crossed-out eye in the editor's left bar; Gridbox greys out the left bar while the fields are open, and this one button now stays clickable there): they come back greyed, folded down to their names, and the eye of a field shows it again. The same button hides them again. A required field Gridbox finds empty on saving is shown as before. A field hidden with the keyboard passes the focus to the next field's eye.
+
+### 🖼 Markdown import: a picture by its path in brackets <!-- addition -->
+
+A line with nothing but a picture's path in square brackets, such as `[/images/produkt/miernik-widok-z-przodu.jpg]`, goes in as that picture, centred in the text. The file's name in words is its alternative text. It works for paths starting with `/` or `images/` and for full addresses, with jpg, png, gif, webp, avif and svg files. A bare file name without a path, or a path inside a sentence, stays text. The usual Markdown `![opis](/images/a.jpg)` works as before. The export writes such a centred picture back as `[path]`, so it comes back centred.
+
+### ⏱ Markdown import: a long run of spaces no longer stalls the editor <!-- fix -->
+
+A document with tens of thousands of spaces in one line (pasted from a PDF, for instance) made the browser stop for several seconds while the import read it. It is read at once now.
+
 ## 1.20.1 — 2026-11-27
 
 ### 📝 Markdown import: file fields, headings inside a field, plain tables <!-- addition -->

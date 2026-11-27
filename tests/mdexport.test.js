@@ -42,6 +42,9 @@ const check = (label, got, expected) => {
     await round('a quote', '<blockquote><p>Q</p></blockquote>');
     await round('a code block, its < kept', '<pre><code>x &lt;b&gt;\ny</code></pre>');
     await round('a rule', '<p>a</p><hr><p>b</p>');
+    await round('a centred picture alone, its alt its file\'s name: centred again', '<p style="text-align: center;"><img src="/images/p/xy-100_front.jpg" alt="xy 100 front"></p>');
+    check('…written as [path]', await md('<p style="text-align: center;"><img src="/images/p/xy-100_front.jpg" alt="xy 100 front"></p>'), '[/images/p/xy-100_front.jpg]');
+    await round('a centred picture of another alt: as ![alt](src), not centred', '<p style="text-align: center;"><img src="/images/p/a.jpg" alt="Widok"></p>', '<p><img src="/images/p/a.jpg" alt="Widok"></p>');
     await round('a table', '<table><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody><tr><td>U</td><td>230 V</td></tr></tbody></table>');
     await round('Markdown characters in the text stay text', '<p>2 * 3 = 6, a_b_c, [x], `y`, ~z~, a | b</p>');
     await round('a line beginning as a heading, a list, a quote, a number', '<p># one</p><p>- two</p><p>&gt; three</p><p>4. four</p><p>+ five</p>');

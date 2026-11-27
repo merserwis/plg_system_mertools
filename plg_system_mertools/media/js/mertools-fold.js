@@ -1,6 +1,7 @@
 /**
  * MerTools — folding the fields in the Gridbox editor of a page of an app (a product, a post): an eye
- * right of the name of every field hides the field down to its name; the eye again shows it. Which
+ * right of the name of every field hides the field; Gridbox's "show hidden elements" of the left bar shows the
+ * hidden ones, greyed, down to their names, and their eye shows a field again. Which
  * fields are folded is kept on the user's account (by the key of the field — the same in every page of
  * an app), so the next editor opens with the same fields folded, in any browser. An account that keeps
  * none yet takes over the folds this browser kept before (localStorage, MerTools 1.7.1–1.10). A required
@@ -66,8 +67,23 @@
     + group + ' .mt-fold:hover,' + group + ' .mt-fold:focus-visible,' + group + '.mt-folded .mt-fold{opacity:1}'
     + group + '>.blog-post-editor-group-element>label.ba-field-editor-label{padding-right:34px}'
     + group + '.mt-folded:not(.ba-alert-label)>.blog-post-editor-group-element>:not(label.ba-field-editor-label):not(.sorting-handle):not(.mt-fold){display:none!important}'
-    + group + '.mt-folded:not(.ba-alert-label)>.blog-post-editor-group-element>label.ba-field-editor-label{margin-bottom:0!important}';
+    + group + '.mt-folded:not(.ba-alert-label)>.blog-post-editor-group-element>label.ba-field-editor-label{margin-bottom:0!important}'
+    // a folded field is out of sight; Gridbox's "show hidden elements" of the left bar shows it, greyed, with its eye
+    + 'body:not(.mt-show-folded) ' + group + '.mt-folded:not(.ba-alert-label){display:none!important}'
+    + 'body.mt-show-folded ' + group + '.mt-folded:not(.ba-alert-label)>.blog-post-editor-group-element{opacity:.45}'
+    + 'body.mt-show-folded ' + group + '.mt-folded:not(.ba-alert-label)>.blog-post-editor-group-element:hover{opacity:1}'
+    // Gridbox turns the left bar off while the fields are open: its toggle of hidden elements stays on, for them
+    + '.com_gridbox.enabled-fields-tab .top-icons>span.show-hidden-elements,.com_gridbox.enabled-fields-tab .top-icons>span.hide-hidden-elements{pointer-events:auto;opacity:1}';
   document.head.append(style);
+
+  // Gridbox's toggle: its "hide" button is the one shown while hidden elements are shown
+  const showing = () => { const b = document.querySelector('.hide-hidden-elements'); return !!b && b.style.display !== 'none'; };
+  const follow = () => document.body.classList.toggle('mt-show-folded', showing());
+  follow();
+  // after Gridbox's own handler of the click (bound on the buttons, so before this one on the document)
+  document.addEventListener('click', (e) => {
+    if (e.target.closest && e.target.closest('.show-hidden-elements, .hide-hidden-elements')) requestAnimationFrame(follow);
+  });
 
   const paint = (field, button) => {
     const on = folded.has(field.dataset.fieldKey);
@@ -100,6 +116,13 @@
       const fold = !folded.has(key);
       if (fold) folded.add(key); else folded.delete(key);
       paint(field, button);
+      // a field folded out of sight takes its eye with it: the focus goes to the next field's eye
+      if (fold && !document.body.classList.contains('mt-show-folded') && document.activeElement === button) {
+        const fields = [...document.querySelectorAll(group + '[data-mt-fold]')];
+        const next = fields.slice(fields.indexOf(field) + 1).concat(fields.slice(0, fields.indexOf(field)).reverse())
+          .map((f) => f.querySelector(':scope > .blog-post-editor-group-element > .mt-fold')).find((b) => b && b.offsetParent !== null);
+        if (next) next.focus();
+      }
       // editors, maps and sliders shown again measure themselves on a resize
       if (!fold) window.dispatchEvent(new Event('resize'));
       send({ mertools_fold: 'toggle', key, fold: fold ? '1' : '0' });

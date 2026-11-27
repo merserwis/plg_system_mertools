@@ -266,6 +266,10 @@
 
   // ------------------------------------------------------------------ blocks
 
+  // a picture by its path in brackets, alone in a paragraph, and its alt: the file's name in words
+  const PIC = /^\[\s*((?:\/|https?:\/\/|images\/)[^\]]*?\.(?:jpe?g|png|gif|webp|avif|svg))\s*\]$/i;
+  const picAlt = (src) => src.split('/').pop().replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim();
+
   const BLANK = /^\s*$/;
   const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
   const ATX = /^ {0,3}(#{1,6})(?:[ \t]+(.*?))?(?:[ \t]+#+)?[ \t]*$/;
@@ -298,6 +302,8 @@
     return cells;
   };
 
+  // the spaces and tabs at the end of a text cut (/[ \t]+$/ tries again at every space of a long run inside it)
+  const trimEnd = (t) => { let e = t.length; while (e && (t[e - 1] === ' ' || t[e - 1] === '\t')) e--; return t.slice(0, e); };
   // quotes and lists inside each other go no deeper than this; deeper ones are text
   const DEPTH = 20;
   // a [ is a link only when its ] is near
@@ -308,7 +314,7 @@
     let para = [];
     let i = 0;
     const flush = () => {
-      if (para.length) nodes.push({ type: 'p', text: para.join('\n').replace(/[ \t]+$/, '') });
+      if (para.length) nodes.push({ type: 'p', text: trimEnd(para.join('\n')) });
       para = [];
     };
     while (i < lines.length) {
@@ -347,7 +353,7 @@
       if (para.length) {
         const setext = /^ {0,3}(=+|-+)[ \t]*$/.exec(line);
         if (setext) {
-          nodes.push({ type: 'h', level: setext[1][0] === '=' ? 1 : 2, text: para.join('\n').replace(/[ \t]+$/, '') });
+          nodes.push({ type: 'h', level: setext[1][0] === '=' ? 1 : 2, text: trimEnd(para.join('\n')) });
           para = [];
           i++;
           continue;
@@ -466,7 +472,15 @@
 
   const render = (node, refs) => {
     switch (node.type) {
-      case 'p': return '<p>' + inline(node.text, refs) + '</p>';
+      case 'p': {
+        // "[/images/x/a.jpg]" alone in a paragraph (a picture of the site or the web, by its path): that picture, centred
+        const pic = PIC.exec(node.text);
+        // a path broken over lines joined (each run of spaces read once: no time spent on a long one)
+        const src = pic ? pic[1].replace(/\s+/g, (w) => (w.includes('\n') ? '' : w)) : '';
+        if (pic && safeUrl(src) && !refs[refKey(pic[1])]) return '<p style="text-align: center;"><img src="' + href(src) + '" alt="' + esc(picAlt(src)) + '"></p>';
+
+        return '<p>' + inline(node.text, refs) + '</p>';
+      }
       case 'h': {
         const level = Math.max(2, node.level); // the title of the post is the one h1
 
@@ -818,7 +832,11 @@
           const t = headingText(inlineMd(n).replace(/\\\n/g, ' ').trim());
           if (t) out.push('#'.repeat(Math.max(minLevel, +tag[1])) + ' ' + t);
         } else if (tag === 'P' || tag === 'DT' || tag === 'DD' || tag === 'ADDRESS' || tag === 'FIGCAPTION') {
-          if ([...n.children].some((c) => BLOCK.test(c.tagName))) blocksOf(n, out);
+          // a centred picture alone, its alt its file's name: back as "[path]", which the import makes the same
+          const img = tag === 'P' && /^center$/i.test(n.style.textAlign) && n.children.length === 1 && n.children[0].tagName === 'IMG' && !n.textContent.trim() ? n.children[0] : null;
+          const src = img ? (img.getAttribute('src') || '').trim() : '';
+          if (img && !/\s/.test(src) && PIC.test('[' + src + ']') && (img.getAttribute('alt') || '') === picAlt(src)) out.push('[' + src + ']');
+          else if ([...n.children].some((c) => BLOCK.test(c.tagName))) blocksOf(n, out);
           else { const t = para(inlineMd(n)); if (t) out.push(t); }
         } else if (tag === 'UL' || tag === 'OL') out.push(list(n));
         else if (tag === 'BLOCKQUOTE') { const inner = []; blocksOf(n, inner); if (inner.length) out.push(inner.join('\n\n').replace(/^/gm, '> ').replace(/^> $/gm, '>')); }
@@ -1006,7 +1024,7 @@
       const out = () => { const v = el.value.trim(); return money && /^-?\d+\.\d{3}$/.test(v) ? v + '0' : v; };
 
       return { label, snap: snapValue(el), get: () => el.value.trim(), out, set: (e) => {
-        const text = asText(e).replace(/\s*\n\s*/g, ' ');
+        const text = asText(e).replace(/\s+/g, (w) => (w.includes('\n') ? ' ' : w));
         const v = money ? amount(text) : safeText(text);
         if (v === '') return false;
         el.value = v;

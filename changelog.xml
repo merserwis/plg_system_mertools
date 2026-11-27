@@ -3,6 +3,32 @@
     <changelog>
         <element>pkg_mertools</element>
         <type>package</type>
+        <version>1.20.2</version>
+        <fix>
+            <item>Markdown import: a long run of spaces no longer stalls the editor</item>
+        </fix>
+        <addition>
+            <item>Markdown import: a picture by its path in brackets</item>
+            <item>1.20.1: Markdown import: file fields, headings inside a field, plain tables</item>
+            <item>1.20.0: Markdown export of pages, posts and products</item>
+            <item>1.20.0: Many Markdown documents as products at once</item>
+            <item>1.20.0: AI bots: robots.txt and llms.txt</item>
+            <item>1.20.0: Vimeo films loaded only when played</item>
+            <item>1.20.0: Gridbox's video picture when YouTube has no large one</item>
+            <item>1.20.0: Tables of the site: character set, leftover permission rows, free space</item>
+            <item>1.20.0: With Gridbox's *Compress JavaScript*</item>
+        </addition>
+        <change>
+            <item>Hidden fields out of sight in the product editor</item>
+        </change>
+        <note>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases/tag/v1.20.2" target="_blank" rel="noopener noreferrer">The full list of changes of 1.20.2 (GitHub)</a>]]></item>
+            <item><![CDATA[<a href="https://github.com/merserwis/plg_system_mertools/releases" target="_blank" rel="noopener noreferrer">All versions and their changes (GitHub releases)</a>]]></item>
+        </note>
+    </changelog>
+    <changelog>
+        <element>pkg_mertools</element>
+        <type>package</type>
         <version>1.20.1</version>
         <addition>
             <item>Markdown import: file fields, headings inside a field, plain tables</item>

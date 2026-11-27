@@ -94,6 +94,7 @@ run(async ({ login, editor }) => {
     check('Producent: label and link', form.maker[0] === 'Sonel' && form.maker[1] === 'index.php?option=com_gridbox&view=page&id=256', JSON.stringify(form.maker));
     check('Karta katalogowa: the path of the file from the site\'s root, its name shown', JSON.stringify(form.sheet) === JSON.stringify(['karta_XY-100.pdf', 'images/mt-test/karta_XY-100.pdf']), JSON.stringify(form.sheet));
     check('Cechy i funkcje: text with its sub-heading and list', /pętlę zwarcia/.test(form.features) && /<h3>Bezpieczeństwo<\/h3>/.test(form.features) && /IP54/.test(form.features), form.features);
+    check('Cechy i funkcje: a picture by its path in brackets, an img centred', /<p style="text-align: ?center;?"><img alt="xy 100 widok z przodu" src="\/images\/mt-test\/xy-100-widok-z-przodu\.jpg" ?\/?><\/p>|<p style="text-align: ?center;?"><img src="\/images\/mt-test\/xy-100-widok-z-przodu\.jpg" alt="xy 100 widok z przodu" ?\/?><\/p>/.test(form.features), form.features);
     check('Dane techniczne: the table', /<table/.test(form.tech) && /0(–|&ndash;)10 G(Ω|&Omega;)/.test(form.tech), form.tech);
     check('Wyposażenie and Akcesoria: lists', /futerał/.test(form.kit) && /<li>adapter EVSE-01<\/li>/.test(form.acc), JSON.stringify([form.kit, form.acc]));
     check('no Akcesoria in Wyposażenie', !/EVSE/.test(form.kit), form.kit);

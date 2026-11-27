@@ -127,7 +127,7 @@ Gridbox works out the discount badge from the regular and the sale price, but th
 
 ### 👁 Folding the fields in the editor
 
-An eye right of the name of every field in the Gridbox editor of a product (or a post) folds the field down to its name; another click shows it again. The user's account remembers which fields are folded, so every other product of the app opens with the same ones folded, in any browser and on any computer (the folds a browser kept before 1.11 are taken over by the account the first time). A required field Gridbox finds empty on saving is shown even when folded; nothing is saved with the page. On by default, tab *Shop*.
+An eye right of the name of every field in the Gridbox editor of a product (or a post) hides the field, so the form shows only the fields in use. Gridbox's *Show hidden elements* (the crossed-out eye in the editor's left bar) shows the hidden fields again, greyed and folded down to their names; the eye of a field shows it for good (1.20.2; before, a folded field always stayed in the form as its name). The user's account remembers which fields are folded, so every other product of the app opens with the same ones folded, in any browser and on any computer (the folds a browser kept before 1.11 are taken over by the account the first time). A required field Gridbox finds empty on saving is shown even when folded; nothing is saved with the page. On by default, tab *Shop*.
 
 ### 💬 Shop — price on request
 
@@ -234,6 +234,7 @@ Everything under a heading that is no field goes into the content of the item's 
 - The store's own fields of a product are also found by their common names: *SKU / Kod / Kod produktu / Symbol / Indeks / Numer katalogowy / MPN* → SKU, *Cena / Price* → Price, *Cena promocyjna / Sale price* → Sale price, *Stan / Stan magazynowy / Stock* → Stock, *Minimalna ilość / Min. qty* → Minimum quantity.
 - Fields filled: text, number, price, date, text area (with CKEditor or JCE), URL and button (the address and text of a link: `[Sonel](/sonel)`, or the first link of a section), select and radio (by the name of an option), checkbox (several options separated by commas), file (1.20.1; a path on the site, such as `/images/karty/x.pdf` or its full address, of a type the field accepts; the file itself is not checked or uploaded).
 - Tables are plain `<table>` elements, styled by the theme.
+- A line with only a picture's path in brackets, `[/images/produkt/a.jpg]`, becomes that picture, centred, its file name in words as the alternative text (1.20.2).
 - Amounts are read exactly — `6 950,00 zł` is 6950.00, `0.125` stays 0.125. One that can be read two ways (`6.950`) or has other figures around it (`100 zł + 23% VAT`) is not filled in, and the notice names the field.
 - When fields have content already, the editor asks before replacing it; *Cancel* fills only the empty ones. A new link text without an address does not keep the address of the old one.
 - What fits no field goes into the content of the item's page, and the notice says how much.

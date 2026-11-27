@@ -215,6 +215,23 @@ check('a field under #: its ## and ### headings and table in it, the next field\
     ['Dane techniczne', '<p>C</p>']],
   [{ type: 'headline', level: 2, text: 'Coś innego' }, { type: 'text', html: '<p>D</p>' }, { type: 'headline', level: 2, text: 'Strona' }, { type: 'text', html: '<p>E</p>' }]]);
 
+// ---- "[/images/…/a.jpg]" alone in a paragraph: that picture, centred
+check('a picture by its path in brackets: an img, centred, its name as alt', html('[/images/produkt/gw-instek/daq-1000_widok-z-przodu.jpg]'),
+  '<p style="text-align: center;"><img src="/images/produkt/gw-instek/daq-1000_widok-z-przodu.jpg" alt="daq 1000 widok z przodu"></p>');
+check('…its path broken over two lines, a full address, images/ without "/"', [html('[/images/produkt/\nb.png]'), html('[https://x.pl/a b.webp]'), html('[images/c.JPG]')], [
+  '<p style="text-align: center;"><img src="/images/produkt/b.png" alt="b"></p>', '<p style="text-align: center;"><img src="https://x.pl/a%20b.webp" alt="a b"></p>',
+  '<p style="text-align: center;"><img src="images/c.JPG" alt="c"></p>']);
+check('…not: a bare name, not a picture, in a sentence, javascript:, a quote kept in the attribute', [html('[a.jpg]'), html('[/docs/a.pdf]'), html('Zobacz [/images/a.jpg] tu'),
+  html('[javascript:alert(1)//a.jpg]'), html('[/images/a"onerror="x.jpg]').includes('onerror="x')], ['<p>[a.jpg]</p>', '<p>[/docs/a.pdf]</p>', '<p>Zobacz [/images/a.jpg] tu</p>',
+  '<p>[javascript:alert(1)//a.jpg]</p>', false]);
+
+check('…not: a reference of that name stays a link', html('[/images/a.jpg]\n\n[/images/a.jpg]: /docs/info'), '<p><a href="/docs/info">/images/a.jpg</a></p>');
+const slowPic = (label, md) => { const t = Date.now(); html(md); check('fast: ' + label, Date.now() - t < 500, true); };
+slowPic('60000 spaces in a path in brackets', '[/images/a' + '\u2003'.repeat(60000) + 'b.jpg]');
+slowPic('60000 spaces, no picture', '[/images/a' + ' '.repeat(60000) + 'b.jpg');
+slowPic('60000 spaces inside a paragraph, a heading under it', 'a' + ' '.repeat(60000) + 'b  \n===');
+check('the spaces at a paragraph\'s end cut, inside it kept', html('a  b \t'), '<p>a  b</p>');
+
 // ---- the path a file field keeps
 const ROOT = 'https://x.pl/';
 check('file paths: from the site\'s root, no "/" before it', ['/images/a b.pdf', 'images/a.pdf', 'https://x.pl/images/a.pdf', 'HTTPS://X.PL/images/a.PDF'].map((u) => filePath(u, ROOT, 'pdf')),
